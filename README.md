@@ -1,4 +1,5 @@
-https://raw.githubusercontent.com/Rexamm1t/NextRAM/refs/heads/main/github/IMG_20250907_140904.jpg
+![elogo](https://raw.githubusercontent.com/Rexamm1t/NextRAM/refs/heads/main/github/IMG_20250907_140904.jpg)
+
 <div id="badges">
   <a 
 href="https://t.me/rexamm1t_channel"
