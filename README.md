@@ -21,19 +21,11 @@ A powerful Magisk module that enhances Android device performance through intell
 ## 📦 Installation & Setup
 
 1. **Download** the latest release from our GitHub repository
-2. **Install** through Magisk Manager as a standard module
+2. **Install** through Magisk Manager
 3. **Reboot** your device to activate NextRAM
-4. **Access Web Interface** by navigating to `http://localhost:8080` in your browser
-5. **Configure** settings through the intuitive web dashboard
+4. **Configure** settings in apk manager 
 
-## 🌐 Web Interface
-
-NextRAM includes a comprehensive web-based management system:
-
-- **Real-time Statistics** - Monitor memory usage and compression efficiency
-- **One-click Optimization** - Apply optimized settings with single clicks
-- **Performance Analytics** - View historical performance data and trends
-- **Configuration Profiles** - Save and load different optimization profiles
+enjoy)
 
 ## 🔧 Supported Compression Algorithms
 
@@ -58,7 +50,7 @@ The module automatically tests and selects the optimal compression method:
 
 ## 📋 System Requirements
 
-- **Android Version**: 5.0+ (Lollipop and newer)
+- **Android Version**: 8.0+ (OREO and newer)
 - **Architecture Support**: ARM, ARM64, x86, x86_64
 - **Kernel Features**: ZRAM support and loop device capability
 - **Root Access**: Magisk 20.4 or newer required
@@ -77,17 +69,6 @@ The module automatically tests and selects the optimal compression method:
 - **Fallback Mechanisms** - Automatic recovery from failed optimizations
 - **Hardware Detection** - Adaptive settings based on device capabilities
 - **Battery Optimization** - Balanced performance and power efficiency
-
-## 📞 Support & Community
-
-- **Documentation**: Comprehensive guides available on GitHub Wiki
-- **Issue Tracking**: Report bugs or request features on GitHub Issues
-- **Community Forum**: Join discussions with other NextRAM users
-- **Regular Updates**: Continuous improvements and new features
-
-## 📄 License
-
-NextRAM is released under the MIT License - see the LICENSE file for complete details.
 
 ---
 
