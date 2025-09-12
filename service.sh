@@ -1,28 +1,47 @@
 #!/system/bin/sh
 
-SWAP_ENABLED=false
-SWAP_SIZE_GB=1.0
-OVERHEAD_GB=0.3
-ZRAM_ENABLED=true
-ZRAM_RATIO=0.70
-ZRAM_ALGORITHM=zstd
-MAX_COMP_STREAMS=8
-SWAPPINESS=90
-CACHE_PRESSURE=20
-DIRTY_RATIO=20
-DIRTY_BACKGROUND_RATIO=5
-EXTRA_TUNING=true
-DYNAMIC_SWAPPINESS=true
-PERFORMANCE_MODE=false
-ZRAM_AUTO_TUNE=false
-LOG_LEVEL="INFO"
-
 MODDIR=${0%/*}
+
+cat $MODDIR/config.conf >/dev/null 2>&1 || touch $MODDIR/config.conf
+
+. $MODDIR/config.conf
+
+LIST_VAR='
+SWAP_ENABLED:false
+SWAP_SIZE_GB:1.0
+OVERHEAD_GB:0.3
+ZRAM_ENABLED:true
+ZRAM_RATIO:0.70
+ZRAM_ALGORITHM:zstd
+MAX_COMP_STREAMS:8
+SWAPPINESS:85
+CACHE_PRESSURE:20
+DIRTY_RATIO:20
+DIRTY_BACKGROUND_RATIO:5
+EXTRA_TUNING:false
+DYNAMIC_SWAPPINESS:false
+PERFORMANCE_MODE:false
+ZRAM_AUTO_TUNE:false
+LOG_LEVEL:"INFO"
+'
+
+for var in $LIST_VAR; do
+    variable="${var%%:*}"
+    value="${var#*:}"
+    
+    if [ -z "$(eval echo \$$variable)" ]; then
+        echo "$variable=$value" >> $MODDIR/config.conf
+        eval "$variable=\"$value\""
+    fi
+done
+
 TOYBOX="${MODDIR}/bin/toybox"
 LOG_DIR="$MODDIR/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/nextram_$(date +%Y%m%d_%H%M%S).log"
 MAX_LOG_FILES=5
+
+. $MODDIR/config.conf
 
 ZRAM_DEV="/dev/block/zram0"
 SYS_ZRAM="/sys/block/zram0"
