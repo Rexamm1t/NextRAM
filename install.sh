@@ -30,7 +30,6 @@ on_install() {
 
   ui_print "Extracting files"
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
-  unzip -o "$ZIPFILE" 'webroot/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'bin/*' -d $MODPATH >&2
 
@@ -48,7 +47,5 @@ set_permissions() {
   set_perm $MODPATH/service.sh 0 0 0755
   set_perm $MODPATH/action.sh 0 0 0755
   set_perm $MODPATH/uninstall.sh 0 0 0755
-  set_perm $MODPATH/webroot 0 0 0755
-  set_perm $MODPATH/webroot/index.html 0 0 0755
   ui_print "Installation completed successfully"
 }
