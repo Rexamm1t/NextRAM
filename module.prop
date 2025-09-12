@@ -5,3 +5,4 @@ versionCode=80
 author=@rexamm1t, @matrix_5858
 description=💫This powerful module will allow you to use Swap technology with minimal eMMC wear. It also features optimized zRAM support.✨ Subscribe to my telegram) - @rexamm1t_channel
 minMagisk=24000
+updateJson=https://raw.githubusercontent.com/Rexamm1t/NextRAM/refs/heads/main/update.json
