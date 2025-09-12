@@ -14,7 +14,7 @@ A powerful Magisk module that enhances Android device performance through intell
 - **🤖 Automatic Memory Optimization** - Self-configuring based on your device's hardware capabilities
 - **⚡ Dual Compression Technology** - Intelligent ZRAM and swap management working in harmony
 - **📊 Real-time Monitoring** - Comprehensive memory analytics with detailed performance logging
-- **🔧 Web Management Interface** - Easy configuration through browser-based dashboard (port 8080)
+- **🔧 Apk Manager Interface** - easy setup thanks to our application (it is installed during module installation)
 - **🎯 Smart Algorithm Selection** - Automatic testing and optimization of compression algorithms
 - **📈 Performance Profiles** - Adaptive tuning for balanced, performance, or battery-focused operation
 
