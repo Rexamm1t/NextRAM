@@ -3,7 +3,9 @@
 ![NextRAM Banner](https://img.shields.io/badge/NextRAM-Smart%20Memory%20Optimization-blue?style=for-the-badge)
 ![Magisk](https://img.shields.io/badge/Magisk-20.4%2B-00B39B?style=for-the-badge&logo=android)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android)
-<a href="https://t.me/rexamm1t_channel"><img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge" /></a><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a>
+<a href="https://t.me/rexamm1t_channel"><img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge" /></a>
+
+<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a></p></center>
 
 A powerful Magisk module that enhances Android device performance through intelligent memory management, ZRAM optimization, and kernel-level tuning.
 
