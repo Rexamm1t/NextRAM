@@ -7,11 +7,13 @@ href="https://t.me/rexamm1t_channel"
   <a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a>
 </div>
 
-NextRam is a powerful Magisk module that enhances Android performance through intelligent management of ZRAM and swap file. It automatically adjusts optimal swap settings, improving multitasking and reducing lags on devices with low RAM.  
+
+
+NextRam  - is a powerful Magisk module that enhances Android performance through intelligent management of ZRAM and swap file. It automatically adjusts optimal swap settings, improving multitasking and reducing lags on devices with low RAM.  
 
 
 
-Main functions;
+Main functions:
 
 Automatic zRam configuration
 
