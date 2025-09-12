@@ -7,29 +7,94 @@ href="https://t.me/rexamm1t_channel"
   <a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a>
 </div>
 
+# NextRAM - Advanced Memory Optimization Magisk Module
 
+![NextRAM Banner](https://img.shields.io/badge/NextRAM-Smart%20Memory%20Optimization-blue?style=for-the-badge)
+![Magisk](https://img.shields.io/badge/Magisk-20.4%2B-00B39B?style=for-the-badge&logo=android)
+![Android](https://img.shields.io/badge/Android-5.0%2B-3DDC84?style=for-the-badge&logo=android)
 
-NextRam  - is a powerful Magisk module that enhances Android performance through intelligent management of ZRAM and swap file. It automatically adjusts optimal swap settings, improving multitasking and reducing lags on devices with low RAM.  
+A powerful Magisk module that enhances Android device performance through intelligent memory management, ZRAM optimization, and kernel-level tuning.
 
+## ✨ Key Features
 
+- **🤖 Automatic Memory Optimization** - Self-configuring based on your device's hardware capabilities
+- **⚡ Dual Compression Technology** - Intelligent ZRAM and swap management working in harmony
+- **📊 Real-time Monitoring** - Comprehensive memory analytics with detailed performance logging
+- **🔧 Web Management Interface** - Easy configuration through browser-based dashboard (port 8080)
+- **🎯 Smart Algorithm Selection** - Automatic testing and optimization of compression algorithms
+- **📈 Performance Profiles** - Adaptive tuning for balanced, performance, or battery-focused operation
 
-Main functions:
+## 📦 Installation & Setup
 
-Automatic zRam configuration
+1. **Download** the latest release from our GitHub repository
+2. **Install** through Magisk Manager as a standard module
+3. **Reboot** your device to activate NextRAM
+4. **Access Web Interface** by navigating to `http://localhost:8080` in your browser
+5. **Configure** settings through the intuitive web dashboard
 
-- Dynamically selects the best compression algorithm (zstd → lz4 → lzo → lz4hc → deflate).  
-- The optimal size of ZRAM (by default, 65% of the RAM, can be changed).  
-- Full support for old and new cores (if ZRAM is unavailable, the module will continue to work with the swap file).
+## 🌐 Web Interface
 
+NextRAM includes a comprehensive web-based management system:
 
-Smart swap file
+- **Real-time Statistics** - Monitor memory usage and compression efficiency
+- **One-click Optimization** - Apply optimized settings with single clicks
+- **Performance Analytics** - View historical performance data and trends
+- **Configuration Profiles** - Save and load different optimization profiles
 
-- Creates a swap file in the module folder
-- Free space monitoring – will not be activated if there is insufficient memory.  
-- Automatic mounting after reboot (added to fstab).  
-- Does not activate when the battery is low (<15%).  
+## 🔧 Supported Compression Algorithms
 
-Compatibility
+The module automatically tests and selects the optimal compression method:
 
-- Supports different file systems (ext4, F2FS, etc.).
-- Takes into account SELinux (tries to set the correct context).
+- **zstd** - High compression ratio (recommended)
+- **lz4** - Balanced performance
+- **lzo** - Fast compression
+- **lzo-rle** - Optimized version of LZO
+- **deflate** - Standard compression
+- **lz4hc** - High compression LZ4 variant
+- **842** - Specialized algorithm
+- **z3fold** - Advanced compression technique
+
+## 📊 Advanced Features
+
+- **Dynamic Swappiness Adjustment** - Automatic tuning based on available memory
+- **Kernel Parameter Optimization** - Fine-tuned system settings for maximum performance
+- **Compression Ratio Monitoring** - Real-time efficiency tracking
+- **Multi-stream Compression** - Parallel processing for faster operations
+- **Log Management** - Comprehensive logging with configurable levels
+
+## 📋 System Requirements
+
+- **Android Version**: 5.0+ (Lollipop and newer)
+- **Architecture Support**: ARM, ARM64, x86, x86_64
+- **Kernel Features**: ZRAM support and loop device capability
+- **Root Access**: Magisk 20.4 or newer required
+- **Storage**: Minimal space requirements with efficient memory usage
+
+## ⚡ Performance Benefits
+
+- **Reduced App Reloads** - Better multitasking with improved memory management
+- **Smoother UI Experience** - Enhanced system responsiveness
+- **Optimized Gaming Performance** - Better memory allocation for games
+- **Extended Device Lifespan** - Reduced memory pressure on hardware
+
+## 🔒 Safety & Compatibility
+
+- **Automatic Safety Checks** - Prevents incompatible configurations
+- **Fallback Mechanisms** - Automatic recovery from failed optimizations
+- **Hardware Detection** - Adaptive settings based on device capabilities
+- **Battery Optimization** - Balanced performance and power efficiency
+
+## 📞 Support & Community
+
+- **Documentation**: Comprehensive guides available on GitHub Wiki
+- **Issue Tracking**: Report bugs or request features on GitHub Issues
+- **Community Forum**: Join discussions with other NextRAM users
+- **Regular Updates**: Continuous improvements and new features
+
+## 📄 License
+
+NextRAM is released under the MIT License - see the LICENSE file for complete details.
+
+---
+
+**Experience the next level of Android memory optimization with NextRAM - where performance meets intelligence!**
