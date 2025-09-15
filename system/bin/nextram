@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
 MODDIR="/data/adb/modules/NextRAM"
-POST_FS_DATA="$MODDIR/service.sh"
+POST_FS_DATA="$MODDIR/config.conf"
 
 get_config() {
     grep -E "^$1=" "$POST_FS_DATA" | cut -d= -f2
