@@ -1,4 +1,4 @@
-# NextRAM v8.0 - Changelog
+# NextRAM v8.0 - 36d8e2
 
 1. Added manager app
 2. Mobile app integration through API
