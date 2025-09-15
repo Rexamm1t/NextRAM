@@ -1,5 +1,5 @@
-# NextRAM v8.0 - 36d8e2
-
+## NextRAM v8.0-beta0 - 0e41525
+___
 1. Added manager app
 2. Mobile app integration through API
 3. Automatic ZRAM compression algorithm selection
@@ -20,3 +20,4 @@
 18. Improved stability under high load
 19. Optimized memory compression algorithms
 20. Added automatic kernel parameter tuning
+___
