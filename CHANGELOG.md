@@ -1,4 +1,4 @@
-## NextRAM v8.0-beta0 - 0e41525
+## NextRAM v8.0-beta0 - 4b038af
 ___
 1. Added manager app
 2. Mobile app integration through API
