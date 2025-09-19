@@ -1,6 +1,6 @@
 ## NextRAM v8.0 - STABLE - a1ad389
 
-###update system/bin/nextram
+### update system/bin/nextram
 - Input data validation (numbers, ranges, algorithms)
 - Error handling with exit codes
 - Logging of all operations
