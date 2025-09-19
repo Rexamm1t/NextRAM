@@ -2,13 +2,113 @@
 
 MODDIR="/data/adb/modules/NextRAM"
 POST_FS_DATA="$MODDIR/config.conf"
+LOG_FILE="$MODDIR/nextram.log"
+
+SUCCESS=0
+INVALID_ARG=1
+MISSING_ARG=2
+INVALID_VALUE=3
+FILE_MISSING=4
+DEPENDENCY_MISSING=5
+OPERATION_FAILED=6
+
+log_message() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+validate_number() {
+    if ! echo "$1" | grep -qE '^[0-9]+(\.[0-9]+)?$'; then
+        echo "ERROR: '$1' is not a valid number."
+        exit $INVALID_VALUE
+    fi
+}
+
+validate_integer() {
+    if ! echo "$1" | grep -qE '^[0-9]+$'; then
+        echo "ERROR: '$1' is not a valid integer."
+        exit $INVALID_VALUE
+    fi
+}
+
+validate_range() {
+    validate_number "$1"
+    if [ "$(echo "$1 < $2" | bc -l)" -eq 1 ] || [ "$(echo "$1 > $3" | bc -l)" -eq 1 ]; then
+        echo "ERROR: Value must be between $2 and $3."
+        exit $INVALID_VALUE
+    fi
+}
+
+validate_swappiness() {
+    validate_range "$1" 0 100
+}
+
+validate_algorithm() {
+    if [ -b "/dev/block/zram0" ] && [ -f "/sys/block/zram0/comp_algorithm" ]; then
+        AVAILABLE_ALGS=$(cat /sys/block/zram0/comp_algorithm | sed 's/\[//g;s/\]//g')
+        if ! echo "$AVAILABLE_ALGS" | grep -qw "$1"; then
+            echo "ERROR: Algorithm '$1' is not available."
+            echo "Available algorithms: $AVAILABLE_ALGS"
+            exit $INVALID_VALUE
+        fi
+    else
+        echo "WARNING: Cannot verify algorithm availability. ZRAM device not accessible."
+    fi
+}
+
+check_dependencies() {
+    local deps="grep sed cat bc"
+    for dep in $deps; do
+        if ! command -v "$dep" >/dev/null 2>&1; then
+            echo "ERROR: Dependency '$dep' not found."
+            exit $DEPENDENCY_MISSING
+        fi
+    done
+}
+
+set_config() {
+    local key="$1"
+    local value="$2"
+    
+    if [ ! -f "$POST_FS_DATA" ]; then
+        echo "ERROR: Configuration file not found."
+        exit $FILE_MISSING
+    fi
+    
+    cp "$POST_FS_DATA" "$POST_FS_DATA.bak" 2>/dev/null
+    
+    if grep -q "^$key=" "$POST_FS_DATA"; then
+        sed -i "s/^$key=.*/$key=$value/" "$POST_FS_DATA"
+    else
+        echo "$key=$value" >> "$POST_FS_DATA"
+    fi
+    
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to update configuration."
+        mv "$POST_FS_DATA.bak" "$POST_FS_DATA" 2>/dev/null
+        exit $OPERATION_FAILED
+    fi
+    
+    log_message "Config changed: $key=$value"
+}
 
 get_config() {
     grep -E "^$1=" "$POST_FS_DATA" | cut -d= -f2
 }
 
-set_config() {
-    sed -i "s/^$1=.*/$1=$2/" "$POST_FS_DATA"
+confirm_action() {
+    local action="$1"
+    echo "WARNING: $action"
+    printf "Are you sure you want to continue? (y/N): "
+    read -r response
+    case "$response" in
+        [yY][eE][sS]|[yY])
+            return 0
+            ;;
+        *)
+            echo "Operation cancelled."
+            exit $SUCCESS
+            ;;
+    esac
 }
 
 show_status() {
@@ -30,21 +130,26 @@ show_status() {
     echo "Dynamic Swappiness: $(get_config DYNAMIC_SWAPPINESS)"
     echo "Performance Mode: $(get_config PERFORMANCE_MODE)"
     echo "ZRAM Auto Tune: $(get_config ZRAM_AUTO_TUNE)"
+    echo " "
+    echo "Config file: $POST_FS_DATA"
+    echo "Log file: $LOG_FILE"
 }
 
 show_available_algorithms() {
     if [ -b "/dev/block/zram0" ] && [ -f "/sys/block/zram0/comp_algorithm" ]; then
         echo "Available ZRAM compression algorithms:"
         AVAILABLE_ALGS=$(cat /sys/block/zram0/comp_algorithm | sed 's/\[//g;s/\]//g')
+        CURRENT_ALG=$(get_config ZRAM_ALGORITHM)
         for ALG in $AVAILABLE_ALGS; do
-            if [ "$ALG" = "$(get_config ZRAM_ALGORITHM)" ]; then
-                echo "  $ALG (currently selected)"
+            if [ "$ALG" = "$CURRENT_ALG" ]; then
+                echo "  $ALG (current)"
             else
                 echo "  $ALG"
             fi
         done
     else
-        echo "ZRAM device not available. Cannot check algorithms."
+        echo "ERROR: ZRAM device not available. Cannot check algorithms."
+        exit $OPERATION_FAILED
     fi
 }
 
@@ -58,25 +163,25 @@ show_help() {
     echo "                    ===  Commands ==="
     echo " "
     echo "                      --Attention!--"
-    echo "The <choice> may contain (for example): 1, 3.3, 4.1. or lz4, zstd..."
-    echo "All values are in gigabytes."
+    echo "The <value> may contain (for example): 1, 3.3, 4.1. or lz4, zstd..."
+    echo "All size values are in gigabytes."
     echo "To select the compression algorithm, look at the available ones first)"
     echo " "
     echo "nextram -status                          Show current status"
     echo "nextram -swap -on                        Enable swap"
     echo "nextram -swap -off                       Disable swap"
-    echo "nextram -swap -size <choice>             Set swap size in GB"
-    echo "nextram -swap -over <choice>             Set swap overhead in GB"
+    echo "nextram -swap -size <value>              Set swap size in GB"
+    echo "nextram -swap -over <value>              Set swap overhead in GB"
     echo "nextram -zram -on                        Enable ZRAM"
     echo "nextram -zram -off                       Disable ZRAM"
     echo "nextram -zram -alg                       Show available compression algorithms"
-    echo "nextram -zram -ratio <choice>            Set ZRAM ratio"
-    echo "nextram -zram -algo <choice>             Set compression algorithm"
-    echo "nextram -zram -str <choice>              Set compression streams"
-    echo "nextram -vm -swap <choice>               Set swappiness (0-100)"
-    echo "nextram -vm -cache <choice>              Set cache pressure"
-    echo "nextram -vm -dirty <choice>              Set dirty ratio"
-    echo "nextram -vm -dirtybg <choice>            Set dirty background ratio"
+    echo "nextram -zram -ratio <value>             Set ZRAM ratio"
+    echo "nextram -zram -algo <value>              Set compression algorithm"
+    echo "nextram -zram -str <value>               Set compression streams"
+    echo "nextram -vm -swap <value>                Set swappiness (0-100)"
+    echo "nextram -vm -cache <value>               Set cache pressure"
+    echo "nextram -vm -dirty <value>               Set dirty ratio (0-100)"
+    echo "nextram -vm -dirtybg <value>             Set dirty background ratio (0-100)"
     echo "nextram -tuning -on                      Enable extra tuning"
     echo "nextram -tuning -off                     Disable extra tuning"
     echo "nextram -dyn -on                         Enable dynamic swappiness"
@@ -85,217 +190,249 @@ show_help() {
     echo "nextram -perf -off                       Disable performance mode"
     echo "nextram -zauto -on                       Enable ZRAM auto tuning"
     echo "nextram -zauto -off                      Disable ZRAM auto tuning"
+    echo "nextram -log                             Show log file"
     echo "nextram -help                            Show this help"
     echo " "
     echo "    --After each action, you need to restart the device--  "
-} 
+    echo " "
+}
+
+show_log() {
+    if [ -f "$LOG_FILE" ]; then
+        echo "=== Last 100 log entries ==="
+        tail -100 "$LOG_FILE"
+    else
+        echo "Log file does not exist yet."
+    fi
+}
+
+check_dependencies
 
 case "$1" in
     "-status")
         show_status
         ;;
-        
+
     "-swap")
         case "$2" in
             "-on")
                 set_config SWAP_ENABLED "true"
-                echo "Swap enabled. Restart phone to apply changes."
+                echo "Swap enabled. Restart device to apply changes."
                 ;;
             "-off")
+                confirm_action "Disabling swap may affect system performance."
                 set_config SWAP_ENABLED "false"
-                echo "Swap disabled. Restart phone to apply changes."
+                echo "Swap disabled. Restart device to apply changes."
                 ;;
             "-size")
                 if [ -n "$3" ]; then
+                    validate_number "$3"
                     set_config SWAP_SIZE_GB "$3"
-                    echo "Swap size set to ${3}GB. Restart phone to apply changes."
+                    echo "Swap size set to ${3}GB. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -swap -size <size>"
+                    echo "ERROR: Usage: nextram -swap -size <size>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-over")
                 if [ -n "$3" ]; then
+                    validate_number "$3"
                     set_config OVERHEAD_GB "$3"
-                    echo "Swap overhead set to ${3}GB. Restart phone to apply changes."
+                    echo "Swap overhead set to ${3}GB. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -swap -over <size>"
+                    echo "ERROR: Usage: nextram -swap -over <size>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "Usage: nextram -swap [-on | -off | -size <size> | -over <size>]"
+                echo "ERROR: Usage: nextram -swap [-on | -off | -size <size> | -over <size>]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-zram")
         case "$2" in
             "-on")
                 set_config ZRAM_ENABLED "true"
-                echo "ZRAM enabled. Restart phone to apply changes."
+                echo "ZRAM enabled. Restart device to apply changes."
                 ;;
             "-off")
+                confirm_action "Disabling ZRAM may affect system performance."
                 set_config ZRAM_ENABLED "false"
-                echo "ZRAM disabled. Restart phone to apply changes."
+                echo "ZRAM disabled. Restart device to apply changes."
                 ;;
             "-alg")
                 show_available_algorithms
                 ;;
             "-ratio")
                 if [ -n "$3" ]; then
+                    validate_number "$3"
                     set_config ZRAM_RATIO "$3"
-                    echo "ZRAM ratio set to $3. Restart phone to apply changes."
+                    echo "ZRAM ratio set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -zram -ratio <ratio>"
+                    echo "ERROR: Usage: nextram -zram -ratio <ratio>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-algo")
                 if [ -n "$3" ]; then
-                    if [ -b "/dev/block/zram0" ] && [ -f "/sys/block/zram0/comp_algorithm" ]; then
-                        AVAILABLE_ALGS=$(cat /sys/block/zram0/comp_algorithm | sed 's/\[//g;s/\]//g')
-                        if echo "$AVAILABLE_ALGS" | grep -qw "$3"; then
-                            set_config ZRAM_ALGORITHM "$3"
-                            echo "ZRAM algorithm set to $3. Restart phone to apply changes."
-                        else
-                            echo "Algorithm $3 not available. Use 'nextram -zram -alg' to see available options."
-                        fi
-                    else
-                        echo "Cannot verify algorithm availability. ZRAM device not accessible."
-                    fi
+                    validate_algorithm "$3"
+                    set_config ZRAM_ALGORITHM "$3"
+                    echo "ZRAM algorithm set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -zram -algo <algorithm>"
+                    echo "ERROR: Usage: nextram -zram -algo <algorithm>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-str")
                 if [ -n "$3" ]; then
+                    validate_integer "$3"
                     set_config MAX_COMP_STREAMS "$3"
-                    echo "ZRAM compression streams set to $3. Restart phone to apply changes."
+                    echo "ZRAM compression streams set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -zram -str <streams>"
+                    echo "ERROR: Usage: nextram -zram -str <streams>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams>]"
+                echo "ERROR: Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams>]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-vm")
         case "$2" in
             "-swap")
-                if [ -n "$3" ] && [ "$3" -ge 0 ] && [ "$3" -le 100 ]; then
+                if [ -n "$3" ]; then
+                    validate_swappiness "$3"
                     set_config SWAPPINESS "$3"
-                    echo "Swappiness set to $3. Restart phone to apply changes."
+                    echo "Swappiness set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -vm -swap X (0-100)"
+                    echo "ERROR: Usage: nextram -vm -swap <value> (0-100)"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-cache")
-                if [ -n "$3" ] && [ "$3" -ge 0 ]; then
+                if [ -n "$3" ]; then
+                    validate_number "$3"
                     set_config CACHE_PRESSURE "$3"
-                    echo "Cache pressure set to $3. Restart phone to apply changes."
+                    echo "Cache pressure set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -vm -cache X (≥0)"
+                    echo "ERROR: Usage: nextram -vm -cache <value>"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-dirty")
-                if [ -n "$3" ] && [ "$3" -ge 0 ] && [ "$3" -le 100 ]; then
+                if [ -n "$3" ]; then
+                    validate_range "$3" 0 100
                     set_config DIRTY_RATIO "$3"
-                    echo "Dirty ratio set to $3. Restart phone to apply changes."
+                    echo "Dirty ratio set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -vm -dirty X (0-100)"
+                    echo "ERROR: Usage: nextram -vm -dirty <value> (0-100)"
+                    exit $MISSING_ARG
                 fi
                 ;;
             "-dirtybg")
-                if [ -n "$3" ] && [ "$3" -ge 0 ] && [ "$3" -le 100 ]; then
+                if [ -n "$3" ]; then
+                    validate_range "$3" 0 100
                     set_config DIRTY_BACKGROUND_RATIO "$3"
-                    echo "Dirty background ratio set to $3. Restart phone to apply changes."
+                    echo "Dirty background ratio set to $3. Restart device to apply changes."
                 else
-                    echo "Usage: nextram -vm -dirtybg X (0-100)"
+                    echo "ERROR: Usage: nextram -vm -dirtybg <value> (0-100)"
+                    exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "Usage: nextram -vm [-swap X | -cache X | -dirty X | -dirtybg X]"
+                echo "ERROR: Usage: nextram -vm [-swap <value> | -cache <value> | -dirty <value> | -dirtybg <value>]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-tuning")
         case "$2" in
             "-on")
                 set_config EXTRA_TUNING "true"
-                echo "Extra tuning enabled. Restart phone to apply changes."
+                echo "Extra tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config EXTRA_TUNING "false"
-                echo "Extra tuning disabled. Restart phone to apply changes."
+                echo "Extra tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "Usage: nextram -tuning [-on | -off]"
+                echo "ERROR: Usage: nextram -tuning [-on | -off]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-dyn")
         case "$2" in
             "-on")
                 set_config DYNAMIC_SWAPPINESS "true"
-                echo "Dynamic swappiness enabled. Restart phone to apply changes."
+                echo "Dynamic swappiness enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config DYNAMIC_SWAPPINESS "false"
-                echo "Dynamic swappiness disabled. Restart phone to apply changes."
+                echo "Dynamic swappiness disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "Usage: nextram -dyn [-on | -off]"
+                echo "ERROR: Usage: nextram -dyn [-on | -off]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-perf")
         case "$2" in
             "-on")
                 set_config PERFORMANCE_MODE "true"
-                echo "Performance mode enabled. Restart phone to apply changes."
+                echo "Performance mode enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config PERFORMANCE_MODE "false"
-                echo "Performance mode disabled. Restart phone to apply changes."
+                echo "Performance mode disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "Usage: nextram -perf [-on | -off]"
+                echo "ERROR: Usage: nextram -perf [-on | -off]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
+
     "-zauto")
         case "$2" in
             "-on")
                 set_config ZRAM_AUTO_TUNE "true"
-                echo "ZRAM auto tuning enabled. Restart phone to apply changes."
+                echo "ZRAM auto tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config ZRAM_AUTO_TUNE "false"
-                echo "ZRAM auto tuning disabled. Restart phone to apply changes."
+                echo "ZRAM auto tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "Usage: nextram -zauto [-on | -off]"
+                echo "ERROR: Usage: nextram -zauto [-on | -off]"
+                exit $INVALID_ARG
                 ;;
         esac
         ;;
-        
-    "-restart")
-        /data/adb/modules/NextRAM/post-fs-data.sh restart
-        echo "Module restarted"
+
+    "-log")
+        show_log
         ;;
-        
+
     "-help"|"")
         show_help
         ;;
-        
+
     *)
-        echo "Unknown command: $1"
+        echo "ERROR: Unknown command: $1"
         show_help
+        exit $INVALID_ARG
         ;;
 esac
 
-exit 0
+log_message "Command executed: $@"
+exit $SUCCESS
