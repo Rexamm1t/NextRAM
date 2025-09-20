@@ -5,7 +5,6 @@ setup_swap() {
     SWAP_IMG="$MODDIR/swapfile.img"
     SWAP_MOUNT_DIR="$MODDIR/swap_mount"
     SWAP_FILE="$SWAP_MOUNT_DIR/swapfile"
-    TOYBOX="$MODDIR/bin/toybox"
 
     PRECISE_BYTES=$(awk -v s="$SWAP_SIZE_GB" 'BEGIN {printf "%.0f", s * 1073741824}')
 
@@ -38,7 +37,7 @@ setup_swap() {
     fi
 
     log "INFO" "Creating swap image: ${TOTAL_IMG_SIZE_GB}GB"
-    if ! $TOYBOX fallocate -l "$TOTAL_IMG_SIZE_BYTES" "$SWAP_IMG" 2>/dev/null; then
+    if ! busybox fallocate -l "$TOTAL_IMG_SIZE_BYTES" "$SWAP_IMG" 2>/dev/null; then
         rm -f "$SWAP_IMG"
         log "WARN" "Fallocate failed, using dd"
         dd if=/dev/zero of="$SWAP_IMG" bs=1024 count=$(($TOTAL_IMG_SIZE_BYTES / 1024)) 2>/dev/null || {
@@ -59,7 +58,7 @@ setup_swap() {
     fi
 
     log "INFO" "Creating swap file: ${SWAP_SIZE_GB}GB"
-    if ! $TOYBOX fallocate -l "$PRECISE_BYTES" "$SWAP_FILE" 2>/dev/null; then
+    if ! busybox fallocate -l "$PRECISE_BYTES" "$SWAP_FILE" 2>/dev/null; then
         dd if=/dev/zero of="$SWAP_FILE" bs=1024 count=$(($PRECISE_BYTES / 1024)) 2>/dev/null || {
             umount "$SWAP_MOUNT_DIR"
             rm -f "$SWAP_IMG"
