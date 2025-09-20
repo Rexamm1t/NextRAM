@@ -64,7 +64,7 @@ case "${1:-}" in
 
         log "INFO" "NextRAM setup complete"
         log "INFO" "Current swap status:"
-        cat /proc/swaps >> "$LOG_DIR/nextram_$(date +%Y%m%d).log" 2>/dev/null
+        cat /proc/swaps >> "$LOG_FILE" 2>/dev/null
         ;;
 esac
 
