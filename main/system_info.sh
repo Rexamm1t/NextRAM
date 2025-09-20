@@ -2,7 +2,7 @@
 MODDIR=${0%/*}/..
 
 system_info() {
-    log "INFO" "===== System Information ====="
+    log "INFO" "starting NextRAM setup..."
     log "INFO" "Kernel: $(uname -r)"
     log "INFO" "Android version: $(getprop ro.build.version.release)"
     log "INFO" "Device: $(getprop ro.product.model)"
