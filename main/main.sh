@@ -1,14 +1,14 @@
 #!/system/bin/sh
 MODDIR=${0%/*}/..
 
-. $MODDIR/main/config.sh
-. $MODDIR/main/log.sh
-. $MODDIR/main/system_info.sh
-. $MODDIR/main/prerequisites.sh
-. $MODDIR/main/zram.sh
-. $MODDIR/main/swap.sh
-. $MODDIR/main/kernel_tuning.sh
-. $MODDIR/main/api_functions.sh
+. "$MODDIR/config.sh"
+. "$MODDIR/log.sh"
+. "$MODDIR/system_info.sh"
+. "$MODDIR/prerequisites.sh"
+. "$MODDIR/zram.sh"
+. "$MODDIR/swap.sh"
+. "$MODDIR/kernel_tuning.sh"
+. "$MODDIR/api_functions.sh"
 
 init_config
 
@@ -16,14 +16,17 @@ case "${1:-}" in
     "web")
         cleanup_old_logs
         start_api_server
-        while true; do sleep 60; done
+        while true; do
+            sleep 300
+            cleanup_old_logs
+        done
         ;;
     "api")
         case "$2" in
             "get-config") get_config ;;
             "set-config") shift 2; set_config "$@" ;;
             "apply") apply_configuration ;;
-            "restart") exec "$0" ;;
+            "restart") stop_api_server; exec "$0" "$@" ;;
             "status") get_status ;;
             *) echo "Unknown API command: $2" ;;
         esac
@@ -43,10 +46,9 @@ case "${1:-}" in
         check_prerequisites
 
         log "INFO" "Disabling all swap devices"
-        swapoff -a 2>&1 | while read line; do log "INFO" "swapoff: $line"; done
+        swapoff -a
 
         if [ -b "/dev/block/zram0" ]; then
-            log "INFO" "Resetting zram0"
             swapoff "/dev/block/zram0" 2>/dev/null
             echo 1 > "/dev/block/zram0/reset" 2>/dev/null
         fi
@@ -54,17 +56,16 @@ case "${1:-}" in
         adjust_swappiness
         apply_kernel_tuning
 
-        if [ "$SWAP_ENABLED" = "true" ]; then
-            setup_swap
-        fi
-
         if [ "$ZRAM_ENABLED" = "true" ]; then
             setup_zram
         fi
 
+        if [ "$SWAP_ENABLED" = "true" ]; then
+            setup_swap
+        fi
+
         log "INFO" "NextRAM setup complete"
-        log "INFO" "Current swap status:"
-        cat /proc/swaps >> "$LOG_DIR/nextram_$(date +%Y%m%d).log" 2>/dev/null
+        free -m | while read line; do log "INFO" "$line"; done
         ;;
 esac
 
