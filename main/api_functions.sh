@@ -22,7 +22,7 @@ get_config() {
     echo "  \"SWAP_ENABLED\": $SWAP_ENABLED,"
     echo "  \"SWAP_SIZE_GB\": $SWAP_SIZE_GB,"
     echo "  \"OVERHEAD_GB\": $OVERHEAD_GB,"
-    echo "  \"ZRAM_ENABLED\": $ZRAM_ENABled,"
+    echo "  \"ZRAM_ENABLED\": $ZRAM_ENABLED,"
     echo "  \"ZRAM_RATIO\": $ZRAM_RATIO,"
     echo "  \"ZRAM_ALGORITHM\": \"$ZRAM_ALGORITHM\","
     echo "  \"MAX_COMP_STREAMS\": $MAX_COMP_STREAMS,"
