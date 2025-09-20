@@ -4,6 +4,8 @@ MODDIR=${0%/*}/..
 init_config() {
     cat $MODDIR/config.conf >/dev/null 2>&1 || touch $MODDIR/config.conf
 
+    . $MODDIR/config.conf
+
     LIST_VAR='
     SWAP_ENABLED:false
     SWAP_SIZE_GB:1.0
