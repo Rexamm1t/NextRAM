@@ -56,6 +56,7 @@ on_install() {
    mkdir $APKDIR 
    cp -r $MODPATH/apk/nextram.apk $APKDIR 
    pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
+   rm -f $APKDIR
   fi
 }
 
