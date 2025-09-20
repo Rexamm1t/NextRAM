@@ -10,7 +10,7 @@ log() {
     local level="$1"
     local message="$2"
     local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
-    local LOG_FILE="$LOG_DIR/nextram.log"
+    : ${LOG_FILE:="$LOG_DIR/nextram_$(date +%Y%m%d_%H%M%S).log"}
 
     if [ -f "$LOG_FILE" ] && [ $(stat -c %s "$LOG_FILE") -gt $MAX_LOG_SIZE ]; then
         mv "$LOG_FILE" "$LOG_FILE.old"
