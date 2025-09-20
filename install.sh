@@ -29,6 +29,14 @@ on_install() {
   ui_print "API: $(getprop ro.build.version.sdk)"
   ui_print "Model: $(getprop ro.product.model)"
 
+  unzip -o "$ZIPFILE" 'module.prop' -d $MODPATH >&2
+  conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
+
+  if [ -f "$conf" ]; then
+   ui_print "config.conf detected, backuping..."
+   cp -r $conf $MODPATH
+  fi
+
   ui_print "Extracting files"
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
