@@ -11,7 +11,7 @@ start_api_server() {
 
 stop_api_server() {
     if [ -f "$MODDIR/api.pid" ]; then
-        kill $(cat "$MODDIR/api.pid") 2>/dev/null
+        kill -9 $(cat "$MODDIR/api.pid") 2>/dev/null
         rm -f "$MODDIR/api.pid"
         log "INFO" "Web interface stopped"
     fi
@@ -42,8 +42,13 @@ set_config() {
     for setting in "$@"; do
         key="${setting%%=*}"
         value="${setting#*=}"
-        sed -i "s/^${key}=.*/${key}=${value}/" "$MODDIR/config.conf"
+        if grep -q "^$key=" "$MODDIR/config.conf"; then
+            sed -i "s/^${key}=.*/${key}=${value}/" "$MODDIR/config.conf"
+        else
+            echo "$key=$value" >> "$MODDIR/config.conf"
+        fi
     done
+    . "$MODDIR/config.conf"
     log "INFO" "Configuration updated from web interface"
 }
 
@@ -60,11 +65,14 @@ get_status() {
     else
         echo "ZRAM device not available"
     fi
+    echo ""
+    echo "=== Kernel Parameters ==="
+    echo "Swappiness: $(cat /proc/sys/vm/swappiness)"
+    echo "Cache pressure: $(cat /proc/sys/vm/vfs_cache_pressure)"
 }
 
 apply_configuration() {
     log "INFO" "Applying current configuration"
-
     swapoff -a 2>/dev/null
 
     if [ -b "/dev/block/zram0" ]; then
@@ -81,6 +89,5 @@ apply_configuration() {
 
     adjust_swappiness
     apply_kernel_tuning
-
     log "INFO" "Configuration applied successfully"
 }
