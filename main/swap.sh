@@ -74,7 +74,7 @@ setup_swap() {
         return 1
     fi
 
-    if ! swapon "$SWAP_FILE" -p 10; then
+    if ! su -c swapon "$SWAP_FILE" -p 10; then
         umount "$SWAP_MOUNT_DIR"
         rm -f "$SWAP_IMG"
         return 1
