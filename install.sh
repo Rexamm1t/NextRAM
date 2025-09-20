@@ -5,6 +5,7 @@ PROPFILE=false
 POSTFSDATA=false
 LATESTARTSERVICE=false
 APKDIR="/data/local/tmp/apk"
+CONFIG_FILE="$MODPATH/module.prop"
 
 
 ui_print() {
