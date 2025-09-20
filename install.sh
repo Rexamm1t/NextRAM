@@ -53,9 +53,19 @@ on_install() {
 set_permissions() {
   set_perm_recursive $MODPATH/system/bin 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755
-  set_perm $MODPATH/bin 0 0 0755
-  set_perm $MODPATH/bin/toybox 0 0 0755
   set_perm $MODPATH/apk 0 0 0755
+  set_perm $MODPATH/main 0 0 0755
+  set_perm $MODPATH/main/api_functions.sh 0 0 0755
+  set_perm $MODPATH/main/config.sh 0 0 0755
+  set_perm $MODPATH/main/kernel_tuning.sh 0 0 0755
+  set_perm $MODPATH/main/log.sh 0 0 0755
+  set_perm $MODPATH/main/main.sh 0 0 0755
+  set_perm $MODPATH/main/api_functions.sh 0 0 0755
+  set_perm $MODPATH/main/api_functions.sh 0 0 0755
+  set_perm $MODPATH/main/prerequisites.sh 0 0 0755
+  set_perm $MODPATH/main/zram.sh 0 0 0755
+  set_perm $MODPATH/main/system_info.sh 0 0 0755
+  set_perm $MODPATH/main/swap.sh 0 0 0755
   set_perm $MODPATH/apk/nextram.apk 0 0 0755
   set_perm $MODPATH/service.sh 0 0 0755
   set_perm $MODPATH/action.sh 0 0 0755
