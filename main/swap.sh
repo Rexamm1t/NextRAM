@@ -37,7 +37,7 @@ setup_swap() {
     fi
 
     log "INFO" "Creating swap image: ${TOTAL_IMG_SIZE_GB}GB"
-    if ! busybox fallocate -l "$TOTAL_IMG_SIZE_BYTES" "$SWAP_IMG" 2>/dev/null; then
+    if ! fallocate -l "$TOTAL_IMG_SIZE_BYTES" "$SWAP_IMG" 2>/dev/null; then
         rm -f "$SWAP_IMG"
         log "WARN" "Fallocate failed, using dd"
         dd if=/dev/zero of="$SWAP_IMG" bs=1M count=$(($TOTAL_IMG_SIZE_BYTES / 1048576)) 2>/dev/null || {
@@ -58,7 +58,7 @@ setup_swap() {
     fi
 
     log "INFO" "Creating swap file: ${SWAP_SIZE_GB}GB"
-    if ! busybox fallocate -l "$PRECISE_BYTES" "$SWAP_FILE" 2>/dev/null; then
+    if ! fallocate -l "$PRECISE_BYTES" "$SWAP_FILE" 2>/dev/null; then
         dd if=/dev/zero of="$SWAP_FILE" bs=1M count=$(($PRECISE_BYTES / 1048576)) 2>/dev/null || {
             umount "$SWAP_MOUNT_DIR"
             rm -f "$SWAP_IMG"
@@ -73,7 +73,7 @@ setup_swap() {
         return 1
     fi
 
-    if swapon "$SWAP_FILE" -p 10; then
+    if su -c swapon "$SWAP_FILE" -p 10; then
         log "INFO" "Swap setup complete"
         return 0
     else
