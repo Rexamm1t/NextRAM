@@ -7,7 +7,6 @@ LATESTARTSERVICE=false
 APKDIR="/data/local/tmp/apk"
 CONFIG_FILE="$MODPATH/module.prop"
 
-
 ui_print() {
     echo "- $1"
 }
@@ -52,6 +51,7 @@ on_install() {
   if [ ! -f "$MODPATH/apk/nextram.apk" ]; then
     ui_print "ERROR: nextram.apk not found, skip..."
   else
+   
    mkdir $APKDIR
    cp -r $MODPATH/apk/nextram.apk $APKDIR
    unzip -o "$ZIPFILE" 'bin/aapt/*' -d $APKDIR >&2
