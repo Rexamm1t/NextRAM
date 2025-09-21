@@ -212,9 +212,9 @@ setup_zram() {
         return 1
     }
 
-    if [ "$ZRAM_AUTO_TUNE" = "true" ] || [ -f "$MODDIR/cache/retest_algorithms" ]; then
+    if [ "$ZRAM_AUTO_TUNE" = "true" ] || [ -f "$MODDIR/cache/retest_algorithms" ] || [ -f "$MODDIR/cache/optimize_algorithm" ]; then
         test_zram_algorithms
-        rm -f "$MODDIR/cache/retest_algorithms" 2>/dev/null
+        rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" 2>/dev/null
     fi
 
     local algorithm="${ZRAM_ALGORITHM_CACHE:-$ZRAM_ALGORITHM}"
@@ -265,3 +265,5 @@ zram_cleanup() {
     
     rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" "$MODDIR/cache/ratio_checked.flag"
 }
+
+export -f zram_init test_zram_algorithms setup_zram zram_cleanup
