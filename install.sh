@@ -52,11 +52,18 @@ on_install() {
   if [ ! -f "$MODPATH/apk/nextram.apk" ]; then
     ui_print "ERROR: nextram.apk not found, skip..."
   else
-   ui_print "Installing nextram.apk..."
-   mkdir $APKDIR 
-   cp -r $MODPATH/apk/nextram.apk $APKDIR 
-   pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
-   rm -f $APKDIR
+   mkdir $APKDIR
+   cp -r $MODPATH/apk/nextram.apk $APKDIR
+   unzip -o "$ZIPFILE" 'bin/aapt/*' -d $APKDIR >&2
+   chmod 775 $APKDIR/bin/aapt/aapt-$(uname -m)
+
+   if [ -z "$(pm list packages | grep "com.nextram.manager")" ] || ( [ "$(pm dump com.nextram.manager | grep 'versionCode' | grep -o -E '[0-9]+' | head -n 1)" -lt "$($APKDIR/bin/aapt/aapt-$(uname -m) dump badging $APKDIR/nextram.apk | grep "versionCode=" | cut -d"'" -f4)" ]  && [ "$(echo $(pm dump com.nextram.manager | grep 'versionName' | cut -d"=" -f2) > $($APKDIR/bin/aapt/aapt-$(uname -m) dump badging $APKDIR/nextram.apk | grep "versionName=" | cut -d"'" -f6) | bc) -eq 1" ] ); then  
+     ui_print "Installing nextram.apk..."
+     pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
+   else
+     ui_print "nextram.apk already updated, skip..."
+   fi
+   rm -rf $APKDIR
   fi
 }
 
