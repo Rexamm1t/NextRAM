@@ -1,11 +1,8 @@
-## NextRAM v8.0 - STABLE - a1ad389
-
-### update system/bin/nextram
-- Input data validation (numbers, ranges, algorithms)
-- Error handling with exit codes
-- Logging of all operations
-- Dependency checking (grep, sed, bc)
-- Secure configuration editing with backup
-- Confirmation for critical actions
-- Log viewing with the -log command
-- Consistent error messages
+## NextRAM v8.1 - STABLE - a1ad389
+- saving settings (config.conf) when updating
+- optimizing and improving code structure
+- new theme (OLED) in the app
+- splitting the code
+- adding aapt and checking the apk version
+- removing toybox
+- other swap fixes
