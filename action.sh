@@ -1,5 +1,6 @@
 #!/system/bin/sh
 
+
 MODDIR=${0%/*}
 ZRAM_DEV="/dev/block/zram0"
 ZRAM_SYS="/sys/block/zram0"
