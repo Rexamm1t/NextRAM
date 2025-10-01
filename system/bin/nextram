@@ -435,4 +435,5 @@ case "$1" in
 esac
 
 log_message "Command executed: $@"
+
 exit $SUCCESS
