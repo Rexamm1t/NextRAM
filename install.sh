@@ -43,8 +43,41 @@ on_install() {
   unzip -o "$ZIPFILE" 'bin/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
 
+  ARCH=$(uname -m)
+  case "$ARCH" in
+    armv7*)
+      DRIVER_SRC="driver/prebuilt/armv7/nextram_driver"
+      ui_print "Using ARMv7 driver"
+      ;;
+    aarch64|armv8*)
+      DRIVER_SRC="driver/prebuilt/armv8l/nextram_driver"
+      ui_print "Using ARMv8 driver"
+      ;;
+    *)
+      ui_print "WARNING: Unknown architecture $ARCH, trying ARMv8 driver"
+      DRIVER_SRC="driver/prebuilt/armv8l/nextram_driver"
+      ;;
+  esac
+
+  
+  ui_print "Extracting driver: $DRIVER_SRC"
+  unzip -o "$ZIPFILE" "$DRIVER_SRC" -d $MODPATH >&2
+  
+  if [ -f "$MODPATH/$DRIVER_SRC" ]; then
+    mkdir -p $MODPATH/system/bin
+    cp "$MODPATH/$DRIVER_SRC" "$MODPATH/system/bin/nextram_driver"
+  else
+    ui_print "ERROR: Driver not found at $DRIVER_SRC"
+    exit 1
+  fi
+
   if [ ! -f "$MODPATH/system/bin/nextram" ]; then
     ui_print "ERROR: nextram binary not found"
+    exit 1
+  fi
+
+  if [ ! -f "$MODPATH/system/bin/nextram_driver" ]; then
+    ui_print "ERROR: nextram_driver not found"
     exit 1
   fi
 
@@ -70,6 +103,7 @@ on_install() {
 set_permissions() {
   set_perm_recursive $MODPATH/system/bin 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755
+  set_perm $MODPATH/system/bin/nextram_driver 0 0 0755
   set_perm $MODPATH/apk 0 0 0755
   set_perm $MODPATH/main 0 0 0755
   set_perm $MODPATH/main/api_functions.sh 0 0 0755
@@ -77,7 +111,6 @@ set_permissions() {
   set_perm $MODPATH/main/kernel_tuning.sh 0 0 0755
   set_perm $MODPATH/main/log.sh 0 0 0755
   set_perm $MODPATH/main/main.sh 0 0 0755
-  set_perm $MODPATH/main/api_functions.sh 0 0 0755
   set_perm $MODPATH/main/api_functions.sh 0 0 0755
   set_perm $MODPATH/main/prerequisites.sh 0 0 0755
   set_perm $MODPATH/main/zram.sh 0 0 0755

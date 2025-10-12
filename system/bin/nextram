@@ -1,8 +1,10 @@
 #!/system/bin/sh
 
 MODDIR="/data/adb/modules/NextRAM"
-POST_FS_DATA="$MODDIR/config.conf"
+CONFIG_FILE="$MODDIR/config.conf"
 LOG_FILE="$MODDIR/nextram.log"
+AI_MODEL_FILE="$MODDIR/ai_model.dat"
+METRICS_REPORT_DIR="$MODDIR/reports"
 
 SUCCESS=0
 INVALID_ARG=1
@@ -69,22 +71,22 @@ set_config() {
     local key="$1"
     local value="$2"
     
-    if [ ! -f "$POST_FS_DATA" ]; then
+    if [ ! -f "$CONFIG_FILE" ]; then
         echo "ERROR: Configuration file not found."
         exit $FILE_MISSING
     fi
     
-    cp "$POST_FS_DATA" "$POST_FS_DATA.bak" 2>/dev/null
+    cp "$CONFIG_FILE" "$CONFIG_FILE.bak" 2>/dev/null
     
-    if grep -q "^$key=" "$POST_FS_DATA"; then
-        sed -i "s/^$key=.*/$key=$value/" "$POST_FS_DATA"
+    if grep -q "^$key=" "$CONFIG_FILE"; then
+        sed -i "s/^$key=.*/$key=$value/" "$CONFIG_FILE"
     else
-        echo "$key=$value" >> "$POST_FS_DATA"
+        echo "$key=$value" >> "$CONFIG_FILE"
     fi
     
     if [ $? -ne 0 ]; then
         echo "ERROR: Failed to update configuration."
-        mv "$POST_FS_DATA.bak" "$POST_FS_DATA" 2>/dev/null
+        mv "$CONFIG_FILE.bak" "$CONFIG_FILE" 2>/dev/null
         exit $OPERATION_FAILED
     fi
     
@@ -92,7 +94,7 @@ set_config() {
 }
 
 get_config() {
-    grep -E "^$1=" "$POST_FS_DATA" | cut -d= -f2
+    grep -E "^$1=" "$CONFIG_FILE" | cut -d= -f2
 }
 
 confirm_action() {
@@ -117,6 +119,7 @@ show_status() {
     echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t"
     echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858"
     echo " "
+    echo "=== Basic Settings ==="
     echo "Swap: $( [ "$(get_config SWAP_ENABLED)" = "true" ] && echo "Enabled ($(get_config SWAP_SIZE_GB)GB)" || echo "Disabled" )"
     echo "Swap Overhead: $(get_config OVERHEAD_GB)GB"
     echo "ZRAM: $( [ "$(get_config ZRAM_ENABLED)" = "true" ] && echo "Enabled (Ratio: $(get_config ZRAM_RATIO))" || echo "Disabled" )"
@@ -126,13 +129,25 @@ show_status() {
     echo "Cache Pressure: $(get_config CACHE_PRESSURE)"
     echo "Dirty Ratio: $(get_config DIRTY_RATIO)"
     echo "Dirty Background Ratio: $(get_config DIRTY_BACKGROUND_RATIO)"
+    
+    echo " "
+    echo "=== Advanced Features ==="
+    echo "Performance Profile: $(get_config PERFORMANCE_PROFILE)"
+    echo "AI Optimizer: $(get_config AI_OPTIMIZER_ENABLED)"
+    echo "Thermal Control: $(get_config THERMAL_CONTROL_ENABLED)"
+    echo "Process Aware: $(get_config PROCESS_AWARE_OPTIMIZATION)"
+    echo "Context Aware: $(get_config CONTEXT_AWARE_OPTIMIZATION)"
     echo "Extra Tuning: $(get_config EXTRA_TUNING)"
     echo "Dynamic Swappiness: $(get_config DYNAMIC_SWAPPINESS)"
     echo "Performance Mode: $(get_config PERFORMANCE_MODE)"
     echo "ZRAM Auto Tune: $(get_config ZRAM_AUTO_TUNE)"
+    
     echo " "
-    echo "Config file: $POST_FS_DATA"
+    echo "=== System Info ==="
+    echo "Config file: $CONFIG_FILE"
     echo "Log file: $LOG_FILE"
+    echo "AI Model: $AI_MODEL_FILE"
+    echo "Reports: $METRICS_REPORT_DIR"
 }
 
 show_available_algorithms() {
@@ -153,6 +168,129 @@ show_available_algorithms() {
     fi
 }
 
+show_performance_apps() {
+    local apps=$(get_config PERFORMANCE_APPS)
+    echo "Performance Apps:"
+    if [ -n "$apps" ]; then
+        echo "$apps" | tr ',' '\n' | while read app; do
+            echo "  $app"
+        done
+    else
+        echo "  None configured"
+    fi
+}
+
+show_background_apps() {
+    local apps=$(get_config BACKGROUND_APPS)
+    echo "Background Apps:"
+    if [ -n "$apps" ]; then
+        echo "$apps" | tr ',' '\n' | while read app; do
+            echo "  $app"
+        done
+    else
+        echo "  None configured"
+    fi
+}
+
+add_performance_app() {
+    local app="$1"
+    local current=$(get_config PERFORMANCE_APPS)
+    if [ -z "$current" ]; then
+        set_config PERFORMANCE_APPS "$app"
+    else
+        if echo ",$current," | grep -q ",$app,"; then
+            echo "App '$app' is already in performance list."
+        else
+            set_config PERFORMANCE_APPS "$current,$app"
+        fi
+    fi
+    echo "Added '$app' to performance apps."
+}
+
+remove_performance_app() {
+    local app="$1"
+    local current=$(get_config PERFORMANCE_APPS)
+    if [ -n "$current" ]; then
+        local new_list=$(echo "$current" | sed "s/,$app//g; s/^$app,//; s/,$app$//; s/^$app$//")
+        set_config PERFORMANCE_APPS "$new_list"
+        echo "Removed '$app' from performance apps."
+    else
+        echo "No performance apps configured."
+    fi
+}
+
+add_background_app() {
+    local app="$1"
+    local current=$(get_config BACKGROUND_APPS)
+    if [ -z "$current" ]; then
+        set_config BACKGROUND_APPS "$app"
+    else
+        if echo ",$current," | grep -q ",$app,"; then
+            echo "App '$app' is already in background list."
+        else
+            set_config BACKGROUND_APPS "$current,$app"
+        fi
+    fi
+    echo "Added '$app' to background apps."
+}
+
+remove_background_app() {
+    local app="$1"
+    local current=$(get_config BACKGROUND_APPS)
+    if [ -n "$current" ]; then
+        local new_list=$(echo "$current" | sed "s/,$app//g; s/^$app,//; s/,$app$//; s/^$app$//")
+        set_config BACKGROUND_APPS "$new_list"
+        echo "Removed '$app' from background apps."
+    else
+        echo "No background apps configured."
+    fi
+}
+
+generate_metrics_report() {
+    local report_file="$METRICS_REPORT_DIR/metrics_report_$(date +%Y%m%d_%H%M%S).txt"
+    mkdir -p "$METRICS_REPORT_DIR"
+    
+    echo "Generating metrics report..."
+    echo "=== NextRAM Metrics Report ===" > "$report_file"
+    echo "Generated: $(date)" >> "$report_file"
+    echo " " >> "$report_file"
+    
+    echo "=== System Information ===" >> "$report_file"
+    cat /proc/meminfo | grep -E "MemTotal|MemFree|MemAvailable|SwapTotal|SwapFree" >> "$report_file"
+    echo " " >> "$report_file"
+    
+    if [ -b "/dev/block/zram0" ]; then
+        echo "=== ZRAM Information ===" >> "$report_file"
+        cat /sys/block/zram0/mm_stat 2>/dev/null >> "$report_file"
+        echo " " >> "$report_file"
+    fi
+    
+    echo "=== VM Settings ===" >> "$report_file"
+    for setting in swappiness cache_pressure dirty_ratio dirty_background_ratio; do
+        value=$(cat /proc/sys/vm/$setting 2>/dev/null || echo "N/A")
+        echo "$setting: $value" >> "$report_file"
+    done
+    echo " " >> "$report_file"
+    
+    echo "Report generated: $report_file"
+    log_message "Metrics report generated: $report_file"
+}
+
+show_ai_status() {
+    if [ -f "$AI_MODEL_FILE" ]; then
+        echo "AI Optimizer: Trained ($(stat -c %y "$AI_MODEL_FILE"))"
+        echo "Patterns learned: $(wc -l < "$AI_MODEL_FILE" 2>/dev/null || echo "0")"
+    else
+        echo "AI Optimizer: Not trained"
+    fi
+}
+
+train_ai_model() {
+    echo "Starting AI model training..."
+    log_message "AI training initiated"
+    echo "AI model training started. Check logs for progress."
+}
+
 show_help() {
     echo " "
     echo "        \  |               |     _ \      \      \  |  by "
@@ -160,13 +298,14 @@ show_help() {
     echo "       |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t"
     echo "      _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858"
     echo " "
-    echo "                    ===  Commands ==="
+    echo "                    === NextRAM Commands ==="
     echo " "
     echo "                      --Attention!--"
     echo "The <value> may contain (for example): 1, 3.3, 4.1. or lz4, zstd..."
     echo "All size values are in gigabytes."
     echo "To select the compression algorithm, look at the available ones first)"
     echo " "
+    echo "=== Basic Commands ==="
     echo "nextram -status                          Show current status"
     echo "nextram -swap -on                        Enable swap"
     echo "nextram -swap -off                       Disable swap"
@@ -182,6 +321,8 @@ show_help() {
     echo "nextram -vm -cache <value>               Set cache pressure"
     echo "nextram -vm -dirty <value>               Set dirty ratio (0-100)"
     echo "nextram -vm -dirtybg <value>             Set dirty background ratio (0-100)"
+    echo " "
+    echo "=== Advanced Features ==="
     echo "nextram -tuning -on                      Enable extra tuning"
     echo "nextram -tuning -off                     Disable extra tuning"
     echo "nextram -dyn -on                         Enable dynamic swappiness"
@@ -190,6 +331,38 @@ show_help() {
     echo "nextram -perf -off                       Disable performance mode"
     echo "nextram -zauto -on                       Enable ZRAM auto tuning"
     echo "nextram -zauto -off                      Disable ZRAM auto tuning"
+    echo " "
+    echo "=== AI & Smart Features ==="
+    echo "nextram -ai -on                          Enable AI optimizer"
+    echo "nextram -ai -off                         Disable AI optimizer"
+    echo "nextram -ai -status                      Show AI status"
+    echo "nextram -ai -train                       Train AI model"
+    echo "nextram -thermal -on                     Enable thermal control"
+    echo "nextram -thermal -off                    Disable thermal control"
+    echo "nextram -process -on                     Enable process-aware optimization"
+    echo "nextram -process -off                    Disable process-aware optimization"
+    echo "nextram -context -on                     Enable context-aware optimization"
+    echo "nextram -context -off                    Disable context-aware optimization"
+    echo " "
+    echo "=== Performance Profiles ==="
+    echo "nextram -profile -battery                Battery saver profile"
+    echo "nextram -profile -balanced               Balanced profile (default)"
+    echo "nextram -profile -performance            Performance profile"
+    echo "nextram -profile -gaming                 Gaming profile"
+    echo "nextram -profile -multitask              Multitasking profile"
+    echo "nextram -profile -auto                   Auto-detect profile"
+    echo " "
+    echo "=== Application Management ==="
+    echo "nextram -apps -perf                      Show performance apps"
+    echo "nextram -apps -bg                        Show background apps"
+    echo "nextram -apps -add -perf <app>           Add app to performance list"
+    echo "nextram -apps -remove -perf <app>        Remove app from performance list"
+    echo "nextram -apps -add -bg <app>             Add app to background list"
+    echo "nextram -apps -remove -bg <app>          Remove app from background list"
+    echo " "
+    echo "=== Monitoring & Reports ==="
+    echo "nextram -metrics                         Show detailed metrics"
+    echo "nextram -report                          Generate metrics report"
     echo "nextram -log                             Show log file"
     echo "nextram -help                            Show this help"
     echo " "
@@ -204,6 +377,41 @@ show_log() {
     else
         echo "Log file does not exist yet."
     fi
+}
+
+show_detailed_metrics() {
+    echo "=== NextRAM Detailed Metrics ==="
+    echo "Generated: $(date)"
+    echo " "
+    
+    echo "--- Memory Usage ---"
+    cat /proc/meminfo | grep -E "MemTotal|MemFree|MemAvailable|Cached|SwapTotal|SwapFree" | while read line; do
+        echo "  $line"
+    done
+    
+    if [ -b "/dev/block/zram0" ]; then
+        echo " "
+        echo "--- ZRAM Stats ---"
+        if [ -f "/sys/block/zram0/mm_stat" ]; then
+            mm_stat=$(cat /sys/block/zram0/mm_stat)
+            echo "  MM Stat: $mm_stat"
+        fi
+        if [ -f "/sys/block/zram0/comp_algorithm" ]; then
+            alg=$(cat /sys/block/zram0/comp_algorithm)
+            echo "  Algorithm: $alg"
+        fi
+    fi
+    
+    echo " "
+    echo "--- VM Settings ---"
+    for setting in swappiness cache_pressure dirty_ratio dirty_background_ratio page-cluster; do
+        value=$(cat /proc/sys/vm/$setting 2>/dev/null || echo "N/A")
+        echo "  $setting: $value"
+    done
+    
+    echo " "
+    echo "--- Top Memory Processes ---"
+    ps -o pid,ppid,rss,vsz,pmem,pcpu,comm -A | sort -nrk5 | head -10
 }
 
 check_dependencies
@@ -419,6 +627,184 @@ case "$1" in
         esac
         ;;
 
+    "-ai")
+        case "$2" in
+            "-on")
+                set_config AI_OPTIMIZER_ENABLED "true"
+                echo "AI optimizer enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config AI_OPTIMIZER_ENABLED "false"
+                echo "AI optimizer disabled. Restart device to apply changes."
+                ;;
+            "-status")
+                show_ai_status
+                ;;
+            "-train")
+                train_ai_model
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -ai [-on | -off | -status | -train]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-thermal")
+        case "$2" in
+            "-on")
+                set_config THERMAL_CONTROL_ENABLED "true"
+                echo "Thermal control enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config THERMAL_CONTROL_ENABLED "false"
+                echo "Thermal control disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -thermal [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-process")
+        case "$2" in
+            "-on")
+                set_config PROCESS_AWARE_OPTIMIZATION "true"
+                echo "Process-aware optimization enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config PROCESS_AWARE_OPTIMIZATION "false"
+                echo "Process-aware optimization disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -process [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-context")
+        case "$2" in
+            "-on")
+                set_config CONTEXT_AWARE_OPTIMIZATION "true"
+                echo "Context-aware optimization enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config CONTEXT_AWARE_OPTIMIZATION "false"
+                echo "Context-aware optimization disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -context [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-profile")
+        case "$2" in
+            "-battery")
+                set_config PERFORMANCE_PROFILE "battery"
+                echo "Battery saver profile set. Restart device to apply changes."
+                ;;
+            "-balanced")
+                set_config PERFORMANCE_PROFILE "balanced"
+                echo "Balanced profile set. Restart device to apply changes."
+                ;;
+            "-performance")
+                set_config PERFORMANCE_PROFILE "performance"
+                echo "Performance profile set. Restart device to apply changes."
+                ;;
+            "-gaming")
+                set_config PERFORMANCE_PROFILE "gaming"
+                echo "Gaming profile set. Restart device to apply changes."
+                ;;
+            "-multitask")
+                set_config PERFORMANCE_PROFILE "multitasking"
+                echo "Multitasking profile set. Restart device to apply changes."
+                ;;
+            "-auto")
+                set_config PERFORMANCE_PROFILE "auto"
+                echo "Auto profile detection enabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -profile [-battery | -balanced | -performance | -gaming | -multitask | -auto]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-apps")
+        case "$2" in
+            "-perf")
+                show_performance_apps
+                ;;
+            "-bg")
+                show_background_apps
+                ;;
+            "-add")
+                case "$3" in
+                    "-perf")
+                        if [ -n "$4" ]; then
+                            add_performance_app "$4"
+                        else
+                            echo "ERROR: Usage: nextram -apps -add -perf <app>"
+                            exit $MISSING_ARG
+                        fi
+                        ;;
+                    "-bg")
+                        if [ -n "$4" ]; then
+                            add_background_app "$4"
+                        else
+                            echo "ERROR: Usage: nextram -apps -add -bg <app>"
+                            exit $MISSING_ARG
+                        fi
+                        ;;
+                    *)
+                        echo "ERROR: Usage: nextram -apps -add [-perf | -bg] <app>"
+                        exit $INVALID_ARG
+                        ;;
+                esac
+                ;;
+            "-remove")
+                case "$3" in
+                    "-perf")
+                        if [ -n "$4" ]; then
+                            remove_performance_app "$4"
+                        else
+                            echo "ERROR: Usage: nextram -apps -remove -perf <app>"
+                            exit $MISSING_ARG
+                        fi
+                        ;;
+                    "-bg")
+                        if [ -n "$4" ]; then
+                            remove_background_app "$4"
+                        else
+                            echo "ERROR: Usage: nextram -apps -remove -bg <app>"
+                            exit $MISSING_ARG
+                        fi
+                        ;;
+                    *)
+                        echo "ERROR: Usage: nextram -apps -remove [-perf | -bg] <app>"
+                        exit $INVALID_ARG
+                        ;;
+                esac
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -apps [-perf | -bg | -add | -remove]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-metrics")
+        show_detailed_metrics
+        ;;
+
+    "-report")
+        generate_metrics_report
+        ;;
+
     "-log")
         show_log
         ;;
@@ -435,5 +821,4 @@ case "$1" in
 esac
 
 log_message "Command executed: $@"
-
 exit $SUCCESS

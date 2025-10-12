@@ -1,9 +1,8 @@
 id=NextRAM
 name=NextRAM
-version=8.1-9601174
-versionCode=81000
+version=9.0
+versionCode=90000
 author=@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x
 description=💫This powerful module will allow you to use Swap technology with minimal eMMC wear. It also features optimized zRAM support.✨ Subscribe to my telegram) - @rexamm1t_channel
 minMagisk=24000
 updateJson=https://raw.githubusercontent.com/Rexamm1t/NextRAM/refs/heads/main/update.json
-banner=https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/github/IMG_20250822_223510.jpg
