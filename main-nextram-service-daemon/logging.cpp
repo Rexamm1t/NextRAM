@@ -8,6 +8,7 @@
 
 LogLevel Logger::current_level = LogLevel::INFO;
 
+
 void Logger::init() {
     mkdir("/data/adb/nextram/logs", 0755);
 }
