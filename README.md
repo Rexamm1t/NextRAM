@@ -1,4 +1,4 @@
-![logo](https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/githubcfg/nextram-gh-logo.png)
+![logo](githubcfg/nextram-gh-logo.png)
 ![NextRAM Banner](https://img.shields.io/badge/NextRAM-Smart%20Memory%20Optimization-blue?style=for-the-badge)
 ![Android](https://img.shields.io/badge/Android-6.0%2B-3DDC84?style=for-the-badge&logo=android)
 ![Linux](https://img.shields.io/badge/Linux-3.1%2B-3DDC84?style=for-the-badge&logo=linux)
