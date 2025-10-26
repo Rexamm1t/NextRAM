@@ -232,11 +232,21 @@ void daemonize() {
     }
     
     if (pid > 0) {
+        std::cout << "NextRAM daemon started with PID: " << pid << std::endl;
         exit(EXIT_SUCCESS);
     }
     
     umask(0);
-    setsid();
+    pid_t sid = setsid();
+    if (sid < 0) {
+        std::cerr << "Failed to create new session" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    if (chdir("/") < 0) {
+        std::cerr << "Failed to change working directory" << std::endl;
+        exit(EXIT_FAILURE);
+    }
     
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
