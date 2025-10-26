@@ -83,7 +83,6 @@ public:
         Logger::info("Shutting down NextRAM daemon");
         running = false;
         services.stopAll();
-        services.stopMonitoring();
         Logger::info("NextRAM daemon shutdown complete");
     }
     
@@ -301,7 +300,10 @@ int main(int argc, char* argv[]) {
         }
         if (arg == "--status" || arg == "-s") {
             ConfigManager config("/data/adb/nextram/cfg-main.prop");
-            config.load();
+            if (!config.load()) {
+                std::cerr << "Failed to load configuration" << std::endl;
+                return EXIT_FAILURE;
+            }
             ServiceManager services(config);
             services.printStatus();
             return 0;
@@ -358,3 +360,4 @@ int main(int argc, char* argv[]) {
     daemon.run();
     return EXIT_SUCCESS;
 }
+[file content end]

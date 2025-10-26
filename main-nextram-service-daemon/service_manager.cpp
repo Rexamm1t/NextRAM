@@ -13,7 +13,6 @@ ServiceManager::ServiceManager(ConfigManager& cfg) : config(cfg) {
 
 ServiceManager::~ServiceManager() {
     stopMonitoring();
-    stopAll();
 }
 
 void ServiceManager::initializeServices() {
@@ -49,11 +48,15 @@ bool ServiceManager::isServiceEnabled(const std::string& name) {
     
     auto& service = it->second;
     
+    if (service.is_ctl_service) {
+        return true;
+    }
+    
     if (service.config_key.empty()) {
         return true;
     }
     
-    return config.getBool(service.config_key, name == "ctl");
+    return config.getBool(service.config_key, false);
 }
 
 void ServiceManager::startAll() {
@@ -63,27 +66,32 @@ void ServiceManager::startAll() {
     
     int started_count = 0;
     int enabled_count = 0;
+    
     for (auto& [name, service] : services) {
-        if (service.should_run && service.pid == 0 && !service.is_ctl_service) {
-            Logger::info("Starting service: " + name);
-            if (startService(name)) {
-                started_count++;
-                enabled_count++;
-            } else {
-                Logger::error("Failed to start service: " + name);
-            }
-        } else if (!service.should_run && !service.is_ctl_service) {
-            Logger::info("Skipping disabled service: " + name);
-        } else if (service.is_ctl_service) {
-            Logger::info("Skipping ctl service (not a daemon): " + name);
-        } else if (service.pid > 0) {
-            Logger::info("Service already running: " + name + " (PID: " + std::to_string(service.pid) + ")");
+        if (service.is_ctl_service) {
+            Logger::debug("Skipping ctl service (not a daemon): " + name);
+            continue;
+        }
+        
+        if (service.should_run) {
             enabled_count++;
+            if (service.pid == 0) {
+                Logger::info("Attempting to start service: " + name);
+                if (startService(name)) {
+                    started_count++;
+                } else {
+                    Logger::error("Failed to start service: " + name);
+                }
+            } else {
+                Logger::info("Service already running: " + name + " (PID: " + std::to_string(service.pid) + ")");
+            }
+        } else {
+            Logger::info("Service disabled in config: " + name);
         }
     }
     
     Logger::info("Started " + std::to_string(started_count) + " new services, " + 
-                std::to_string(enabled_count) + " services enabled total");
+                std::to_string(enabled_count) + " services enabled in configuration");
     
     if (!monitoring && enabled_count > 0) {
         monitoring = true;
@@ -95,7 +103,7 @@ void ServiceManager::startAll() {
 }
 
 void ServiceManager::stopAll() {
-    Logger::info("Stopping all services");
+    Logger::info("Stopping all managed services");
     
     int stopped_count = 0;
     for (auto& [name, service] : services) {
@@ -107,11 +115,16 @@ void ServiceManager::stopAll() {
     }
     
     Logger::info("Stopped " + std::to_string(stopped_count) + " services");
+    
+    stopMonitoring();
 }
 
 bool ServiceManager::startService(const std::string& name) {
     auto it = services.find(name);
-    if (it == services.end()) return false;
+    if (it == services.end()) {
+        Logger::error("Service not found: " + name);
+        return false;
+    }
     
     auto& service = it->second;
     
@@ -127,7 +140,8 @@ bool ServiceManager::startService(const std::string& name) {
     
     pid_t pid = fork();
     if (pid == 0) {
-        execl(service.binary_path.c_str(), service.binary_path.c_str(), nullptr);
+        Logger::debug("Child process for service: " + name);
+        execl(service.binary_path.c_str(), service.binary_path.c_str(), (char*)NULL);
         
         Logger::error("Failed to execute service binary: " + service.binary_path);
         std::cerr << "Failed to execute: " << service.binary_path << " - " << strerror(errno) << std::endl;
@@ -153,7 +167,10 @@ bool ServiceManager::stopService(const std::string& name) {
     if (service.pid > 0) {
         Logger::info("Stopping service: " + name + " (PID: " + std::to_string(service.pid) + ")");
         
-        kill(service.pid, SIGTERM);
+        if (kill(service.pid, SIGTERM) != 0) {
+            Logger::error("Failed to send SIGTERM to service " + name);
+            return false;
+        }
         
         int status;
         int wait_result = waitpid(service.pid, &status, WNOHANG);
@@ -224,7 +241,7 @@ bool ServiceManager::checkAllRunning() {
 }
 
 void ServiceManager::printStatus() {
-    Logger::info("starting service_manager...");
+    Logger::info("startin NRDsm...");
     int running_count = 0;
     int enabled_count = 0;
     
@@ -299,6 +316,15 @@ void ServiceManager::monitorServices() {
                 }
             }
         }
+        
+        if (monitoring_cycles % 6 == 0) {
+            Logger::debug("Service monitoring cycle " + std::to_string(monitoring_cycles) + " completed");
+        }
+        
+        if (config.needsReload()) {
+            Logger::info("Configuration change detected in monitor, reloading services...");
+            reloadAll();
+        }
     }
     
     Logger::info("Service monitoring stopped after " + std::to_string(monitoring_cycles) + " cycles");
@@ -334,3 +360,4 @@ void ServiceManager::executeCtlCommand(const std::vector<std::string>& args) {
         Logger::error("Ctl command failed with code: " + std::to_string(result));
     }
 }
+[file content end]
