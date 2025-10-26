@@ -1,5 +1,7 @@
 # NextRAM - Advanced Memory Optimization Magisk Module
 
+![elogo](https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/githubcfg/nextram-gh-logo.png)
+
 ![NextRAM Banner](https://img.shields.io/badge/NextRAM-Smart%20Memory%20Optimization-blue?style=for-the-badge)
 ![Magisk](https://img.shields.io/badge/Magisk-20.4%2B-00B39B?style=for-the-badge&logo=android)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android)
