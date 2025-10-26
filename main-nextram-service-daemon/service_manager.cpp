@@ -360,4 +360,3 @@ void ServiceManager::executeCtlCommand(const std::vector<std::string>& args) {
         Logger::error("Ctl command failed with code: " + std::to_string(result));
     }
 }
-[file content end]
