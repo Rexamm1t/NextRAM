@@ -92,10 +92,10 @@ public:
     
 private:
     void showStatus() {
-        std::cout << "    \\  |               |     _ \\      \\      \\  |  by " << std::endl;
-        std::cout << "     \\ |   _ \\ \\ \\  /  __|  |   |    _ \\    |\\/ |  " << std::endl;
-        std::cout << "   |\\  |   __/  \\  <   |    __ <    ___ \\   |   |  @rexamm1t" << std::endl;
-        std::cout << "  _| \\_| \\___|  _/\\_\\ \\__| _| \\_\\ _/    _\\ _|  _|  @matrix_5858" << std::endl;
+        std::cout << "    \  |               |     _ \      \      \  |  by " << std::endl;
+        std::cout << "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  " << std::endl;
+        std::cout << "   |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t" << std::endl;
+        std::cout << "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858" << std::endl;
         std::cout << " " << std::endl;
         std::cout << "=== Basic Settings ===" << std::endl;
         std::cout << "Swap: " << (config.getBool("SWAP_ENABLED") ? "Enabled (" + config.get("SWAP_SIZE_GB") + "GB)" : "Disabled") << std::endl;
@@ -124,7 +124,6 @@ private:
         std::cout << "=== System Info ===" << std::endl;
         std::cout << "Config file: /data/adb/nextram/cfg-main.prop" << std::endl;
         std::cout << "Log file: /data/adb/nextram/logs/nextram-ctl.log" << std::endl;
-        std::cout << "AI Model: /data/adb/nextram/ai_model.dat" << std::endl;
         std::cout << "Reports: /data/adb/nextram/reports" << std::endl;
     }
     
@@ -630,11 +629,11 @@ private:
     
     void showHelp() {
         std::cout << " " << std::endl;
-        std::cout << "        \\  |               |     _ \\      \\      \\  |  by " << std::endl;
-        std::cout << "         \\ |   _ \\ \\ \\  /  __|  |   |    _ \\    |\\/ |  " << std::endl;
-        std::cout << "       |\\  |   __/  \\  <   |    __ <    ___ \\   |   |  @rexamm1t" << std::endl;
-        std::cout << "      _| \\_| \\___|  _/\\_\\ \\__| _| \\_\\ _/    _\\ _|  _|  @matrix_5858" << std::endl;
-        std::cout << " " << std::endl;
+        std::cout << "    \  |               |     _ \      \      \  |  by " << std::endl;
+        std::cout << "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  " << std::endl;
+        std::cout << "   |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t" << std::endl;
+        std::cout << "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858" << std::endl;
+        std::cout << " " << std::endl; 
         std::cout << "                    === NextRAM Commands ===" << std::endl;
         std::cout << " " << std::endl;
         std::cout << "                      --Attention!--" << std::endl;
