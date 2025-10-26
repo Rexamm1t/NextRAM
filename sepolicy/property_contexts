@@ -1,0 +1,5 @@
+# NextRAM Property Contexts
+
+nextram\.*                                 u:object_r:nextram_prop:s0
+persist\.nextram\.*                        u:object_r:nextram_prop:s0
+ro\.nextram\.*                             u:object_r:nextram_prop:s0
