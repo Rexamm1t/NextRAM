@@ -6,6 +6,23 @@
 
 <center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a><a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
 
+<center>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_RU.md">
+      Russian
+    </a>
+  </font>
+  <font size="2">
+    |
+  </font>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_EN.md">
+      English
+    </a>
+  </font>
+</center>
+
+
 # NextRAM - a set of drivers and software for managing zRAM, NextRAM Swapfile, and the Linux kernel.
 
 NextRAM is a sophisticated and powerful multi-functional memory management solution for Android. It intelligently coordinates ZRAM compression, swap management, and kernel parameter tuning in real time, significantly improving device performance and multitasking capabilities.
