@@ -6,6 +6,22 @@
 
 <center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a><a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
 
+<center>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_RU.md">
+      Русский
+    </a>
+  </font>
+  <font size="2">
+    |
+  </font>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_EN.md">
+      Английский
+    </a>
+  </font>
+</center>
+
 # NextRAM - набор драйверов и ПО для управления zRAM, NextRAM Swapfile и ядра Linux. 
  
 NextRAM — это сложное и мощное многофункциональное решение для управления памятью для Android. Оно интеллектуально координирует сжатие ZRAM, управление подкачкой и настройку параметров ядра в реальном времени, значительно повышая производительность устройства и возможности многозадачности.
