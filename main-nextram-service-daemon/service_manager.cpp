@@ -5,18 +5,25 @@
 #include <thread>
 #include <sstream>
 #include <chrono>
-#include <iostream>
+#include <fstream>
 
 ServiceManager::ServiceManager(ConfigManager& cfg) : config(cfg) {
-    initializeServices();
 }
 
 ServiceManager::~ServiceManager() {
     stopMonitoring();
 }
 
+bool ServiceManager::initialize() {
+    Logger::info("Initializing ServiceManager...");
+    initializeServices();
+    updateServiceStates();
+    return true;
+}
+
 void ServiceManager::initializeServices() {
     services.clear();
+    
     services = {
         {"zram", ServiceInfo("zram", "/system/bin/nextramd-zram-service", "ZRAM_ENABLED", false, false, false)},
         {"swap", ServiceInfo("swap", "/system/bin/nextramd-swap-service", "SWAP_ENABLED", false, false, false)},
@@ -24,7 +31,16 @@ void ServiceManager::initializeServices() {
         {"ctl", ServiceInfo("ctl", "/system/bin/nextramd-ctl-global", "", true, true, true)}
     };
 
-    updateServiceStates();
+    for (auto& [name, service] : services) {
+        if (!service.is_ctl_service && !checkBinaryExists(service.binary_path)) {
+            Logger::error("Binary not found: " + service.binary_path);
+            service.should_run = false;
+        }
+    }
+}
+
+bool ServiceManager::checkBinaryExists(const std::string& path) {
+    return access(path.c_str(), X_OK) == 0;
 }
 
 void ServiceManager::updateServiceStates() {
@@ -138,14 +154,20 @@ bool ServiceManager::startService(const std::string& name) {
         return true;
     }
     
+    if (!checkBinaryExists(service.binary_path)) {
+        Logger::error("Binary file not found or not executable: " + service.binary_path);
+        return false;
+    }
+    
     pid_t pid = fork();
     if (pid == 0) {
-        Logger::debug("Child process for service: " + name);
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
+        
         execl(service.binary_path.c_str(), service.binary_path.c_str(), (char*)NULL);
         
-        Logger::error("Failed to execute service binary: " + service.binary_path);
-        std::cerr << "Failed to execute: " << service.binary_path << " - " << strerror(errno) << std::endl;
-        exit(EXIT_FAILURE);
+        _exit(EXIT_FAILURE);
     } else if (pid > 0) {
         service.pid = pid;
         service.running = true;
@@ -241,7 +263,7 @@ bool ServiceManager::checkAllRunning() {
 }
 
 void ServiceManager::printStatus() {
-    Logger::info("startin NRDsm...");
+    Logger::info("=== Service Status ===");
     int running_count = 0;
     int enabled_count = 0;
     
@@ -266,7 +288,7 @@ void ServiceManager::printStatus() {
     
     Logger::info("Summary: " + std::to_string(running_count) + "/" + 
                 std::to_string(enabled_count) + " services running");
-    Logger::info("...done");
+    Logger::info("======================");
 }
 
 void ServiceManager::stopMonitoring() {

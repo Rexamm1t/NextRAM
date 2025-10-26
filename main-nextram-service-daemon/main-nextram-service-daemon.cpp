@@ -16,10 +16,10 @@
 
 class NextramDaemon {
 private:
+    std::string config_path = "/data/adb/nextram/cfg-main.prop";
     ConfigManager config;
     ServiceManager services;
     volatile bool running = true;
-    std::string config_path = "/data/adb/nextram/cfg-main.prop";
     
 public:
     NextramDaemon() : config(config_path), services(config) {}
@@ -32,6 +32,11 @@ public:
         Logger::info(std::string(SERVICE_NAME) + " v" + SERVICE_VERSION + " starting...");
         
         if (!initializeConfiguration()) {
+            return false;
+        }
+        
+        if (!services.initialize()) {
+            Logger::error("Failed to initialize ServiceManager");
             return false;
         }
         
@@ -67,7 +72,6 @@ public:
             
             if (status_log_counter % 12 == 0) {
                 Logger::info("Daemon monitoring active - services are being watched");
-                services.printStatus();
                 status_log_counter = 0;
             }
             
@@ -96,7 +100,6 @@ public:
     
 private:
     bool initializeSystem() {
-        
         if (!createEssentialDirectories()) {
             Logger::error("Failed to create essential directories");
             return false;
@@ -261,6 +264,10 @@ int executeCtlCommand(int argc, char* argv[]) {
     }
     
     ServiceManager services(config);
+    if (!services.initialize()) {
+        std::cerr << "Failed to initialize ServiceManager" << std::endl;
+        return EXIT_FAILURE;
+    }
     services.executeCtlCommand(args);
     return EXIT_SUCCESS;
 }
@@ -305,6 +312,10 @@ int main(int argc, char* argv[]) {
                 return EXIT_FAILURE;
             }
             ServiceManager services(config);
+            if (!services.initialize()) {
+                std::cerr << "Failed to initialize ServiceManager" << std::endl;
+                return EXIT_FAILURE;
+            }
             services.printStatus();
             return 0;
         }
@@ -317,7 +328,9 @@ int main(int argc, char* argv[]) {
         }
         if (arg == "--stop" || arg == "-S") {
             NextramDaemon daemon;
-            daemon.getServiceManager().stopAll();
+            if (daemon.initialize()) {
+                daemon.getServiceManager().stopAll();
+            }
             return 0;
         }
         if (arg == "--create-config" || arg == "-c") {

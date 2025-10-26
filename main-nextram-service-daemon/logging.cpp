@@ -45,13 +45,13 @@ void Logger::log(LogLevel level, const std::string& message) {
     
     std::string log_entry = "[" + getTimestamp() + "] [" + level_str + "] " + message;
     
+    std::cout << log_entry << std::endl;
+    
     std::ofstream log_file("/data/adb/nextram/logs/main-daemon.log", std::ios_base::app);
     if (log_file.is_open()) {
         log_file << log_entry << std::endl;
         log_file.close();
     }
-    
-    std::cout << log_entry << std::endl;
 }
 
 std::string Logger::getTimestamp() {

@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <thread>
+#include <atomic>
 
 struct ServiceInfo {
     std::string name;
@@ -29,13 +30,14 @@ class ServiceManager {
 private:
     ConfigManager& config;
     std::unordered_map<std::string, ServiceInfo> services;
-    bool monitoring = false;
+    std::atomic<bool> monitoring{false};
     std::thread monitor_thread;
     
 public:
     ServiceManager(ConfigManager& cfg);
     ~ServiceManager();
     
+    bool initialize();
     void startAll();
     void stopAll();
     void restartAll();
@@ -52,6 +54,7 @@ private:
     bool stopService(const std::string& name);
     void monitorServices();
     bool isServiceEnabled(const std::string& name);
+    bool checkBinaryExists(const std::string& path);
 };
 
 #endif

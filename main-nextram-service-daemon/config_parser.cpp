@@ -12,6 +12,9 @@
 #include <algorithm>
 
 ConfigManager::ConfigManager(const std::string& path) : config_path(path) {
+    if (config_path.empty()) {
+        config_path = "/data/adb/nextram/cfg-main.prop";
+    }
     setDefaults();
 }
 
@@ -142,7 +145,6 @@ bool ConfigManager::save() {
     writeGroup(hugepages_settings, "HugePages Configuration");
     writeGroup(app_settings, "Application Management");
     
-    // Сохраняем все остальные параметры, которые не вошли в группы
     file << std::endl << "# Additional Parameters" << std::endl;
     std::vector<std::string> all_keys;
     for (const auto& pair : config) {
@@ -150,7 +152,6 @@ bool ConfigManager::save() {
     }
     std::sort(all_keys.begin(), all_keys.end());
     
-    // Уже обработанные ключи
     std::vector<std::string> processed_keys;
     processed_keys.insert(processed_keys.end(), categories.begin(), categories.end());
     processed_keys.insert(processed_keys.end(), swap_settings.begin(), swap_settings.end());
@@ -205,6 +206,11 @@ bool ConfigManager::createDefaultConfig() {
 }
 
 bool ConfigManager::ensureConfigDirectory() {
+    if (config_path.empty()) {
+        std::cerr << "Config path is empty" << std::endl;
+        return false;
+    }
+    
     std::string dir = config_path.substr(0, config_path.find_last_of('/'));
     
     if (dir.empty()) {
