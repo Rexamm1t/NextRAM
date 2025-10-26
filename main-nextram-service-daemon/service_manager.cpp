@@ -5,6 +5,7 @@
 #include <thread>
 #include <sstream>
 #include <chrono>
+#include <iostream>
 
 ServiceManager::ServiceManager(ConfigManager& cfg) : config(cfg) {
     initializeServices();
@@ -61,21 +62,35 @@ void ServiceManager::startAll() {
     updateServiceStates();
     
     int started_count = 0;
+    int enabled_count = 0;
     for (auto& [name, service] : services) {
         if (service.should_run && service.pid == 0 && !service.is_ctl_service) {
+            Logger::info("Starting service: " + name);
             if (startService(name)) {
                 started_count++;
+                enabled_count++;
+            } else {
+                Logger::error("Failed to start service: " + name);
             }
         } else if (!service.should_run && !service.is_ctl_service) {
             Logger::info("Skipping disabled service: " + name);
+        } else if (service.is_ctl_service) {
+            Logger::info("Skipping ctl service (not a daemon): " + name);
+        } else if (service.pid > 0) {
+            Logger::info("Service already running: " + name + " (PID: " + std::to_string(service.pid) + ")");
+            enabled_count++;
         }
     }
     
-    Logger::info("Started " + std::to_string(started_count) + " services");
+    Logger::info("Started " + std::to_string(started_count) + " new services, " + 
+                std::to_string(enabled_count) + " services enabled total");
     
-    if (!monitoring) {
+    if (!monitoring && enabled_count > 0) {
         monitoring = true;
         monitor_thread = std::thread(&ServiceManager::monitorServices, this);
+        Logger::info("Service monitoring started for " + std::to_string(enabled_count) + " services");
+    } else if (enabled_count == 0) {
+        Logger::info("No services enabled, monitoring not started");
     }
 }
 
@@ -105,9 +120,17 @@ bool ServiceManager::startService(const std::string& name) {
         return false;
     }
     
+    if (service.pid > 0) {
+        Logger::warn("Service " + name + " is already running with PID: " + std::to_string(service.pid));
+        return true;
+    }
+    
     pid_t pid = fork();
     if (pid == 0) {
         execl(service.binary_path.c_str(), service.binary_path.c_str(), nullptr);
+        
+        Logger::error("Failed to execute service binary: " + service.binary_path);
+        std::cerr << "Failed to execute: " << service.binary_path << " - " << strerror(errno) << std::endl;
         exit(EXIT_FAILURE);
     } else if (pid > 0) {
         service.pid = pid;
@@ -116,7 +139,7 @@ bool ServiceManager::startService(const std::string& name) {
         Logger::info("Started service: " + name + " (PID: " + std::to_string(pid) + ")");
         return true;
     } else {
-        Logger::error("Failed to start service: " + name);
+        Logger::error("Failed to fork for service: " + name + " - " + strerror(errno));
         return false;
     }
 }
@@ -138,7 +161,7 @@ bool ServiceManager::stopService(const std::string& name) {
         if (wait_result == 0) {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             if (waitpid(service.pid, &status, WNOHANG) == 0) {
-                Logger::warn("Service " + name + " not responding, force killing");
+                Logger::warn("Service " + name + " not responding to SIGTERM, force killing");
                 kill(service.pid, SIGKILL);
                 waitpid(service.pid, &status, 0);
             }
@@ -188,24 +211,29 @@ void ServiceManager::reloadAll() {
 }
 
 bool ServiceManager::checkAllRunning() {
+    bool all_running = true;
     for (const auto& [name, service] : services) {
         if (service.should_run && service.pid > 0 && !service.is_ctl_service) {
             if (kill(service.pid, 0) != 0) {
                 Logger::warn("Service " + name + " (PID: " + std::to_string(service.pid) + ") is not running");
-                return false;
+                all_running = false;
             }
         }
     }
-    return true;
+    return all_running;
 }
 
 void ServiceManager::printStatus() {
-    Logger::info("=== Service Status ===");
+    Logger::info("starting service_manager...");
+    int running_count = 0;
+    int enabled_count = 0;
+    
     for (const auto& [name, service] : services) {
         std::string status;
         if (service.pid > 0) {
             if (kill(service.pid, 0) == 0) {
                 status = "RUNNING (PID: " + std::to_string(service.pid) + ")";
+                running_count++;
             } else {
                 status = "ZOMBIE (PID: " + std::to_string(service.pid) + ")";
             }
@@ -214,10 +242,14 @@ void ServiceManager::printStatus() {
         }
         
         std::string config_state = service.should_run ? "ENABLED" : "DISABLED";
+        if (service.should_run) enabled_count++;
+        
         Logger::info(name + ": " + status + " [Config: " + config_state + "]");
     }
     
-    Logger::info("======================");
+    Logger::info("Summary: " + std::to_string(running_count) + "/" + 
+                std::to_string(enabled_count) + " services running");
+    Logger::info("...done");
 }
 
 void ServiceManager::stopMonitoring() {
@@ -230,8 +262,11 @@ void ServiceManager::stopMonitoring() {
 void ServiceManager::monitorServices() {
     Logger::info("Starting service monitoring");
     
+    int monitoring_cycles = 0;
+    
     while (monitoring) {
         std::this_thread::sleep_for(std::chrono::seconds(10));
+        monitoring_cycles++;
         
         for (auto& [name, service] : services) {
             if (service.is_ctl_service) continue;
@@ -246,12 +281,16 @@ void ServiceManager::monitorServices() {
                     
                     if (service.restart_count < 5) {
                         Logger::info("Restarting service " + name + " (attempt " + 
-                                   std::to_string(service.restart_count) + ")");
+                                   std::to_string(service.restart_count) + "/5)");
                         service.pid = 0;
                         service.running = false;
-                        startService(name);
+                        if (startService(name)) {
+                            Logger::info("Service " + name + " restarted successfully");
+                        } else {
+                            Logger::error("Failed to restart service " + name);
+                        }
                     } else {
-                        Logger::error("Service " + name + " restart limit exceeded, disabling");
+                        Logger::error("Service " + name + " restart limit exceeded (5 attempts), disabling");
                         service.should_run = false;
                         service.enabled = false;
                     }
@@ -262,7 +301,7 @@ void ServiceManager::monitorServices() {
         }
     }
     
-    Logger::info("Service monitoring stopped");
+    Logger::info("Service monitoring stopped after " + std::to_string(monitoring_cycles) + " cycles");
 }
 
 void ServiceManager::executeCtlCommand(const std::vector<std::string>& args) {

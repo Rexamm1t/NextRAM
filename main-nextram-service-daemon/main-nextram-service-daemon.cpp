@@ -44,15 +44,19 @@ public:
     }
     
     void run() {
+        Logger::info("Starting all enabled services...");
         services.startAll();
         
         Logger::info("Main daemon monitoring loop started");
         
         int check_counter = 0;
+        int status_log_counter = 0;
+        
         while (running) {
             std::this_thread::sleep_for(std::chrono::seconds(5));
             
             check_counter++;
+            status_log_counter++;
             
             if (check_counter % 6 == 0) {
                 if (!services.checkAllRunning()) {
@@ -61,10 +65,18 @@ public:
                 check_counter = 0;
             }
             
+            if (status_log_counter % 12 == 0) {
+                Logger::info("Daemon monitoring active - services are being watched");
+                services.printStatus();
+                status_log_counter = 0;
+            }
+            
             if (config.needsReload()) {
                 handleConfigReload();
             }
         }
+        
+        Logger::info("Main daemon monitoring loop ended");
     }
     
     void shutdown() {
@@ -72,6 +84,7 @@ public:
         running = false;
         services.stopAll();
         services.stopMonitoring();
+        Logger::info("NextRAM daemon shutdown complete");
     }
     
     ServiceManager& getServiceManager() {
@@ -101,11 +114,13 @@ private:
         if (!config.load()) {
             Logger::error("Critical: Failed to load configuration");
             
+            Logger::info("Attempting to create default configuration...");
             if (!config.createDefaultConfig()) {
                 Logger::error("CRITICAL: Cannot create configuration file!");
                 return false;
             }
             
+            Logger::info("Default configuration created, attempting to reload...");
             if (!config.load()) {
                 Logger::error("Still cannot load config after creation");
                 return false;
@@ -113,6 +128,13 @@ private:
         }
         
         Logger::setLevel(static_cast<LogLevel>(config.getInt("LOG_LEVEL", 1)));
+        
+        Logger::info("Configuration loaded successfully");
+        Logger::info("ZRAM_ENABLED: " + config.get("ZRAM_ENABLED", "false"));
+        Logger::info("SWAP_ENABLED: " + config.get("SWAP_ENABLED", "false")); 
+        Logger::info("EXTRA_TUNING: " + config.get("EXTRA_TUNING", "false"));
+        Logger::info("AI_OPTIMIZER_ENABLED: " + config.get("AI_OPTIMIZER_ENABLED", "false"));
+        
         auto stats = config.getConfigStats();
         for (const auto& stat : stats) {
             Logger::info(stat);
@@ -126,7 +148,8 @@ private:
             "/data/adb",
             "/data/adb/nextram", 
             "/data/adb/nextram/logs",
-            "/data/adb/nextram/cache"
+            "/data/adb/nextram/cache",
+            "/data/adb/nextram/reports"
         };
         
         for (const auto& dir : directories) {
@@ -161,7 +184,8 @@ private:
                     std::string("ZRAM=") + config.get("ZRAM_ENABLED") + ", " +
                     std::string("SWAP=") + config.get("SWAP_ENABLED") + ", " +
                     std::string("TUNING=") + config.get("EXTRA_TUNING") + ", " +
-                    std::string("AI=") + config.get("AI_OPTIMIZER_ENABLED"));
+                    std::string("AI=") + config.get("AI_OPTIMIZER_ENABLED") + ", " +
+                    std::string("PROFILE=") + config.get("PERFORMANCE_PROFILE"));
     }
     
     void setupSignalHandlers() {

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>
+#include <algorithm>
 
 ConfigManager::ConfigManager(const std::string& path) : config_path(path) {
     setDefaults();
@@ -66,7 +67,6 @@ bool ConfigManager::save() {
         return false;
     }
     
-   
     std::string temp_path = config_path + ".tmp";
     std::ofstream file(temp_path);
     
@@ -117,6 +117,10 @@ bool ConfigManager::save() {
         "HUGEPAGES_ENABLED", "HUGEPAGES_COUNT", "HUGEPAGES_SIZE_MB", "HUGEPAGES_AUTO_MANAGE"
     };
     
+    std::vector<std::string> app_settings = {
+        "PERFORMANCE_APPS", "BACKGROUND_APPS"
+    };
+    
     
     auto writeGroup = [&](const std::vector<std::string>& keys, const std::string& comment) {
         file << std::endl << "# " << comment << std::endl;
@@ -136,6 +140,33 @@ bool ConfigManager::save() {
     writeGroup(vm_extra_settings, "Extra VM Settings");
     writeGroup(ai_settings, "AI Optimizer Settings");
     writeGroup(hugepages_settings, "HugePages Configuration");
+    writeGroup(app_settings, "Application Management");
+    
+    // Сохраняем все остальные параметры, которые не вошли в группы
+    file << std::endl << "# Additional Parameters" << std::endl;
+    std::vector<std::string> all_keys;
+    for (const auto& pair : config) {
+        all_keys.push_back(pair.first);
+    }
+    std::sort(all_keys.begin(), all_keys.end());
+    
+    // Уже обработанные ключи
+    std::vector<std::string> processed_keys;
+    processed_keys.insert(processed_keys.end(), categories.begin(), categories.end());
+    processed_keys.insert(processed_keys.end(), swap_settings.begin(), swap_settings.end());
+    processed_keys.insert(processed_keys.end(), zram_settings.begin(), zram_settings.end());
+    processed_keys.insert(processed_keys.end(), vm_settings.begin(), vm_settings.end());
+    processed_keys.insert(processed_keys.end(), advanced_settings.begin(), advanced_settings.end());
+    processed_keys.insert(processed_keys.end(), vm_extra_settings.begin(), vm_extra_settings.end());
+    processed_keys.insert(processed_keys.end(), ai_settings.begin(), ai_settings.end());
+    processed_keys.insert(processed_keys.end(), hugepages_settings.begin(), hugepages_settings.end());
+    processed_keys.insert(processed_keys.end(), app_settings.begin(), app_settings.end());
+    
+    for (const auto& key : all_keys) {
+        if (std::find(processed_keys.begin(), processed_keys.end(), key) == processed_keys.end()) {
+            file << key << "=" << config[key] << std::endl;
+        }
+    }
     
     file.close();
     
@@ -328,7 +359,9 @@ void ConfigManager::setDefaults() {
         {"HUGEPAGES_ENABLED", "true"},
         {"HUGEPAGES_COUNT", "16"},
         {"HUGEPAGES_SIZE_MB", "2"},
-        {"HUGEPAGES_AUTO_MANAGE", "true"}
+        {"HUGEPAGES_AUTO_MANAGE", "true"},
+        {"PERFORMANCE_APPS", ""},
+        {"BACKGROUND_APPS", ""}
     };
 }
 
