@@ -8,6 +8,7 @@
 #include <sstream>
 #include <thread>
 #include <chrono>
+#include <atomic>
 
 #include "version.h"
 #include "config_parser.h"
@@ -19,7 +20,7 @@ private:
     std::string config_path = "/data/adb/nextram/cfg-main.prop";
     ConfigManager config;
     ServiceManager services;
-    volatile bool running = true;
+    volatile std::atomic<bool> running{true};
     
 public:
     NextramDaemon() : config(config_path), services(config) {}
@@ -84,8 +85,9 @@ public:
     }
     
     void shutdown() {
+        if (!running.exchange(false)) return;
+        
         Logger::info("Shutting down NextRAM daemon");
-        running = false;
         services.stopAll();
         Logger::info("NextRAM daemon shutdown complete");
     }
@@ -192,13 +194,19 @@ private:
     
     void setupSignalHandlers() {
         std::signal(SIGTERM, [](int) { 
-            Logger::info("Received SIGTERM - graceful shutdown");
-            getInstance().shutdown(); 
+            static std::atomic<bool> shutdown_triggered{false};
+            if (!shutdown_triggered.exchange(true)) {
+                Logger::info("Received SIGTERM - graceful shutdown");
+                getInstance().shutdown(); 
+            }
         });
         
         std::signal(SIGINT, [](int) { 
-            Logger::info("Received SIGINT - graceful shutdown");
-            getInstance().shutdown(); 
+            static std::atomic<bool> shutdown_triggered{false};
+            if (!shutdown_triggered.exchange(true)) {
+                Logger::info("Received SIGINT - graceful shutdown");
+                getInstance().shutdown(); 
+            }
         });
         
         std::signal(SIGHUP, [](int) { 

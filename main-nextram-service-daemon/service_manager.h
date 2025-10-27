@@ -18,12 +18,13 @@ struct ServiceInfo {
     int restart_count = 0;
     bool running = false;
     bool is_ctl_service = false;
+    bool is_oneshot = false;
 
     ServiceInfo() = default;
     
-    ServiceInfo(std::string n, std::string b, std::string c, bool e, bool s, bool ctl)
+    ServiceInfo(std::string n, std::string b, std::string c, bool e, bool s, bool ctl, bool oneshot = false)
         : name(std::move(n)), binary_path(std::move(b)), config_key(std::move(c)), 
-          enabled(e), should_run(s), is_ctl_service(ctl) {}
+          enabled(e), should_run(s), is_ctl_service(ctl), is_oneshot(oneshot) {}
 };
 
 class ServiceManager {

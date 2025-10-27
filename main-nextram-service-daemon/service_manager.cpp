@@ -25,10 +25,10 @@ void ServiceManager::initializeServices() {
     services.clear();
     
     services = {
-        {"zram", ServiceInfo("zram", "/system/bin/nextramd-zram-service", "ZRAM_ENABLED", false, false, false)},
-        {"swap", ServiceInfo("swap", "/system/bin/nextramd-swap-service", "SWAP_ENABLED", false, false, false)},
-        {"kernel", ServiceInfo("kernel", "/system/bin/nextramd-kernel-tn-service", "EXTRA_TUNING", false, false, false)},
-        {"ctl", ServiceInfo("ctl", "/system/bin/nextramd-ctl-global", "", true, true, true)}
+        {"zram", ServiceInfo("zram", "/system/bin/nextramd-zram-service", "ZRAM_ENABLED", false, false, false, true)},
+        {"swap", ServiceInfo("swap", "/system/bin/nextramd-swap-service", "SWAP_ENABLED", false, false, false, true)},
+        {"kernel", ServiceInfo("kernel", "/system/bin/nextramd-kernel-tn-service", "EXTRA_TUNING", false, false, false, true)},
+        {"ctl", ServiceInfo("ctl", "/system/bin/nextramd-ctl-global", "", true, true, true, false)}
     };
 
     for (auto& [name, service] : services) {
@@ -301,6 +301,8 @@ void ServiceManager::stopMonitoring() {
 void ServiceManager::monitorServices() {
     Logger::info("Starting service monitoring");
     
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    
     int monitoring_cycles = 0;
     
     while (monitoring) {
@@ -315,23 +317,29 @@ void ServiceManager::monitorServices() {
                 pid_t result = waitpid(service.pid, &status, WNOHANG);
                 
                 if (result != 0) {
-                    Logger::warn("Service " + name + " crashed with status " + std::to_string(status));
-                    service.restart_count++;
-                    
-                    if (service.restart_count < 5) {
-                        Logger::info("Restarting service " + name + " (attempt " + 
-                                   std::to_string(service.restart_count) + "/5)");
+                    if (service.is_oneshot && WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+                        Logger::info("Oneshot service " + name + " completed successfully");
                         service.pid = 0;
                         service.running = false;
-                        if (startService(name)) {
-                            Logger::info("Service " + name + " restarted successfully");
-                        } else {
-                            Logger::error("Failed to restart service " + name);
-                        }
                     } else {
-                        Logger::error("Service " + name + " restart limit exceeded (5 attempts), disabling");
-                        service.should_run = false;
-                        service.enabled = false;
+                        Logger::warn("Service " + name + " exited with status " + std::to_string(status));
+                        service.restart_count++;
+                        
+                        if (service.restart_count < 5) {
+                            Logger::info("Restarting service " + name + " (attempt " + 
+                                       std::to_string(service.restart_count) + "/5)");
+                            service.pid = 0;
+                            service.running = false;
+                            if (startService(name)) {
+                                Logger::info("Service " + name + " restarted successfully");
+                            } else {
+                                Logger::error("Failed to restart service " + name);
+                            }
+                        } else {
+                            Logger::error("Service " + name + " restart limit exceeded (5 attempts), disabling");
+                            service.should_run = false;
+                            service.enabled = false;
+                        }
                     }
                 } else {
                     service.running = true;
