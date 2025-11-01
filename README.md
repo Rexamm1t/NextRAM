@@ -4,7 +4,7 @@
 ![Linux](https://img.shields.io/badge/Linux-3.1%2B-3DDC84?style=for-the-badge&logo=linux)
 <a href="https://t.me/nextram_official"><img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge" /></a>
 
-<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a><a href="https://github.com/Rexamm1t/NextRAM/blob/main-public/LICENSE"><img src="https://img.shields.io/github/license/Rexamm1t/NextRAM" alt="License" /></a>
+<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a><a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/LICENSE"><img src="https://img.shields.io/github/license/Rexamm1t/NextRAM" alt="License" /></a>
 <a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
 
 <center>
