@@ -1,7 +1,0 @@
-# NextRAM Service Contexts
-
-nextram.main                               u:object_r:nextram_service:s0
-nextram.zram                               u:object_r:nextram_service:s0
-nextram.swap                               u:object_r:nextram_service:s0
-nextram.kernel                             u:object_r:nextram_service:s0
-nextram.ctl                                u:object_r:nextram_service:s0

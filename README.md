@@ -4,13 +4,11 @@
 ![Linux](https://img.shields.io/badge/Linux-3.1%2B-3DDC84?style=for-the-badge&logo=linux)
 <a href="https://t.me/nextram_official"><img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge" /></a>
 
-<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a>
-<a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/LICENSE"><img src="https://img.shields.io/github/license/Rexamm1t/NextRAM" alt="License" /></a>
-<a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
+<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases/latest"><img src="https://img.shields.io/github/v/release/Rexamm1t/NextRAM" alt="Latest Release" /></a><a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
 
 <center>
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_RU.md">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/README_RU.md">
       Russian
     </a>
   </font>
@@ -18,51 +16,71 @@
     |
   </font>
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_EN.md">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/README.md">
       English
     </a>
   </font>
 </center>
 
 
-# NextRAM - a set of drivers and software for managing zRAM, NextRAM Swapfile, and the Linux kernel.
+# NextRAM - Advanced Memory Management Module
 
-NextRAM is a sophisticated and powerful multi-functional memory management solution for Android. It intelligently coordinates ZRAM compression, swap management, and kernel parameter tuning in real time, significantly improving device performance and multitasking capabilities.
+## Description
 
-## Architecture Overview
-
-NextRAM includes five specialized daemons that work together:
-
-- **Main Daemon**: Service orchestration, health monitoring, and configuration management
-- **zRAM Service**: Dynamic compression algorithm selection (lz4, zstd, lzo, deflate) and adaptive resizing.
-- **NextRAM Swapfile Service**: Device-based circular swapping on ext4 with overhead management and automatic reclamation.
-- **Kernel Tuning Service**: Optimize over 15 kernel parameters in real time (swapping, cache load, dirty write ratios, etc.)
-- **Global Controller**: A unified command-line interface for system management, monitoring, and profile management.
+NextRAM is a powerful Magisk module for advanced memory management on Android devices. The module provides enhanced zram and swap file capabilities along with fine-tuned memory parameters for performance optimization.
 
 ## Key Features
 
-- **AI-powered optimization**: Adaptive memory tuning based on usage and thermal conditions
-- **Multiperformance profiles**: Preset parameters for gaming, power saving, balanced, and performance. Use Cases
-- **Process and context awareness**: Per-app optimization and scenario-based tuning
-- **Real-time monitoring**: Real-time metrics via sysfs/procfs with detailed reporting
-- **Self-healing architecture**: Automatic service recovery and parameter rollback upon failure
+### Memory Management
+- **ZRAM**: Compressed RAM configuration with algorithm selection
+- **Swap Files**: Creation and management of swap files
+- **Auto-tuning**: Intelligent memory parameter optimization
+- **Dynamic Swappiness**: Adaptive swap management
 
-## Technical Implementation
+### System Monitoring
+- **Detailed Statistics**: Comprehensive memory, CPU, and battery information
+- **EMMC Health**: Internal storage health monitoring
+- **Logging**: Complete module operation logging
+- **System Information**: Device and system data collection
 
-- **Language**: C++, C - with standard library and POSIX API
-- **Parallelism**: Multithreaded daemons with atomic operations and mutex protection
-- **Compatibility**: Android 6.0+ (minimum system requirements may differ from individual requirements) Firmware features) - (Linux kernel 3.1+)
+### Optimization
+- **Kernel Settings**: Optimization of vm.swappiness, cache_pressure, dirty_ratio
+- **Performance**: Improved system responsiveness
+- **Power Efficiency**: Balance between performance and battery consumption
 
-## Performance, Benefits
+## Installation
 
-Documented improvements for several device categories:
-- Reduced application startup time by 30–50%
-- Increased available memory under load by 60–80%
-- Improved multitasking performance by 25% in benchmarks
+1. Install the module via Magisk Manager/Other Root Manager
+2. Reboot your device
+3. Configure parameters in NextRAM App or `config.conf` file
+
+## Module Management
+
+- Use NextRAM Manager app for graphical control
+- Edit /data/adb/modules/nextram/config.conf for manual configuration
+- View logs in /data/adb/modules/nextram/logs/
+
+## Compatibility
+
+- Android 7.0 and higher
+- Magisk and KernelSU support
+- ARM, ARM64, x86, x86_64 architectures
+- Root access required
+
+## Security
+
+The module operates at kernel level with minimal permissions. All changes are reversible and don't affect system integrity.
+
+## Support
+
+- Telegram channel: @nextram_official
+- Developers: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Module is distributed under GPL v3 license. Source code is available in project repository.
+
 ---
 
-**Experience the next level of Android memory optimization with NextRAM - where performance meets intelligence!**
+Note: Use the module with caution. Incorrect configuration may affect system stability.
+
