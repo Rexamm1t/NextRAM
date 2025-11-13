@@ -21,6 +21,7 @@
     </a>
   </font>
 </center>
+
 # NextRAM - Advanced Memory Management Module
 
 ## Описание
