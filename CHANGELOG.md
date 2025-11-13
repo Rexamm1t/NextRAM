@@ -1,10 +1,15 @@
-## NextRAM v8.1 - STABLE - 9601174 
-- saving settings (config.conf) when updating
-- optimizing and improving code structure
-- new theme (OLED) in the app
-- splitting the code
-- adding aapt and checking the apk version
-- removing toybox
-- other swap fixes
+## NextRAM v8.3.201-pre(83201)
+[INSTALL]
+- adding support for older configurations (almost NextRAM 2+) 
+- adding new options to the config when they are missing
+[MAIN] 
+- fix swapoff options
+[KERNEL]
+- Smart dynamic swappiness tuning based on memory size, ZRAM usage, and current swap utilization
+- Extended memory parameters - min_free_kbytes, watermark_scale_factor, OOM settings
+- Dual operation modes - performance (aggressive) and power-saving (balanced)
+- Settings verification with success rate checking
+- Safe handling - file availability checks before writing
+- Detailed logging of each modified parameter
 ___
-Telegram: https://t.me/rexamm1t_channel
+Telegram: https://t.me/nextram_official
