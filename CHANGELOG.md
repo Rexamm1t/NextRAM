@@ -1,4 +1,4 @@
-## NextRAM v8.3.201-pre(83201)
+## NextRAM v8.3.201-pre(83201p)
 [INSTALL]
 
 - adding support for older configurations (almost NextRAM 2+) 
