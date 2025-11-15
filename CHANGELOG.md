@@ -1,3 +1,15 @@
+## NextRAM v8.4.201-fix(84201)
+[KERNEL]
+- fix tuning scripts
+- fix slowed charge
+
+[zRAM]
+- fix zRAM custom size (4G?)
+- bugfixes
+
+___
+Telegram: https://t.me/nextram_official
+___
 ## NextRAM v8.3.201-pre(83201p)
 [INSTALL]
 
