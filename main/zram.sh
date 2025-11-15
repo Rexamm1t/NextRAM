@@ -170,12 +170,13 @@ calculate_optimal_zram_size() {
         base_size=$((base_size * 130 / 100))
     fi
     
-    local max_zram_kb=4194304
+    local max_zram_kb=$(awk -v ram="$total_ram" 'BEGIN {printf "%.0f", ram * 4}')
     local min_zram_kb=524288
     
     [ "$base_size" -gt "$max_zram_kb" ] && base_size=$max_zram_kb
     [ "$base_size" -lt "$min_zram_kb" ] && base_size=$min_zram_kb
     
+    log "DEBUG" "ZRAM calculation: RAM=${total_ram}KB, Ratio=${ZRAM_RATIO}, Base=${base_size}KB"
     echo $base_size
 }
 
@@ -213,7 +214,15 @@ setup_zram() {
     }
 
     if [ "$ZRAM_AUTO_TUNE" = "true" ] || [ -f "$MODDIR/cache/retest_algorithms" ] || [ -f "$MODDIR/cache/optimize_algorithm" ]; then
-        test_zram_algorithms
+        local system_uptime=$(awk '{print $1}' /proc/uptime | cut -d. -f1)
+        local load_avg=$(awk '{print $1}' /proc/loadavg)
+        
+        if [ "$system_uptime" -gt 120 ] && [ $(echo "$load_avg < 3.0" | bc -l) -eq 1 ]; then
+            test_zram_algorithms
+        else
+            log "INFO" "Delaying algorithm test (uptime: ${system_uptime}s, load: ${load_avg})"
+            ZRAM_ALGORITHM_CACHE="lz4"
+        fi
         rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" 2>/dev/null
     fi
 
@@ -228,6 +237,7 @@ setup_zram() {
     fi
 
     echo 1 > /sys/block/zram0/reset 2>/dev/null
+    sleep 1
     echo "$algorithm" > /sys/block/zram0/comp_algorithm
     
     optimize_algorithm_params "$algorithm"
@@ -237,7 +247,17 @@ setup_zram() {
 
     local zram_size_kb=$(calculate_optimal_zram_size)
     echo "${zram_size_kb}K" > /sys/block/zram0/disksize
-    log "INFO" "Set ZRAM size: $(($zram_size_kb / 1024))MB"
+    sleep 1
+    
+    local verify_size=$(cat /sys/block/zram0/disksize)
+    log "DEBUG" "ZRAM size: requested ${zram_size_kb}K, got ${verify_size}"
+
+    if [ "$verify_size" -ne "$zram_size_kb" ]; then
+        log "WARN" "ZRAM size mismatch, retrying..."
+        echo 1 > /sys/block/zram0/reset
+        sleep 1
+        echo "${zram_size_kb}K" > /sys/block/zram0/disksize
+    fi
 
     if [ -f "/sys/block/zram0/memory_limit" ]; then
         echo "4G" > /sys/block/zram0/memory_limit
@@ -245,7 +265,7 @@ setup_zram() {
 
     if mkswap "/dev/block/zram0" >/dev/null 2>&1; then
         if swapon "/dev/block/zram0" -p 100; then
-            log "INFO" "ZRAM activated successfully"
+            log "INFO" "ZRAM activated: ${zram_size_kb}KB with $algorithm"
             
             rm -f "$MODDIR/cache/ratio_checked.flag"
             monitor_zram_efficiency

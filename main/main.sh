@@ -42,58 +42,37 @@ case "${1:-}" in
         system_info
         check_prerequisites
 
-        log "INFO" "Disabling all swap devices"
+        log "INFO" "Disabling all swap devices..."
         
-        if [ ! -f /proc/swaps ]; then
-            log "WARN" "/proc/swaps not found"
-        else
-            if [ ! -s /proc/swaps ]; then
-                log "INFO" "No swap devices found"
-            else
-                log "INFO" "Current swap devices:"
-                cat /proc/swaps >> "$LOG_FILE" 2>/dev/null
-                
-                swap_count=0
-                disabled_count=0
-                
-                while IFS= read -r line; do
-                    if echo "$line" | grep -q "Filename" || [ -z "$line" ]; then
-                        continue
-                    fi
-                    
-                    swap_device=$(echo "$line" | awk '{print $1}')
-                    if [ -n "$swap_device" ]; then
-                        swap_count=$((swap_count + 1))
-                        log "INFO" "Found swap device: $swap_device"
-                        
-                        if [ -e "$swap_device" ] || [ -f "$swap_device" ] || [ -b "$swap_device" ]; then
-                            if swapoff "$swap_device" 2>&1 | while read swap_line; do 
-                                log "INFO" "swapoff: $swap_line"
-                            done; then
-                                disabled_count=$((disabled_count + 1))
-                                log "SUCCESS" "Disabled: $swap_device"
-                            else
-                                log "ERROR" "Failed to disable: $swap_device"
-                                if swapoff -f "$swap_device" 2>/dev/null; then
-                                    disabled_count=$((disabled_count + 1))
-                                    log "SUCCESS" "Force-disabled: $swap_device"
-                                else
-                                    log "ERROR" "Force disable failed: $swap_device"
-                                fi
-                            fi
-                        else
-                            log "WARN" "Device doesn't exist: $swap_device"
-                            if swapoff "$swap_device" 2>/dev/null; then
-                                disabled_count=$((disabled_count + 1))
-                                log "SUCCESS" "Disabled non-existent: $swap_device"
-                            fi
-                        fi
-                    fi
-                done < /proc/swaps
-                
-                log "INFO" "Swap summary: Found $swap_count, disabled $disabled_count"
+        local max_attempts=3
+        local attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+            log "INFO" "Swap disable attempt $attempt/$max_attempts"
+            
+            swapoff -a 2>/dev/null
+            sleep 2
+            
+            if [ -b "/dev/block/zram0" ]; then
+                swapoff "/dev/block/zram0" 2>/dev/null
+                echo 1 > "/dev/block/zram0/reset" 2>/dev/null
+                sleep 1
             fi
-        fi
+            
+            local remaining_swaps=$(grep -v "Filename" /proc/swaps 2>/dev/null | grep -vc "^$" || echo 0)
+            if [ "$remaining_swaps" -eq 0 ]; then
+                log "SUCCESS" "All swap devices disabled"
+                break
+            else
+                log "WARN" "Still $remaining_swaps swap devices active"
+                if [ $attempt -eq $max_attempts ]; then
+                    log "ERROR" "Failed to disable all swap devices after $max_attempts attempts"
+                    grep -v "Filename" /proc/swaps >> "$LOG_FILE" 2>/dev/null
+                fi
+            fi
+            attempt=$((attempt + 1))
+            sleep 3
+        done
 
         if command -v free >/dev/null 2>&1; then
             current_swap=$(free | grep -i swap | awk '{print $2}')

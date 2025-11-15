@@ -78,7 +78,14 @@ apply_kernel_tuning() {
 
     if [ "$EXTRA_TUNING" = "true" ]; then
         if [ -w "/proc/sys/vm/min_free_kbytes" ]; then
-            local min_free_kbytes=$(awk '/MemTotal/ {printf "%d", $2 * 0.5}' /proc/meminfo)
+            local mem_total_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
+            local min_free_kbytes=$((mem_total_kb / 100))
+            local max_min_free=524288
+            
+            if [ "$min_free_kbytes" -gt "$max_min_free" ]; then
+                min_free_kbytes=$max_min_free
+            fi
+            
             echo $min_free_kbytes > /proc/sys/vm/min_free_kbytes
             log "DEBUG" "Set min_free_kbytes to $min_free_kbytes"
         fi
