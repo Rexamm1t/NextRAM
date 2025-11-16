@@ -21,20 +21,21 @@ print_modname() {
   ui_print " "
   ui_print "          by @rexamm1t • @matrix_5858"
   ui_print "      @Alloyd031 • @wefol1x • @w3b_0s1nt"
+  ui_print "                  with love <3"
   ui_print "         tg channel: @nextram_official"
 }
 
 on_install() {
   ui_print " "
-  ui_print "Starting installation"
+  ui_print "starting installation"
 
   
   ui_print "NextRAM Version - $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
-  ui_print "Architecture: $(uname -m)"
-  ui_print "Android: $(getprop ro.build.version.release)"
-  ui_print "Linux: $(uname -r)"
-  ui_print "API: $(getprop ro.build.version.sdk)"
-  ui_print "Model: $(getprop ro.product.model)"
+  ui_print "arch   : $(uname -m)"
+  ui_print "android: $(getprop ro.build.version.release)"
+  ui_print "linux  : $(uname -r)"
+  ui_print "API    : $(getprop ro.build.version.sdk)"
+  ui_print "model  : $(getprop ro.product.model)"
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
@@ -91,7 +92,7 @@ on_install() {
    fi
   fi
 
-  ui_print "Extracting files"
+  ui_print "extracting files..."
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
@@ -123,5 +124,5 @@ on_install() {
 
 set_permissions() {
   set_perm_recursive $MODPATH 0 0 0755 0755
-  ui_print "Installation completed successfully"
+  ui_print "installation completed successfully"
 }

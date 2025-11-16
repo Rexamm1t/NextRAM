@@ -142,17 +142,33 @@ get_optimal_streams() {
         [ "$big_cores" -gt 0 ] && cpu_cores=$big_cores
     fi
     
+    local calculated_streams=1
     case "$alg" in
         "zstd")
-            echo $cpu_cores
+            calculated_streams=$cpu_cores
             ;;
         "lz4"|"lz4hc")
-            echo $((cpu_cores > 4 ? cpu_cores - 1 : cpu_cores))
+            calculated_streams=$((cpu_cores > 4 ? cpu_cores - 1 : cpu_cores))
             ;;
         *)
-            echo 1
+            calculated_streams=1
             ;;
     esac
+    
+    if [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ]; then
+        if [ "$calculated_streams" -gt "$MAX_COMP_STREAMS" ]; then
+            log "INFO" "Limiting streams from $calculated_streams to $MAX_COMP_STREAMS"
+            calculated_streams="$MAX_COMP_STREAMS"
+        fi
+    fi
+    
+    case "$alg" in
+        "lzo"|"lzo-rle")
+            calculated_streams=$((calculated_streams > 2 ? 2 : calculated_streams))
+            ;;
+    esac
+    
+    echo $calculated_streams
 }
 
 calculate_optimal_zram_size() {
@@ -207,6 +223,45 @@ monitor_zram_efficiency() {
     fi
 }
 
+verify_stream_limits() {
+    local requested_streams="$1"
+    local actual_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null || echo "$requested_streams")
+    
+    if [ "$actual_streams" -ne "$requested_streams" ]; then
+        log "WARN" "Stream mismatch: requested $requested_streams, got $actual_streams"
+        
+        echo "$requested_streams" > /sys/block/zram0/max_comp_streams 2>/dev/null
+        sleep 1
+        
+        local verified_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null)
+        if [ "$verified_streams" -eq "$requested_streams" ]; then
+            log "INFO" "Successfully enforced stream limit: $requested_streams"
+        else
+            log "WARN" "Cannot enforce stream limit, using: $verified_streams"
+        fi
+    else
+        log "DEBUG" "Stream limit verified: $actual_streams"
+    fi
+}
+
+monitor_zram_usage() {
+    if [ ! -b "/dev/block/zram0" ]; then
+        return 1
+    fi
+    
+    local current_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null || echo "N/A")
+    local compr_data_size=$(awk '{print $2}' /sys/block/zram0/mm_stat 2>/dev/null || echo "0")
+    local orig_data_size=$(awk '{print $3}' /sys/block/zram0/mm_stat 2>/dev/null || echo "0")
+    
+    log "DEBUG" "ZRAM streams: $current_streams, compressed: ${compr_data_size}KB, original: ${orig_data_size}KB"
+    
+    if [ "$current_streams" != "N/A" ] && [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ]; then
+        if [ "$current_streams" -gt "$MAX_COMP_STREAMS" ]; then
+            log "WARN" "ZRAM using $current_streams streams (user limit: $MAX_COMP_STREAMS)"
+        fi
+    fi
+}
+
 setup_zram() {
     zram_init || {
         ZRAM_ENABLED=false
@@ -237,13 +292,17 @@ setup_zram() {
     fi
 
     echo 1 > /sys/block/zram0/reset 2>/dev/null
-    sleep 1
+    sleep 2
     echo "$algorithm" > /sys/block/zram0/comp_algorithm
     
     optimize_algorithm_params "$algorithm"
     
     local streams=$(get_optimal_streams "$algorithm")
     echo "$streams" > /sys/block/zram0/max_comp_streams
+    
+    verify_stream_limits "$streams"
+    
+    ZRAM_STREAMS_CACHE="$streams"
 
     local zram_size_kb=$(calculate_optimal_zram_size)
     echo "${zram_size_kb}K" > /sys/block/zram0/disksize
@@ -286,4 +345,4 @@ zram_cleanup() {
     rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" "$MODDIR/cache/ratio_checked.flag"
 }
 
-export -f zram_init test_zram_algorithms setup_zram zram_cleanup
+export -f zram_init test_zram_algorithms setup_zram zram_cleanup verify_stream_limits monitor_zram_usage

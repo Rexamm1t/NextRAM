@@ -1,3 +1,17 @@
+## NextRAM v8.5.638(85638)
+[ACTION]
+- reworked the logic of the "Action" button in root managers
+
+[APK]
+- update NextRAM App - 8.4.201-fix (84201)
+
+[zRAM]
+- fix settings - maximum compression streams
+- other improvements to the code
+___
+Telegram: https://t.me/nextram_official
+___
+
 ## NextRAM v8.4.201-fix(84201)
 [KERNEL]
 - fix tuning scripts
@@ -6,7 +20,6 @@
 [zRAM]
 - fix zRAM custom size (4G?)
 - bugfixes
-
 ___
 Telegram: https://t.me/nextram_official
 ___

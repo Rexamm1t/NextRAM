@@ -1,8 +1,9 @@
 #!/system/bin/sh
 MODDIR=${0%/*}/..
+CONFIG_FILE="/data/adb/modules/NextRAM/module.prop"
 
 system_info() {
-    log "INFO" "starting NextRAM 8.4.201..."
+    log "INFO" "starting NextRAM $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
     log "INFO" "kernel: $(uname -r)"
     log "INFO" "android version: $(getprop ro.build.version.release)"
     log "INFO" "device: $(getprop ro.product.model)"

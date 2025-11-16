@@ -110,6 +110,7 @@ case "${1:-}" in
 
         if [ "$ZRAM_ENABLED" = "true" ]; then
             setup_zram
+            monitor_zram_usage
         fi
 
         log "INFO" "NextRAM setup complete"
