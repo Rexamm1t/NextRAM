@@ -12,7 +12,7 @@ echo "NextRAM $MODULE_VERSION"
 open_live_monitor() {
 	echo ""
 	echo "→ open live monitor..."
-	su -c "bash /data/adb/modules/NextRAM/action/sysinfo.sh"
+	su -c "sh /data/adb/modules/NextRAM/action/sysinfo.sh"
 	echo " "
 	echo "✓ Operation completed!"
 }
@@ -21,7 +21,7 @@ open_live_monitor() {
 open_log() {
 	echo ""
 	echo "→ open logs file..."
-   	su -c "bash /data/adb/modules/NextRAM/action/livelog.sh"
+   	su -c "sh /data/adb/modules/NextRAM/action/livelog.sh"
 	echo " "
 	echo "✓ Operation completed!"
 }

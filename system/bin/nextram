@@ -55,6 +55,21 @@ validate_algorithm() {
     fi
 }
 
+validate_memory_limit() {
+    if ! echo "$1" | grep -qE '^[0-9]+[MG]$'; then
+        echo "ERROR: Memory limit must be in format like '4G' or '512M'"
+        exit $INVALID_VALUE
+    fi
+}
+
+validate_priority() {
+    validate_integer "$1"
+    if [ "$1" -lt 0 ] || [ "$1" -gt 32767 ]; then
+        echo "ERROR: Priority must be between 0 and 32767"
+        exit $INVALID_VALUE
+    fi
+}
+
 check_dependencies() {
     local deps="grep sed cat bc"
     for dep in $deps; do
@@ -117,19 +132,53 @@ show_status() {
     echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t"
     echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858"
     echo " "
+    echo "=== BASIC SETTINGS ==="
     echo "Swap: $( [ "$(get_config SWAP_ENABLED)" = "true" ] && echo "Enabled ($(get_config SWAP_SIZE_GB)GB)" || echo "Disabled" )"
     echo "Swap Overhead: $(get_config OVERHEAD_GB)GB"
+    echo "Swap Priority: $(get_config SWAP_PRIORITY)"
     echo "ZRAM: $( [ "$(get_config ZRAM_ENABLED)" = "true" ] && echo "Enabled (Ratio: $(get_config ZRAM_RATIO))" || echo "Disabled" )"
+    echo "ZRAM Priority: $(get_config ZRAM_PRIORITY)"
+    
+    echo " "
+    echo "=== ZRAM SETTINGS ==="
     echo "ZRAM Algorithm: $(get_config ZRAM_ALGORITHM)"
     echo "Max Compression Streams: $(get_config MAX_COMP_STREAMS)"
+    echo "ZRAM Compression Level: $(get_config ZRAM_COMPRESSION_LEVEL)"
+    echo "ZRAM Memory Limit: $(get_config ZRAM_MEMORY_LIMIT)"
+    echo "ZRAM Auto Tune: $(get_config ZRAM_AUTO_TUNE)"
+    
+    echo " "
+    echo "=== MEMORY MANAGEMENT ==="
     echo "Swappiness: $(get_config SWAPPINESS)"
     echo "Cache Pressure: $(get_config CACHE_PRESSURE)"
     echo "Dirty Ratio: $(get_config DIRTY_RATIO)"
     echo "Dirty Background Ratio: $(get_config DIRTY_BACKGROUND_RATIO)"
-    echo "Extra Tuning: $(get_config EXTRA_TUNING)"
     echo "Dynamic Swappiness: $(get_config DYNAMIC_SWAPPINESS)"
+    
+    echo " "
+    echo "=== ADVANCED VM SETTINGS ==="
+    echo "Dirty Writeback Centisecs: $(get_config VM_DIRTY_WRITEBACK_CENTISECS)"
+    echo "Dirty Expire Centisecs: $(get_config VM_DIRTY_EXPIRE_CENTISECS)"
+    echo "Page Cluster: $(get_config VM_PAGE_CLUSTER)"
+    echo "Laptop Mode: $(get_config VM_LAPTOP_MODE)"
+    echo "OOM Kill Allocating Task: $(get_config VM_OOM_KILL_ALLOCATING_TASK)"
+    echo "Panic on OOM: $(get_config VM_PANIC_ON_OOM)"
+    echo "Overcommit Memory: $(get_config VM_OVERCOMMIT_MEMORY)"
+    echo "Overcommit Ratio: $(get_config VM_OVERCOMMIT_RATIO)"
+    echo "Watermark Scale Factor: $(get_config VM_WATERMARK_SCALE_FACTOR)"
+    echo "Kernel Threads Max: $(get_config KERNEL_THREADS_MAX)"
+    
+    echo " "
+    echo "=== PERFORMANCE MODES ==="
+    echo "Extra Tuning: $(get_config EXTRA_TUNING)"
     echo "Performance Mode: $(get_config PERFORMANCE_MODE)"
-    echo "ZRAM Auto Tune: $(get_config ZRAM_AUTO_TUNE)"
+    echo "I/O Scheduler Tune: $(get_config IO_SCHEDULER_TUNE)"
+    echo "CPU Boost: $(get_config CPU_BOOST)"
+    echo "Network Tune: $(get_config NETWORK_TUNE)"
+    
+    echo " "
+    echo "=== LOGGING ==="
+    echo "Log Level: $(get_config LOG_LEVEL)"
     echo " "
     echo "Config file: $POST_FS_DATA"
     echo "Log file: $LOG_FILE"
@@ -167,30 +216,62 @@ show_help() {
     echo "All size values are in gigabytes."
     echo "To select the compression algorithm, look at the available ones first)"
     echo " "
+    echo "=== BASIC COMMANDS ==="
     echo "nextram -status                          Show current status"
     echo "nextram -swap -on                        Enable swap"
     echo "nextram -swap -off                       Disable swap"
     echo "nextram -swap -size <value>              Set swap size in GB"
     echo "nextram -swap -over <value>              Set swap overhead in GB"
+    echo "nextram -swap -priority <value>          Set swap priority (0-32767)"
     echo "nextram -zram -on                        Enable ZRAM"
     echo "nextram -zram -off                       Disable ZRAM"
     echo "nextram -zram -alg                       Show available compression algorithms"
     echo "nextram -zram -ratio <value>             Set ZRAM ratio"
     echo "nextram -zram -algo <value>              Set compression algorithm"
     echo "nextram -zram -str <value>               Set compression streams"
+    echo "nextram -zram -priority <value>          Set ZRAM priority (0-32767)"
+    echo " "
+    echo "=== MEMORY MANAGEMENT ==="
     echo "nextram -vm -swap <value>                Set swappiness (0-100)"
     echo "nextram -vm -cache <value>               Set cache pressure"
     echo "nextram -vm -dirty <value>               Set dirty ratio (0-100)"
     echo "nextram -vm -dirtybg <value>             Set dirty background ratio (0-100)"
-    echo "nextram -tuning -on                      Enable extra tuning"
-    echo "nextram -tuning -off                     Disable extra tuning"
     echo "nextram -dyn -on                         Enable dynamic swappiness"
     echo "nextram -dyn -off                        Disable dynamic swappiness"
+    echo " "
+    echo "=== ADVANCED VM SETTINGS ==="
+    echo "nextram -vm -dirtywb <value>             Set dirty writeback centisecs"
+    echo "nextram -vm -dirtyexp <value>            Set dirty expire centisecs"
+    echo "nextram -vm -pagecluster <value>         Set page cluster"
+    echo "nextram -vm -laptopmode <value>          Set laptop mode (0-3)"
+    echo "nextram -vm -oomtask <0|1>               Set OOM kill allocating task"
+    echo "nextram -vm -panicoom <0|1|2>            Set panic on OOM"
+    echo "nextram -vm -overcommit <0|1|2>          Set overcommit memory"
+    echo "nextram -vm -overcommit_ratio <value>    Set overcommit ratio"
+    echo "nextram -vm -watermark <value>           Set watermark scale factor"
+    echo "nextram -vm -threadsmax <value>          Set kernel threads max"
+    echo " "
+    echo "=== ZRAM ADVANCED ==="
+    echo "nextram -zram -complevel <value>         Set compression level"
+    echo "nextram -zram -memlimit <value>          Set memory limit (e.g., 4G)"
+    echo " "
+    echo "=== PERFORMANCE MODES ==="
+    echo "nextram -tuning -on                      Enable extra tuning"
+    echo "nextram -tuning -off                     Disable extra tuning"
     echo "nextram -perf -on                        Enable performance mode"
     echo "nextram -perf -off                       Disable performance mode"
     echo "nextram -zauto -on                       Enable ZRAM auto tuning"
     echo "nextram -zauto -off                      Disable ZRAM auto tuning"
+    echo "nextram -iosched -on                     Enable I/O scheduler tuning"
+    echo "nextram -iosched -off                    Disable I/O scheduler tuning"
+    echo "nextram -cpuboost -on                    Enable CPU boost"
+    echo "nextram -cpuboost -off                   Disable CPU boost"
+    echo "nextram -network -on                     Enable network tuning"
+    echo "nextram -network -off                    Disable network tuning"
+    echo " "
+    echo "=== LOGGING ==="
     echo "nextram -log                             Show log file"
+    echo "nextram -loglevel <level>                Set log level (DEBUG/INFO/WARN/ERROR)"
     echo "nextram -help                            Show this help"
     echo " "
     echo "    --After each action, you need to restart the device--  "
@@ -244,8 +325,18 @@ case "$1" in
                     exit $MISSING_ARG
                 fi
                 ;;
+            "-priority")
+                if [ -n "$3" ]; then
+                    validate_priority "$3"
+                    set_config SWAP_PRIORITY "$3"
+                    echo "Swap priority set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -swap -priority <priority>"
+                    exit $MISSING_ARG
+                fi
+                ;;
             *)
-                echo "ERROR: Usage: nextram -swap [-on | -off | -size <size> | -over <size>]"
+                echo "ERROR: Usage: nextram -swap [-on | -off | -size <size> | -over <size> | -priority <priority>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -295,8 +386,38 @@ case "$1" in
                     exit $MISSING_ARG
                 fi
                 ;;
+            "-priority")
+                if [ -n "$3" ]; then
+                    validate_priority "$3"
+                    set_config ZRAM_PRIORITY "$3"
+                    echo "ZRAM priority set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -zram -priority <priority>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-complevel")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config ZRAM_COMPRESSION_LEVEL "$3"
+                    echo "ZRAM compression level set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -zram -complevel <level>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-memlimit")
+                if [ -n "$3" ]; then
+                    validate_memory_limit "$3"
+                    set_config ZRAM_MEMORY_LIMIT "$3"
+                    echo "ZRAM memory limit set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -zram -memlimit <limit>"
+                    exit $MISSING_ARG
+                fi
+                ;;
             *)
-                echo "ERROR: Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams>]"
+                echo "ERROR: Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams> | -priority <priority> | -complevel <level> | -memlimit <limit>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -344,8 +465,121 @@ case "$1" in
                     exit $MISSING_ARG
                 fi
                 ;;
+            "-dirtywb")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config VM_DIRTY_WRITEBACK_CENTISECS "$3"
+                    echo "Dirty writeback centisecs set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -dirtywb <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-dirtyexp")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config VM_DIRTY_EXPIRE_CENTISECS "$3"
+                    echo "Dirty expire centisecs set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -dirtyexp <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-pagecluster")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config VM_PAGE_CLUSTER "$3"
+                    echo "Page cluster set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -pagecluster <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-laptopmode")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    if [ "$3" -lt 0 ] || [ "$3" -gt 3 ]; then
+                        echo "ERROR: Laptop mode must be between 0 and 3"
+                        exit $INVALID_VALUE
+                    fi
+                    set_config VM_LAPTOP_MODE "$3"
+                    echo "Laptop mode set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -laptopmode <value> (0-3)"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-oomtask")
+                if [ -n "$3" ]; then
+                    if [ "$3" != "0" ] && [ "$3" != "1" ]; then
+                        echo "ERROR: OOM kill allocating task must be 0 or 1"
+                        exit $INVALID_VALUE
+                    fi
+                    set_config VM_OOM_KILL_ALLOCATING_TASK "$3"
+                    echo "OOM kill allocating task set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -oomtask <0|1>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-panicoom")
+                if [ -n "$3" ]; then
+                    if [ "$3" != "0" ] && [ "$3" != "1" ] && [ "$3" != "2" ]; then
+                        echo "ERROR: Panic on OOM must be 0, 1, or 2"
+                        exit $INVALID_VALUE
+                    fi
+                    set_config VM_PANIC_ON_OOM "$3"
+                    echo "Panic on OOM set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -panicoom <0|1|2>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-overcommit")
+                if [ -n "$3" ]; then
+                    if [ "$3" != "0" ] && [ "$3" != "1" ] && [ "$3" != "2" ]; then
+                        echo "ERROR: Overcommit memory must be 0, 1, or 2"
+                        exit $INVALID_VALUE
+                    fi
+                    set_config VM_OVERCOMMIT_MEMORY "$3"
+                    echo "Overcommit memory set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -overcommit <0|1|2>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-overcommit_ratio")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config VM_OVERCOMMIT_RATIO "$3"
+                    echo "Overcommit ratio set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -overcommit_ratio <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-watermark")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config VM_WATERMARK_SCALE_FACTOR "$3"
+                    echo "Watermark scale factor set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -watermark <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
+            "-threadsmax")
+                if [ -n "$3" ]; then
+                    validate_integer "$3"
+                    set_config KERNEL_THREADS_MAX "$3"
+                    echo "Kernel threads max set to $3. Restart device to apply changes."
+                else
+                    echo "ERROR: Usage: nextram -vm -threadsmax <value>"
+                    exit $MISSING_ARG
+                fi
+                ;;
             *)
-                echo "ERROR: Usage: nextram -vm [-swap <value> | -cache <value> | -dirty <value> | -dirtybg <value>]"
+                echo "ERROR: Usage: nextram -vm [-swap <value> | -cache <value> | -dirty <value> | -dirtybg <value> | -dirtywb <value> | -dirtyexp <value> | -pagecluster <value> | -laptopmode <value> | -oomtask <0|1> | -panicoom <0|1|2> | -overcommit <0|1|2> | -overcommit_ratio <value> | -watermark <value> | -threadsmax <value>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -419,8 +653,77 @@ case "$1" in
         esac
         ;;
 
+    "-iosched")
+        case "$2" in
+            "-on")
+                set_config IO_SCHEDULER_TUNE "true"
+                echo "I/O scheduler tuning enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config IO_SCHEDULER_TUNE "false"
+                echo "I/O scheduler tuning disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -iosched [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-cpuboost")
+        case "$2" in
+            "-on")
+                set_config CPU_BOOST "true"
+                echo "CPU boost enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config CPU_BOOST "false"
+                echo "CPU boost disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -cpuboost [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
+    "-network")
+        case "$2" in
+            "-on")
+                set_config NETWORK_TUNE "true"
+                echo "Network tuning enabled. Restart device to apply changes."
+                ;;
+            "-off")
+                set_config NETWORK_TUNE "false"
+                echo "Network tuning disabled. Restart device to apply changes."
+                ;;
+            *)
+                echo "ERROR: Usage: nextram -network [-on | -off]"
+                exit $INVALID_ARG
+                ;;
+        esac
+        ;;
+
     "-log")
         show_log
+        ;;
+
+    "-loglevel")
+        if [ -n "$2" ]; then
+            case "$2" in
+                "DEBUG"|"INFO"|"WARN"|"ERROR")
+                    set_config LOG_LEVEL "$2"
+                    echo "Log level set to $2. Restart device to apply changes."
+                    ;;
+                *)
+                    echo "ERROR: Log level must be DEBUG, INFO, WARN, or ERROR"
+                    exit $INVALID_VALUE
+                    ;;
+            esac
+        else
+            echo "ERROR: Usage: nextram -loglevel <DEBUG|INFO|WARN|ERROR>"
+            exit $MISSING_ARG
+        fi
         ;;
 
     "-help"|"")

@@ -1,27 +1,36 @@
 ![logo](githubcfg/nextram-gh-logo.png)
-![NextRAM Banner](https://img.shields.io/badge/NextRAM-Smart%20Memory%20Optimization-blue?style=for-the-badge)
-![Android](https://img.shields.io/badge/Android-6.0%2B-3DDC84?style=for-the-badge&logo=android)
-![Linux](https://img.shields.io/badge/Linux-3.1%2B-3DDC84?style=for-the-badge&logo=linux)
-<a href="https://t.me/nextram_official"><img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram Badge" /></a>
 
-<center><p><a href="https://github.com/Rexamm1t/NextRAM/releases"><img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total" alt="Downloads" /></a></p></center>
+<div align="center">
+<img src="https://img.shields.io/badge/Android-6.0+-3DDC84?style=flat-square&logo=android" />
+<img src="https://img.shields.io/badge/Linux-3.1+-FCC624?style=flat-square&logo=linux" />
+<img src="https://img.shields.io/badge/Magisk-00B0F0?style=flat-square&logo=android" />
+<img src="https://img.shields.io/badge/License-GPLv3-blue?style=flat-square" />
+</div>
 
-<center>
+<div align="center">
+<a href="https://t.me/nextram_official">
+<img src="https://img.shields.io/badge/Telegram-blue?style=for-the-badge&logo=telegram&logoColor=white" />
+</a>
+<a href="https://github.com/Rexamm1t/NextRAM/releases">
+<img src="https://img.shields.io/github/downloads/Rexamm1t/NextRAM/total?style=for-the-badge" />
+</a>
+</div>
+
+<div align="center">
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/README_RU.md">
-      Russian
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_RU.md">
+      Русский
     </a>
   </font>
   <font size="2">
     |
   </font>
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/README.md">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_EN.md">
       English
     </a>
   </font>
-</center>
-
+</div>
 
 # NextRAM - Advanced Memory Management Module
 

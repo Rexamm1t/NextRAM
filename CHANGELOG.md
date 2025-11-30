@@ -1,3 +1,31 @@
+## NextRAM v9.0.000(00000) 
+[NRAICF] (beta)
+- added the first C++ tool for NextRAM. It generates a configuration for the device
+
+[MAIN]
+- major corrections in the code
+- added new settings to the configuration file regarding the kernel
+- zRAM fixes...
+
+[APK]
+- completely updated the interface - Material 3
+- switches have been added for new parameters
+- improved existing themes
+- added new translations: Chinese and Ukrainian
+- added help for each parameter with translation
+- fixed switching color scheme
+
+[INSTALL]
+- update information
+- added new logic (NRAICF)
+
+[ACTION]
+- fixed the display of nlive and logs
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM v8.5.638(85638)
 [ACTION]
 - reworked the logic of the "Action" button in root managers

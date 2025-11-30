@@ -3,6 +3,7 @@ MODDIR=${0%/*}/..
 
 LOG_DIR="$MODDIR/logs"
 mkdir -p "$LOG_DIR"
+mkdir -p "$MODDIR/cache"
 MAX_LOG_FILES=3
 MAX_LOG_SIZE=1048576
 
