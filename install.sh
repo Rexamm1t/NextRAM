@@ -62,6 +62,17 @@ on_install() {
   ui_print "linux  : $(uname -r)"
   ui_print "API    : $(getprop ro.build.version.sdk)"
   ui_print "model  : $(getprop ro.product.model)"
+  
+  if [ -f "$MODPATH/status_gt" ]; then
+    STATUS=$(head -n 1 "$MODPATH/status_gt" 2>/dev/null | tr -d '\n\r')
+    if [ -n "$STATUS" ]; then
+      ui_print "status : $STATUS"
+    else
+      ui_print "status : official"
+    fi
+  else
+    ui_print "status : unofficial"
+  fi
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
@@ -139,8 +150,10 @@ on_install() {
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh build_tools.sh" -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'tools/*' -d $MODPATH >&2
-
+  unzip -o "$ZIPFILE" 'status_gt' -d $MODPATH >&2
+  
   chmod 0755 $MODPATH/tools/* 2>/dev/null
+  chmod 0755 $MODPATH/status_gt 2>/dev/null
 
   if [ ! -f "$MODPATH/system/bin/nextram" ]; then
     ui_print "ERROR: nextram binary not found"
@@ -167,12 +180,12 @@ on_install() {
   ui_print "Generate a configuration file for your device?"
   ui_print "Vol (+) - Yes (beta, not beautiful) "
   ui_print "Vol (-) - No (standard cfg, existing)"
-  ui_print "waiting for..."
+  ui_print "waiting for 15 seconds..."
 
   local choice_made=false
   local timeout=0
   
-  while [ $timeout -lt 300 ]; do
+  while [ $timeout -lt 150 ]; do
     getevent -lc 1 2>/dev/null | grep -q "KEY_VOLUMEUP" && {
         run_aicf_analysis
         choice_made=true
@@ -199,6 +212,7 @@ set_permissions() {
   set_perm_recursive $MODPATH 0 0 0755 0755
   set_perm $MODPATH/tools/* 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755 0755
+  set_perm $MODPATH/status_gt 0 0 0755 0755
   ui_print "installation completed successfully"
   open_browser
 }
