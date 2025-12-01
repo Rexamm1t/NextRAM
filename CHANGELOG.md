@@ -1,4 +1,12 @@
-## NextRAM v9.0.000(00000) 
+## NextRAM v9.0.127(90127)
+[INSTALL]
+- added time-out when selecting the configuration method
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
+## NextRAM v9.0.000(90000) 
 [NRAICF] (beta)
 - added the first C++ tool for NextRAM. It generates a configuration for the device
 
