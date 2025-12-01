@@ -34,9 +34,9 @@ run_aicf_analysis() {
 
 open_browser() {
     ui_print "Opening browser..."
-    am start -a android.intent.action.VIEW -d "https://nextram.cocal.ru" >/dev/null 2>&1 &
-    am start -n com.android.chrome/com.google.android.apps.chrome.Main -d "https://nextram.cocal.ru" >/dev/null 2>&1 &
-    am start -a android.intent.action.VIEW -d "https://nextram.cocal.ru" --user 0 >/dev/null 2>&1 &
+    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official" >/dev/null 2>&1 &
+    am start -n com.android.chrome/com.google.android.apps.chrome.Main -d "https://t.me/nextram_official" >/dev/null 2>&1 &
+    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official —user 0 >/dev/null 2>&1 &
 }
 
 print_modname() {
