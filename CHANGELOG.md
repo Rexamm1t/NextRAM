@@ -1,3 +1,62 @@
+## NextRAM Fusion v9.1.280-(91280)
+
+**[CODE OPTIMIZATION]**
+- Enhanced file permission verification before writing kernel parameters
+- Added comprehensive file and directory existence checks
+- Optimized error handling routines throughout all scripts
+- Streamlined loop structures and conditional statements
+- Improved code maintainability while preserving original functionality
+
+**[STABILITY ENHANCEMENTS]**
+- Fixed potentially unsafe script constructs
+- Added thorough system utility availability validation
+- Enhanced device compatibility across different Android implementations
+- Improved swap file creation error handling
+- Strengthened file access permission verifications
+
+**[ZRAM IMPROVEMENTS]**
+- Advanced zram device detection with dual-path checking
+- Added safety checks before zram reset operations
+- Enhanced compression algorithm selection error handling
+- Implemented /sys/block/zram0 directory validation
+- Refined compression stream parameter management
+
+**[KERNEL TUNING SYSTEM]**
+- Upgraded kernel parameter application with verification layer
+- Implemented comprehensive tuning success monitoring
+- Enhanced dynamic swappiness algorithm with multi-factor calculations
+- Introduced safe parameter setting functions (set_param, set_sysctl)
+- Added write capability verification before file operations
+
+**[PERFORMANCE OPTIMIZATION]**
+- Reduced script execution overhead through code refinement
+- Minimized redundant file system operations
+- Optimized I/O operations during swap configuration
+- Enhanced script execution efficiency
+
+**[COMPATIBILITY UPDATES]**
+- Expanded Android version and Linux kernel compatibility
+- Improved operation on low-resource devices
+- Added legacy kernel support checks
+- Enhanced filesystem type compatibility
+
+**[API ENHANCEMENTS]**
+- Improved web interface stability and responsiveness
+- Fixed configuration management edge cases
+- Enhanced API command parsing and execution
+- Added configuration change validation
+
+**[MONITORING SYSTEM]**
+- Upgraded memory and zram monitoring architecture
+- Added comprehensive device state verification
+- Fixed resource leakage in background monitoring
+- Enhanced monitoring process management
+
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM v9.0.127(90127)
 [INSTALL]
 - added time-out when selecting the configuration method

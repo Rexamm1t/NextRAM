@@ -9,16 +9,16 @@ check_prerequisites() {
 
     local missing_tools=""
     for tool in swapon swapoff mkswap mount umount awk grep; do
-        if ! command -v $tool >/dev/null 2>&1; then
+        if ! command -v "$tool" >/dev/null 2>&1; then
             missing_tools="$missing_tools $tool"
         fi
     done
 
     if [ -n "$missing_tools" ]; then
-        log "WARN" "Missing tools: $missing_tools"
+        log "WARN" "Missing tools:$missing_tools"
     fi
 
-    if [ ! -b "/dev/block/zram0" ]; then
+    if [ ! -b "/dev/block/zram0" ] && [ ! -d "/sys/block/zram0" ]; then
         log "WARN" "ZRAM device not found"
         ZRAM_ENABLED=false
     fi

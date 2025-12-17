@@ -10,49 +10,51 @@ start_api_server() {
 }
 
 stop_api_server() {
-    if [ -f "$MODDIR/api.pid" ]; then
+    [ -f "$MODDIR/api.pid" ] && {
         kill -9 $(cat "$MODDIR/api.pid") 2>/dev/null
         rm -f "$MODDIR/api.pid"
         log "INFO" "Web interface stopped"
-    fi
+    }
 }
 
 get_config() {
-    echo "{"
-    echo "  \"SWAP_ENABLED\": $SWAP_ENABLED,"
-    echo "  \"SWAP_SIZE_GB\": $SWAP_SIZE_GB,"
-    echo "  \"OVERHEAD_GB\": $OVERHEAD_GB,"
-    echo "  \"ZRAM_ENABLED\": $ZRAM_ENABLED,"
-    echo "  \"ZRAM_RATIO\": $ZRAM_RATIO,"
-    echo "  \"ZRAM_ALGORITHM\": \"$ZRAM_ALGORITHM\","
-    echo "  \"MAX_COMP_STREAMS\": $MAX_COMP_STREAMS,"
-    echo "  \"SWAPPINESS\": $SWAPPINESS,"
-    echo "  \"CACHE_PRESSURE\": $CACHE_PRESSURE,"
-    echo "  \"DIRTY_RATIO\": $DIRTY_RATIO,"
-    echo "  \"DIRTY_BACKGROUND_RATIO\": $DIRTY_BACKGROUND_RATIO,"
-    echo "  \"EXTRA_TUNING\": $EXTRA_TUNING,"
-    echo "  \"DYNAMIC_SWAPPINESS\": $DYNAMIC_SWAPPINESS,"
-    echo "  \"PERFORMANCE_MODE\": $PERFORMANCE_MODE,"
-    echo "  \"ZRAM_AUTO_TUNE\": $ZRAM_AUTO_TUNE,"
-    echo "  \"LOG_LEVEL\": \"$LOG_LEVEL\","
-    echo "  \"VM_DIRTY_WRITEBACK_CENTISECS\": $VM_DIRTY_WRITEBACK_CENTISECS,"
-    echo "  \"VM_DIRTY_EXPIRE_CENTISECS\": $VM_DIRTY_EXPIRE_CENTISECS,"
-    echo "  \"VM_PAGE_CLUSTER\": $VM_PAGE_CLUSTER,"
-    echo "  \"VM_LAPTOP_MODE\": $VM_LAPTOP_MODE,"
-    echo "  \"VM_OOM_KILL_ALLOCATING_TASK\": $VM_OOM_KILL_ALLOCATING_TASK,"
-    echo "  \"VM_PANIC_ON_OOM\": $VM_PANIC_ON_OOM,"
-    echo "  \"VM_OVERCOMMIT_MEMORY\": $VM_OVERCOMMIT_MEMORY,"
-    echo "  \"VM_OVERCOMMIT_RATIO\": $VM_OVERCOMMIT_RATIO,"
-    echo "  \"VM_WATERMARK_SCALE_FACTOR\": $VM_WATERMARK_SCALE_FACTOR,"
-    echo "  \"KERNEL_THREADS_MAX\": $KERNEL_THREADS_MAX,"
-    echo "  \"ZRAM_COMPRESSION_LEVEL\": $ZRAM_COMPRESSION_LEVEL,"
-    echo "  \"ZRAM_MEMORY_LIMIT\": \"$ZRAM_MEMORY_LIMIT\","
-    echo "  \"SWAP_PRIORITY\": $SWAP_PRIORITY,"
-    echo "  \"ZRAM_PRIORITY\": $ZRAM_PRIORITY,"
-    echo "  \"IO_SCHEDULER_TUNE\": $IO_SCHEDULER_TUNE,"
-    echo "  \"CPU_BOOST\": $CPU_BOOST,"
-    echo "  \"NETWORK_TUNE\": $NETWORK_TUNE"
-    echo "}"
+    cat << EOF
+{
+  "SWAP_ENABLED": $SWAP_ENABLED,
+  "SWAP_SIZE_GB": $SWAP_SIZE_GB,
+  "OVERHEAD_GB": $OVERHEAD_GB,
+  "ZRAM_ENABLED": $ZRAM_ENABLED,
+  "ZRAM_RATIO": $ZRAM_RATIO,
+  "ZRAM_ALGORITHM": "$ZRAM_ALGORITHM",
+  "MAX_COMP_STREAMS": $MAX_COMP_STREAMS,
+  "SWAPPINESS": $SWAPPINESS,
+  "CACHE_PRESSURE": $CACHE_PRESSURE,
+  "DIRTY_RATIO": $DIRTY_RATIO,
+  "DIRTY_BACKGROUND_RATIO": $DIRTY_BACKGROUND_RATIO,
+  "EXTRA_TUNING": $EXTRA_TUNING,
+  "DYNAMIC_SWAPPINESS": $DYNAMIC_SWAPPINESS,
+  "PERFORMANCE_MODE": $PERFORMANCE_MODE,
+  "ZRAM_AUTO_TUNE": $ZRAM_AUTO_TUNE,
+  "LOG_LEVEL": "$LOG_LEVEL",
+  "VM_DIRTY_WRITEBACK_CENTISECS": $VM_DIRTY_WRITEBACK_CENTISECS,
+  "VM_DIRTY_EXPIRE_CENTISECS": $VM_DIRTY_EXPIRE_CENTISECS,
+  "VM_PAGE_CLUSTER": $VM_PAGE_CLUSTER,
+  "VM_LAPTOP_MODE": $VM_LAPTOP_MODE,
+  "VM_OOM_KILL_ALLOCATING_TASK": $VM_OOM_KILL_ALLOCATING_TASK,
+  "VM_PANIC_ON_OOM": $VM_PANIC_ON_OOM,
+  "VM_OVERCOMMIT_MEMORY": $VM_OVERCOMMIT_MEMORY,
+  "VM_OVERCOMMIT_RATIO": $VM_OVERCOMMIT_RATIO,
+  "VM_WATERMARK_SCALE_FACTOR": $VM_WATERMARK_SCALE_FACTOR,
+  "KERNEL_THREADS_MAX": $KERNEL_THREADS_MAX,
+  "ZRAM_COMPRESSION_LEVEL": $ZRAM_COMPRESSION_LEVEL,
+  "ZRAM_MEMORY_LIMIT": "$ZRAM_MEMORY_LIMIT",
+  "SWAP_PRIORITY": $SWAP_PRIORITY,
+  "ZRAM_PRIORITY": $ZRAM_PRIORITY,
+  "IO_SCHEDULER_TUNE": $IO_SCHEDULER_TUNE,
+  "CPU_BOOST": $CPU_BOOST,
+  "NETWORK_TUNE": $NETWORK_TUNE
+}
+EOF
 }
 
 set_config() {
@@ -62,19 +64,13 @@ set_config() {
     > "$temp_config"
     
     while IFS='=' read -r key value; do
-        if [ -n "$key" ] && [[ ! "$key" =~ ^[[:space:]]*# ]]; then
+        [ -n "$key" ] && [[ ! "$key" =~ ^[[:space:]]*# ]] && {
             local found=0
             for setting in "$@"; do
-                setting_key="${setting%%=*}"
-                if [ "$key" = "$setting_key" ]; then
-                    found=1
-                    break
-                fi
+                [ "$key" = "${setting%%=*}" ] && { found=1; break; }
             done
-            if [ "$found" -eq 0 ]; then
-                echo "$key=$value" >> "$temp_config"
-            fi
-        fi
+            [ "$found" -eq 0 ] && echo "$key=$value" >> "$temp_config"
+        }
     done < "$config_file"
     
     for setting in "$@"; do
@@ -98,29 +94,19 @@ get_status() {
     cat /proc/swaps
     echo ""
     echo "=== ZRAM Status ==="
-    if [ -b "/dev/block/zram0" ]; then
-        cat /sys/block/zram0/mm_stat 2>/dev/null || echo "ZRAM not initialized"
-    else
-        echo "ZRAM device not available"
-    fi
+    [ -b "/dev/block/zram0" ] && cat /sys/block/zram0/mm_stat 2>/dev/null || echo "ZRAM not initialized"
     echo ""
     echo "=== Kernel Parameters ==="
-    echo "Swappiness: $(cat /proc/sys/vm/swappiness)"
-    echo "Cache pressure: $(cat /proc/sys/vm/vfs_cache_pressure)"
+    echo "Swappiness: $(cat /proc/sys/vm/swappiness 2>/dev/null || echo N/A)"
+    echo "Cache pressure: $(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null || echo N/A)"
 }
 
 apply_configuration() {
     log "INFO" "Applying current configuration"
     swapoff -a 2>/dev/null
-    if [ -b "/dev/block/zram0" ]; then
-        echo 1 > "/dev/block/zram0/reset" 2>/dev/null
-    fi
-    if [ "$ZRAM_ENABLED" = "true" ]; then
-        setup_zram
-    fi
-    if [ "$SWAP_ENABLED" = "true" ]; then
-        setup_swap
-    fi
+    [ -b "/dev/block/zram0" ] && echo 1 > "/dev/block/zram0/reset" 2>/dev/null
+    [ "$ZRAM_ENABLED" = "true" ] && setup_zram
+    [ "$SWAP_ENABLED" = "true" ] && setup_swap
     adjust_swappiness
     apply_kernel_tuning
     apply_advanced_tuning

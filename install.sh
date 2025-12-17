@@ -36,7 +36,7 @@ open_browser() {
     ui_print "Opening browser..."
     am start -a android.intent.action.VIEW -d "https://t.me/nextram_official" >/dev/null 2>&1 &
     am start -n com.android.chrome/com.google.android.apps.chrome.Main -d "https://t.me/nextram_official" >/dev/null 2>&1 &
-    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official —user 0 >/dev/null 2>&1 &
+    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official" --user 0 >/dev/null 2>&1 &
 }
 
 print_modname() {
@@ -45,7 +45,7 @@ print_modname() {
   ui_print "  |\  |   __/  \  <   |    __ <    ___ \   |   |"
   ui_print " _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|"
   ui_print " "
-  ui_print "          by @rexamm1t • @matrix_5858"
+  ui_print "   by @rexamm1t • @matrix_5858 • @galaxyfier"
   ui_print "      @Alloyd031 • @wefol1x • @w3b_0s1nt"
   ui_print "                  with love <3"
   ui_print "         tg channel: @nextram_official"
@@ -62,17 +62,6 @@ on_install() {
   ui_print "linux  : $(uname -r)"
   ui_print "API    : $(getprop ro.build.version.sdk)"
   ui_print "model  : $(getprop ro.product.model)"
-  
-  if [ -f "$MODPATH/status_gt" ]; then
-    STATUS=$(head -n 1 "$MODPATH/status_gt" 2>/dev/null | tr -d '\n\r')
-    if [ -n "$STATUS" ]; then
-      ui_print "status : $STATUS"
-    else
-      ui_print "status : official"
-    fi
-  else
-    ui_print "status : unofficial"
-  fi
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
