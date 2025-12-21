@@ -6,8 +6,7 @@ echo "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ | "
 echo "   |\  |   __/  \  <   |    __ <    ___ \   |   | "
 echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _| "
 echo "press volume (+) (open nlive) or volume (-) (log)"
-echo "Welcome to action mode!"
-echo "NextRAM $MODULE_VERSION"
+echo "NextRAM $MODULE_VERSION • Welcome to action mode!"
 
 open_live_monitor() {
 	echo ""

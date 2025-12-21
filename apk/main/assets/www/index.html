@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate="NextRAM">NextRAM</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 data-translate="NextRAM">NextRAM</h1>
+            <div class="status-bar">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText" data-translate="Ready">Ready</span>
+                <span id="rootStatus" data-translate="Checking root access">Checking root access</span>
+            </div>
+        </div>
+
+        <div id="rootWarning" class="warning-message" style="display: none;">
+            <div>
+                <strong data-translate="Root access required!">Root access required!</strong>
+                <span data-translate="Please grant root permissions to use all features.">Please grant root permissions to use all features.</span>
+            </div>
+            <button class="btn btn-small btn-primary" onclick="checkRootAccess()" data-translate="Retry">Retry</button>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="home" data-translate="Home">Home</button>
+            <button class="tab" data-tab="profiles" data-translate="Profiles">Profiles</button>
+            <button class="tab" data-tab="config" data-translate="Config">Config</button>
+            <button class="tab" data-tab="zram" data-translate="ZRAM">ZRAM</button>
+            <button class="tab" data-tab="swap" data-translate="Swap">Swap</button>
+            <button class="tab" data-tab="advanced" data-translate="Advanced">Advanced</button>
+            <button class="tab" data-tab="faq" data-translate="FAQ">FAQ</button>
+            <button class="tab" data-tab="settings" data-translate="Settings">Settings</button>
+        </div>
+
+        <div id="paramInfoModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close">&times;</span>
+                <h3 id="modalParamTitle"></h3>
+                <p id="modalParamDescription"></p>
+            </div>
+        </div>
+
+        <div class="tab-content active" id="home-tab">
+            <div class="grid">
+                <div class="card welcome-card">
+                    <div class="welcome-header">
+                        <h1 data-translate="Welcome to NextRAM">Welcome to NextRAM</h1>
+                        <p data-translate="Advanced memory optimization for Android devices">Advanced memory optimization for Android devices</p>
+                    </div>
+                    
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label" data-translate="Root Access">Root Access</span>
+                            <span class="status-value" id="home-root-status">Checking...</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label" data-translate="ZRAM Status">ZRAM Status</span>
+                            <span class="status-value" id="home-zram-status">Unknown</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label" data-translate="Swap Status">Swap Status</span>
+                            <span class="status-value" id="home-swap-status">Unknown</span>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" onclick="switchTab('profiles')" data-translate="Quick Setup">Quick Setup</button>
+                        <button class="btn btn-secondary" onclick="switchTab('faq')" data-translate="Learn More">Learn More</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 data-translate="Module Status">Module Status</h3>
+                    <div id="module-status-container">
+                        <div class="module-status-loading" data-translate="Checking module...">Checking module...</div>
+                    </div>
+                    <div class="module-actions" style="display: none;" id="module-actions">
+                        <button class="btn btn-primary" onclick="installModule()" id="install-btn" data-translate="Install Module">Install Module</button>
+                        <button class="btn btn-secondary" onclick="uninstallModule()" id="uninstall-btn" style="display: none;" data-translate="Uninstall Module">Uninstall Module</button>
+                        <button class="btn btn-small" onclick="enableDisableModule()" id="enable-disable-btn" style="display: none;" data-translate="Enable">Enable</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 data-translate="Smart Recommendations">Smart Recommendations</h3>
+                    <div id="recommendations-list">
+                        <div class="recommendation-loading" data-translate="Analyzing your system">Analyzing your system</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="profiles-tab">
+            <div class="grid-wide">
+                <div class="card profile-card" data-profile="battery">
+                    <div class="profile-header">
+                        <h3 data-translate="Battery Saver">Battery Saver</h3>
+                        <span class="profile-badge" data-translate="Recommended">Recommended</span>
+                    </div>
+                    <div class="profile-description" data-translate="Optimizes for battery life with minimal performance impact">Optimizes for battery life with minimal performance impact</div>
+                    <div class="profile-settings">
+                        <div class="profile-setting">
+                            <span data-translate="ZRAM Ratio">ZRAM Ratio:</span>
+                            <span class="setting-value">0.8</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Swappiness">Swappiness:</span>
+                            <span class="setting-value">40</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Performance Mode">Performance Mode:</span>
+                            <span class="setting-value" data-translate="Off">Off</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary profile-apply" onclick="nextram.applyProfile('battery')" data-translate="Apply Profile">Apply Profile</button>
+                </div>
+
+                <div class="card profile-card" data-profile="balanced">
+                    <div class="profile-header">
+                        <h3 data-translate="Balanced">Balanced</h3>
+                        <span class="profile-badge" data-translate="Best for most">Best for most</span>
+                    </div>
+                    <div class="profile-description" data-translate="Perfect balance between performance and battery life">Perfect balance between performance and battery life</div>
+                    <div class="profile-settings">
+                        <div class="profile-setting">
+                            <span data-translate="ZRAM Ratio">ZRAM Ratio:</span>
+                            <span class="setting-value">1.2</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Swappiness">Swappiness:</span>
+                            <span class="setting-value">60</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Performance Mode">Performance Mode:</span>
+                            <span class="setting-value" data-translate="Off">Off</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary profile-apply" onclick="nextram.applyProfile('balanced')" data-translate="Apply Profile">Apply Profile</button>
+                </div>
+
+                <div class="card profile-card" data-profile="performance">
+                    <div class="profile-header">
+                        <h3 data-translate="Performance">Performance</h3>
+                        <span class="profile-badge" data-translate="For heavy apps">For heavy apps</span>
+                    </div>
+                    <div class="profile-description" data-translate="Maximizes multitasking and app keeping">Maximizes multitasking and app keeping</div>
+                    <div class="profile-settings">
+                        <div class="profile-setting">
+                            <span data-translate="ZRAM Ratio">ZRAM Ratio:</span>
+                            <span class="setting-value">2.10</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Swappiness">Swappiness:</span>
+                            <span class="setting-value">100</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Performance Mode">Performance Mode:</span>
+                            <span class="setting-value" data-translate="On">On</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary profile-apply" onclick="nextram.applyProfile('performance')" data-translate="Apply Profile">Apply Profile</button>
+                </div>
+
+                <div class="card profile-card" data-profile="gaming">
+                    <div class="profile-header">
+                        <h3 data-translate="Gaming">Gaming</h3>
+                        <span class="profile-badge" data-translate="For gaming">For gaming</span>
+                    </div>
+                    <div class="profile-description" data-translate="Maximum performance for gaming and emulators">Maximum performance for gaming and emulators</div>
+                    <div class="profile-settings">
+                        <div class="profile-setting">
+                            <span data-translate="ZRAM Ratio">ZRAM Ratio:</span>
+                            <span class="setting-value">2.35</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Swappiness">Swappiness:</span>
+                            <span class="setting-value">100</span>
+                        </div>
+                        <div class="profile-setting">
+                            <span data-translate="Performance Mode">Performance Mode:</span>
+                            <span class="setting-value" data-translate="On">On</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary profile-apply" onclick="nextram.applyProfile('gaming')" data-translate="Apply Profile">Apply Profile</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="config-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="Basic Settings">Basic Settings</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="ZRAM_ENABLED" name="ZRAM_ENABLED">
+                        <label for="ZRAM_ENABLED" data-translate="Enable ZRAM">Enable ZRAM</label>
+                        <button class="info-btn" data-param="ZRAM_ENABLED">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="SWAP_ENABLED" name="SWAP_ENABLED">
+                        <label for="SWAP_ENABLED" data-translate="Enable Swap File">Enable Swap File</label>
+                        <button class="info-btn" data-param="SWAP_ENABLED">i</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="LOG_LEVEL" data-translate="Log Level">Log Level</label>
+                            <button class="info-btn" data-param="LOG_LEVEL">i</button>
+                        </div>
+                        <select id="LOG_LEVEL" name="LOG_LEVEL">
+                            <option value="DEBUG" data-translate="DEBUG">DEBUG</option>
+                            <option value="INFO" data-translate="INFO">INFO</option>
+                            <option value="WARN" data-translate="WARN">WARN</option>
+                            <option value="ERROR" data-translate="ERROR">ERROR</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 data-translate="Performance Settings">Performance Settings</h3>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="EXTRA_TUNING" name="EXTRA_TUNING">
+                        <label for="EXTRA_TUNING" data-translate="Enable Extra Tuning">Enable Extra Tuning</label>
+                        <button class="info-btn" data-param="EXTRA_TUNING">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="DYNAMIC_SWAPPINESS" name="DYNAMIC_SWAPPINESS">
+                        <label for="DYNAMIC_SWAPPINESS" data-translate="Dynamic Swappiness">Dynamic Swappiness</label>
+                        <button class="info-btn" data-param="DYNAMIC_SWAPPINESS">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="PERFORMANCE_MODE" name="PERFORMANCE_MODE">
+                        <label for="PERFORMANCE_MODE" data-translate="Performance Mode">Performance Mode</label>
+                        <button class="info-btn" data-param="PERFORMANCE_MODE">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="ZRAM_AUTO_TUNE" name="ZRAM_AUTO_TUNE">
+                        <label for="ZRAM_AUTO_TUNE" data-translate="ZRAM Auto Tune">ZRAM Auto Tune</label>
+                        <button class="info-btn" data-param="ZRAM_AUTO_TUNE">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="IO_SCHEDULER_TUNE" name="IO_SCHEDULER_TUNE">
+                        <label for="IO_SCHEDULER_TUNE" data-translate="I/O Scheduler Tune">I/O Scheduler Tune</label>
+                        <button class="info-btn" data-param="IO_SCHEDULER_TUNE">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="CPU_BOOST" name="CPU_BOOST">
+                        <label for="CPU_BOOST" data-translate="CPU Boost">CPU Boost</label>
+                        <button class="info-btn" data-param="CPU_BOOST">i</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="NETWORK_TUNE" name="NETWORK_TUNE">
+                        <label for="NETWORK_TUNE" data-translate="Network Tune">Network Tune</label>
+                        <button class="info-btn" data-param="NETWORK_TUNE">i</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="zram-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="ZRAM Configuration">ZRAM Configuration</h3>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="ZRAM_RATIO" data-translate="ZRAM Size Ratio">ZRAM Size Ratio</label>
+                            <button class="info-btn" data-param="ZRAM_RATIO">i</button>
+                        </div>
+                        <input type="number" id="ZRAM_RATIO" name="ZRAM_RATIO" step="0.1" min="0.1" max="2.0">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="ZRAM_ALGORITHM" data-translate="Compression Algorithm">Compression Algorithm</label>
+                            <button class="info-btn" data-param="ZRAM_ALGORITHM">i</button>
+                        </div>
+                        <select id="ZRAM_ALGORITHM" name="ZRAM_ALGORITHM">
+                            <option value="zstd" data-translate="zstd (Best compression)">zstd (Best compression)</option>
+                            <option value="lz4" data-translate="lz4 (Fastest)">lz4 (Fastest)</option>
+                            <option value="lzo" data-translate="lzo (Balanced)">lzo (Balanced)</option>
+                            <option value="lzo-rle" data-translate="lzo-rle (Improved lzo)">lzo-rle (Improved lzo)</option>
+                            <option value="deflate" data-translate="deflate (Good compression)">deflate (Good compression)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="MAX_COMP_STREAMS" data-translate="Max Compression Streams">Max Compression Streams</label>
+                            <button class="info-btn" data-param="MAX_COMP_STREAMS">i</button>
+                        </div>
+                        <input type="number" id="MAX_COMP_STREAMS" name="MAX_COMP_STREAMS" min="1" max="16">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="ZRAM_PRIORITY" data-translate="ZRAM Priority">ZRAM Priority</label>
+                            <button class="info-btn" data-param="ZRAM_PRIORITY">i</button>
+                        </div>
+                        <input type="number" id="ZRAM_PRIORITY" name="ZRAM_PRIORITY" min="0" max="32767" value="0">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="ZRAM_COMPRESSION_LEVEL" data-translate="ZRAM Compression Level">ZRAM Compression Level</label>
+                            <button class="info-btn" data-param="ZRAM_COMPRESSION_LEVEL">i</button>
+                        </div>
+                        <input type="number" id="ZRAM_COMPRESSION_LEVEL" name="ZRAM_COMPRESSION_LEVEL" min="1" max="9" value="3">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="ZRAM_MEMORY_LIMIT" data-translate="ZRAM Memory Limit">ZRAM Memory Limit</label>
+                            <button class="info-btn" data-param="ZRAM_MEMORY_LIMIT">i</button>
+                        </div>
+                        <input type="text" id="ZRAM_MEMORY_LIMIT" name="ZRAM_MEMORY_LIMIT" placeholder="e.g., 4G">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="swap-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="Swap File Configuration">Swap File Configuration</h3>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="SWAP_SIZE_GB" data-translate="Swap Size (GB)">Swap Size (GB)</label>
+                            <button class="info-btn" data-param="SWAP_SIZE_GB">i</button>
+                        </div>
+                        <input type="number" id="SWAP_SIZE_GB" name="SWAP_SIZE_GB" step="0.1" min="0.1" max="8.0">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="OVERHEAD_GB" data-translate="Filesystem Overhead (GB)">Filesystem Overhead (GB)</label>
+                            <button class="info-btn" data-param="OVERHEAD_GB">i</button>
+                        </div>
+                        <input type="number" id="OVERHEAD_GB" name="OVERHEAD_GB" step="0.1" min="0.1" max="1.0">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="SWAP_PRIORITY" data-translate="Swap Priority">Swap Priority</label>
+                            <button class="info-btn" data-param="SWAP_PRIORITY">i</button>
+                        </div>
+                        <input type="number" id="SWAP_PRIORITY" name="SWAP_PRIORITY" min="0" max="32767" value="0">
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 data-translate="Swap Performance">Swap Performance</h3>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="SWAPPINESS" data-translate="Swappiness">Swappiness</label>
+                            <button class="info-btn" data-param="SWAPPINESS">i</button>
+                        </div>
+                        <input type="number" id="SWAPPINESS" name="SWAPPINESS" min="0" max="100" value="60">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="advanced-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="Kernel Tuning Parameters">Kernel Tuning Parameters</h3>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="CACHE_PRESSURE" data-translate="Cache Pressure">Cache Pressure</label>
+                            <button class="info-btn" data-param="CACHE_PRESSURE">i</button>
+                        </div>
+                        <input type="number" id="CACHE_PRESSURE" name="CACHE_PRESSURE" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="DIRTY_RATIO" data-translate="Dirty Ratio">Dirty Ratio</label>
+                            <button class="info-btn" data-param="DIRTY_RATIO">i</button>
+                        </div>
+                        <input type="number" id="DIRTY_RATIO" name="DIRTY_RATIO" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="DIRTY_BACKGROUND_RATIO" data-translate="Dirty Background Ratio">Dirty Background Ratio</label>
+                            <button class="info-btn" data-param="DIRTY_BACKGROUND_RATIO">i</button>
+                        </div>
+                        <input type="number" id="DIRTY_BACKGROUND_RATIO" name="DIRTY_BACKGROUND_RATIO" min="0" max="50">
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 data-translate="Advanced VM Settings">Advanced VM Settings</h3>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_DIRTY_WRITEBACK_CENTISECS" data-translate="Dirty Writeback Centisecs">Dirty Writeback Centisecs</label>
+                            <button class="info-btn" data-param="VM_DIRTY_WRITEBACK_CENTISECS">i</button>
+                        </div>
+                        <input type="number" id="VM_DIRTY_WRITEBACK_CENTISECS" name="VM_DIRTY_WRITEBACK_CENTISECS" min="0" value="500">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_DIRTY_EXPIRE_CENTISECS" data-translate="Dirty Expire Centisecs">Dirty Expire Centisecs</label>
+                            <button class="info-btn" data-param="VM_DIRTY_EXPIRE_CENTISECS">i</button>
+                        </div>
+                        <input type="number" id="VM_DIRTY_EXPIRE_CENTISECS" name="VM_DIRTY_EXPIRE_CENTISECS" min="0" value="3000">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_PAGE_CLUSTER" data-translate="Page Cluster">Page Cluster</label>
+                            <button class="info-btn" data-param="VM_PAGE_CLUSTER">i</button>
+                        </div>
+                        <input type="number" id="VM_PAGE_CLUSTER" name="VM_PAGE_CLUSTER" min="0" value="3">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_LAPTOP_MODE" data-translate="Laptop Mode">Laptop Mode</label>
+                            <button class="info-btn" data-param="VM_LAPTOP_MODE">i</button>
+                        </div>
+                        <input type="number" id="VM_LAPTOP_MODE" name="VM_LAPTOP_MODE" min="0" max="3" value="0">
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="VM_OOM_KILL_ALLOCATING_TASK" name="VM_OOM_KILL_ALLOCATING_TASK">
+                        <label for="VM_OOM_KILL_ALLOCATING_TASK" data-translate="OOM Kill Allocating Task">OOM Kill Allocating Task</label>
+                        <button class="info-btn" data-param="VM_OOM_KILL_ALLOCATING_TASK">i</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_PANIC_ON_OOM" data-translate="Panic on OOM">Panic on OOM</label>
+                            <button class="info-btn" data-param="VM_PANIC_ON_OOM">i</button>
+                        </div>
+                        <select id="VM_PANIC_ON_OOM" name="VM_PANIC_ON_OOM">
+                            <option value="0" data-translate="0 (Disabled)">0 (Disabled)</option>
+                            <option value="1" data-translate="1 (Enabled)">1 (Enabled)</option>
+                            <option value="2" data-translate="2 (Enabled with timeout)">2 (Enabled with timeout)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_OVERCOMMIT_MEMORY" data-translate="Overcommit Memory">Overcommit Memory</label>
+                            <button class="info-btn" data-param="VM_OVERCOMMIT_MEMORY">i</button>
+                        </div>
+                        <select id="VM_OVERCOMMIT_MEMORY" name="VM_OVERCOMMIT_MEMORY">
+                            <option value="0" data-translate="0 (Heuristic)">0 (Heuristic)</option>
+                            <option value="1" data-translate="1 (Always)">1 (Always)</option>
+                            <option value="2" data-translate="2 (Disabled)">2 (Disabled)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_OVERCOMMIT_RATIO" data-translate="Overcommit Ratio">Overcommit Ratio</label>
+                            <button class="info-btn" data-param="VM_OVERCOMMIT_RATIO">i</button>
+                        </div>
+                        <input type="number" id="VM_OVERCOMMIT_RATIO" name="VM_OVERCOMMIT_RATIO" min="0" value="50">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="VM_WATERMARK_SCALE_FACTOR" data-translate="Watermark Scale Factor">Watermark Scale Factor</label>
+                            <button class="info-btn" data-param="VM_WATERMARK_SCALE_FACTOR">i</button>
+                        </div>
+                        <input type="number" id="VM_WATERMARK_SCALE_FACTOR" name="VM_WATERMARK_SCALE_FACTOR" min="0" value="10">
+                    </div>
+                    <div class="form-group">
+                        <div class="label-with-info">
+                            <label for="KERNEL_THREADS_MAX" data-translate="Kernel Threads Max">Kernel Threads Max</label>
+                            <button class="info-btn" data-param="KERNEL_THREADS_MAX">i</button>
+                        </div>
+                        <input type="number" id="KERNEL_THREADS_MAX" name="KERNEL_THREADS_MAX" min="0" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="faq-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="Frequently Asked Questions">Frequently Asked Questions</h3>
+                    <div id="faq-content"></div>
+                </div>
+                <div class="card">
+                    <h3 data-translate="Quick Start Guide">Quick Start Guide</h3>
+                    <div id="guide-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="settings-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="Appearance">Appearance</h3>
+                    <div class="form-group">
+                        <label for="ACCENT_COLOR" data-translate="Accent Color">Accent Color</label>
+                        <select id="ACCENT_COLOR" name="ACCENT_COLOR">
+                            <option value="orange" data-translate="Orange">Orange</option>
+                            <option value="blue" data-translate="Blue">Blue</option>
+                            <option value="green" data-translate="Green">Green</option>
+                            <option value="purple" data-translate="Purple">Purple</option>
+                            <option value="red" data-translate="Red">Red</option>
+                            <option value="teal" data-translate="Teal">Teal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="THEME" data-translate="Theme">Theme</label>
+                        <select id="THEME" name="THEME">
+                            <option value="light" data-translate="Light">Light</option>
+                            <option value="dark" data-translate="Dark">Dark</option>
+                            <option value="oled" data-translate="OLED">OLED</option>
+                            <option value="auto" data-translate="Auto">Auto</option>
+                        </select>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="ANIMATIONS_ENABLED" name="ANIMATIONS_ENABLED">
+                        <label for="ANIMATIONS_ENABLED" data-translate="Enable Animations">Enable Animations</label>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 data-translate="Language">Language</h3>
+                    <div class="form-group">
+                        <label for="LANGUAGE" data-translate="Language">Language</label>
+                        <select id="LANGUAGE" name="LANGUAGE">
+                            <option value="en" data-translate="English">English</option>
+                            <option value="ru" data-translate="Russian">Russian</option>
+                            <option value="uk" data-translate="Ukrainian">Ukrainian</option>
+                            <option value="zh" data-translate="Chinese">Chinese</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 data-translate="Configuration History">Configuration History</h3>
+                    <div id="config-history">
+                        <div class="history-empty" data-translate="No configuration history yet">No configuration history yet</div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="nextram.saveCurrentConfig()" data-translate="Save Current Configuration">Save Current Configuration</button>
+                </div>
+
+                <div class="card">
+                    <h3 data-translate="Development Team">Development Team</h3>
+                    <div class="developers-list compact">
+                        <div class="developer">
+                            <span class="dev-name">@rexamm1t</span>
+                            <span class="dev-role" data-translate="The main developer and founder of NextRAM">The main developer and founder of NextRAM</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@matrix_5858</span>
+                            <span class="dev-role" data-translate="Developer and best friend of Rexamm1t">Developer and best friend of Rexamm1t</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@alloyd031</span>
+                            <span class="dev-role" data-translate="Configurator, tests, support">Configurator, tests, support</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@w3b_0s1nt</span>
+                            <span class="dev-role" data-translate="Developer, tester">Developer, tester</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@wefolix</span>
+                            <span class="dev-role" data-translate="Configurator, community representative, the tester">Configurator, community representative, the tester</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@GalaxyFier</span>
+                            <span class="dev-role" data-translate="Frontend developer, community representative">Frontend developer, community representative</span>
+                        </div>
+                        <div class="developer">
+                            <span class="dev-name">@egor164rus</span>
+                            <span class="dev-role" data-translate="Tester">Tester</span>
+                        </div>
+                    </div>
+                    
+                    <div class="telegram-section">
+                        <h4 data-translate="Stay Updated">Stay Updated</h4>
+                        <a href="https://t.me/nextram_official" target="_blank" class="telegram-link">
+                            <span data-translate="Join our Telegram channel">Join our Telegram channel</span>
+                            <span class="link-arrow">→</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="saveButtonContainer" class="save-button-container">
+            <button id="saveButton" class="btn btn-primary save-button" data-translate="Save Changes">Save Changes</button>
+        </div>
+
+        <input type="file" id="module-file-input" accept=".zip" style="display: none;">
+    </div>
+
+    <script src="spl.js"></script>
+    <script src="script.js"></script>
+    <script src="faq.js"></script>
+</body>
+</html>

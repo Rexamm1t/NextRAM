@@ -40,28 +40,33 @@ open_browser() {
 }
 
 print_modname() {
+  ui_print " "
   ui_print "   \  |               |     _ \      \      \  |"
   ui_print "    \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |"
   ui_print "  |\  |   __/  \  <   |    __ <    ___ \   |   |"
   ui_print " _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|"
   ui_print " "
   ui_print "   by @rexamm1t • @matrix_5858 • @galaxyfier"
-  ui_print "      @Alloyd031 • @wefol1x • @w3b_0s1nt"
+  ui_print "             @Alloyd031 • @wefol1x "
+  ui_print "            @Egor164rus • @w3b_0s1nt"
   ui_print "                  with love <3"
   ui_print "         tg channel: @nextram_official"
   ui_print "   official web site: https://nextram.cocal.ru/ "
 }
 
 on_install() {
-  ui_print " "
+  ui_print "____________________________________________"
   ui_print "starting installation"
-  ui_print " "
+  ui_print "____________________________________________"
   ui_print "NextRAM Version - $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
+  ui_print "NextRAM Status  - $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
+  ui_print "____________________________________________"
   ui_print "arch   : $(uname -m)"
   ui_print "android: $(getprop ro.build.version.release)"
   ui_print "linux  : $(uname -r)"
   ui_print "API    : $(getprop ro.build.version.sdk)"
   ui_print "model  : $(getprop ro.product.model)"
+  ui_print "____________________________________________"
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
@@ -171,30 +176,15 @@ on_install() {
   ui_print "Vol (-) - No (standard cfg, existing)"
   ui_print "waiting for 15 seconds..."
 
-  local choice_made=false
-  local timeout=0
-  
-  while [ $timeout -lt 150 ]; do
-    getevent -lc 1 2>/dev/null | grep -q "KEY_VOLUMEUP" && {
-        run_aicf_analysis
-        choice_made=true
-        break
-    }
+  timeout_seconds=15
+  line="$(timeout $timeout_seconds getevent -ql 2>/dev/null | grep -m1 -E "KEY_VOLUME(UP|DOWN)")"
     
-    getevent -lc 1 2>/dev/null | grep -q "KEY_VOLUMEDOWN" && {
-        ui_print "Completion with the standard config"
-        choice_made=true
-        break
-    }
-    
-    sleep 0.1
-    timeout=$((timeout + 1))
-  done
-
-  if [ "$choice_made" = "false" ]; then
-    ui_print " "
-    ui_print "timeout - using default configuration..."
-  fi
+  case "$line" in
+        *KEY_VOLUMEUP*)   run_aicf_analysis ;;
+        *KEY_VOLUMEDOWN*) ui_print "Completion with the standard config" ;;
+        *) ui_print " "
+           ui_print "timeout - using default configuration..." ;;
+    esac
 }
 
 set_permissions() {
@@ -202,6 +192,6 @@ set_permissions() {
   set_perm $MODPATH/tools/* 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755 0755
   set_perm $MODPATH/status_gt 0 0 0755 0755
-  ui_print "installation completed successfully"
+  ui_print "installation completed successfully <3"
   open_browser
 }

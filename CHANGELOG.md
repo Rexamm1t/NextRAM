@@ -1,3 +1,12 @@
+## NextRAM Fusion v9.1.371-(91371)
+
+**[INSTALL]**
+- fixed timeout
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM Fusion v9.1.280-(91280)
 
 **[CODE OPTIMIZATION]**

@@ -82,7 +82,7 @@ NextRAM — это мощный модуль Magisk для расширенно�
 ## Поддержка
 
 · Telegram канал: @nextram_official
-· Разработчики: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt
+· Разработчики: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @GalaxyFier, @Egor164rus
 
 ## Лицензия
 

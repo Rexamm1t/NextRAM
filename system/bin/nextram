@@ -127,10 +127,10 @@ confirm_action() {
 }
 
 show_status() {
-    echo "    \  |               |     _ \      \      \  |  by "
+    echo "    \  |               |     _ \      \      \  |  "
     echo "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  "
-    echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t"
-    echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858"
+    echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  "
+    echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  "
     echo " "
     echo "=== BASIC SETTINGS ==="
     echo "Swap: $( [ "$(get_config SWAP_ENABLED)" = "true" ] && echo "Enabled ($(get_config SWAP_SIZE_GB)GB)" || echo "Disabled" )"
@@ -204,10 +204,10 @@ show_available_algorithms() {
 
 show_help() {
     echo " "
-    echo "        \  |               |     _ \      \      \  |  by "
+    echo "        \  |               |     _ \      \      \  |  "
     echo "         \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  "
-    echo "       |\  |   __/  \  <   |    __ <    ___ \   |   |  @rexamm1t"
-    echo "      _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  @matrix_5858"
+    echo "       |\  |   __/  \  <   |    __ <    ___ \   |   |  "
+    echo "      _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  "
     echo " "
     echo "                    ===  Commands ==="
     echo " "
