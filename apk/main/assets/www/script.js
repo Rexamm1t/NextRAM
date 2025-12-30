@@ -13,7 +13,9 @@ function setupTabs() {
             document.getElementById(`${targetTab}-tab`).classList.add('active');
             
             if (targetTab === 'home') {
-                checkModuleStatus();
+                nextram.checkModuleStatus();
+            } else if (targetTab === 'store') {
+                nextram.loadStoreConfigs();
             }
         });
     });
@@ -34,28 +36,49 @@ function switchTab(tabName) {
     }
     
     if (tabName === 'home') {
-        checkModuleStatus();
+        nextram.checkModuleStatus();
+    } else if (tabName === 'store') {
+        nextram.loadStoreConfigs();
     }
 }
 
 const translations = {
     en: {
+        "Store": "Store",
+        "NextRAM Configuration Store": "NextRAM Configuration Store",
+        "About the Store": "About the Store",
+        "Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.": "Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.",
+        "Source:": "Source:",
+        "Loading configurations from GitHub...": "Loading configurations from GitHub...",
+        "No configurations found in store.": "No configurations found in store.",
+        "Visit repository": "Visit repository",
+        "Error loading configurations": "Error loading configurations",
+        "Retry": "Retry",
+        "configurations loaded from GitHub": "configurations loaded from GitHub",
+        "New": "New",
+        "Loading from GitHub...": "Loading from GitHub...",
+        "Device": "Device",
+        "Created": "Created",
+        "Configuration preview:": "Configuration preview:",
+        "Apply Configuration": "Apply Configuration",
+        "Loaded from GitHub repository": "Loaded from GitHub repository",
+        "Configuration applied to form.": "Configuration applied to form.",
+        "settings updated. Click Save to apply.": "settings updated. Click Save to apply.",
+        "Configuration file not found": "Configuration file not found",
+        "No valid configuration found in file": "No valid configuration found in file",
         "Module Status": "Module Status",
         "Checking module...": "Checking module...",
-        "Install Module": "Install Module",
-        "Update Module": "Update Module",
-        "Uninstall Module": "Uninstall Module",
         "Enable": "Enable",
         "Disable": "Disable",
         "Not installed": "Not installed",
         "Installed": "Installed",
+        "Active": "Active",
         "Enabled": "Enabled",
         "Disabled": "Disabled",
         "Version": "Version",
         "Version Code": "Version Code",
         "Frontend developer, community representative": "Frontend developer, community representative",
         "Tester": "Tester",
-        "Select ZIP file": "Select ZIP file",
         "Module installed successfully": "Module installed successfully",
         "Module updated successfully": "Module updated successfully",
         "Module uninstalled successfully": "Module uninstalled successfully",
@@ -105,7 +128,6 @@ const translations = {
         "Checking root access": "Checking root access",
         "Root access required!": "Root access required!",
         "Please grant root permissions to use all features.": "Please grant root permissions to use all features.",
-        "Retry": "Retry",
         "Home": "Home",
         "Profiles": "Profiles",
         "Config": "Config",
@@ -225,25 +247,85 @@ const translations = {
         "2 (Enabled with timeout)": "2 (Enabled with timeout)",
         "0 (Heuristic)": "0 (Heuristic)",
         "1 (Always)": "1 (Always)",
-        "2 (Disabled)": "2 (Disabled)"
+        "2 (Disabled)": "2 (Disabled)",
+        "Author": "Author",
+        "Module not found": "Module not found",
+        "Install via Magisk Manager": "Install via Magisk Manager",
+        "Delete configuration": "Delete configuration",
+        "Are you sure you want to delete this configuration?": "Are you sure you want to delete this configuration?",
+        "Configuration deleted": "Configuration deleted",
+        "Failed to delete configuration": "Failed to delete configuration",
+        "Apply & Save": "Apply & Save",
+        "Configuration applied and saved successfully": "Configuration applied and saved successfully",
+        "Configuration not found": "Configuration not found",
+        "Root access required to apply configuration": "Root access required to apply configuration",
+        "Operation failed": "Operation failed",
+        "Configuration Import/Export": "Configuration Import/Export",
+        "Export Configuration": "Export Configuration",
+        "Import Configuration": "Import Configuration",
+        "Config file path:": "Config file path:",
+        "Interface Appearance": "Interface Appearance",
+        "Glass Effect": "Glass Effect",
+        "Material You": "Material You",
+        "Semi-transparent interface": "Semi-transparent interface",
+        "Dynamic system colors": "Dynamic system colors",
+        "Note:": "Note:",
+        "Material You requires Android 12+ and compatible system theme": "Material You requires Android 12+ and compatible system theme",
+        "Configuration exported successfully": "Configuration exported successfully",
+        "Configuration imported successfully": "Configuration imported successfully",
+        "Failed to export configuration": "Failed to export configuration",
+        "Failed to import configuration": "Failed to import configuration",
+        "Export failed": "Export failed",
+        "Import failed": "Import failed",
+        "Authors": "Authors",
+        "Description": "Description",
+        "Disabled": "Disabled",
+        "ID": "ID",
+        "Root required": "Root required",
+        "Status": "Status",
+        "Tested On": "Tested On",
+        "Created With": "Created With",
+        "Export not supported": "Export not supported",
+        "Failed to read current config": "Failed to read current config",
+        "Save to History": "Save to History",
+        "Note: Material You requires Android 12+ and compatible system theme": "Note: Material You requires Android 12+ and compatible system theme"
     },
     ru: {
+        "Store": "Магазин",
+        "NextRAM Configuration Store": "Магазин конфигураций NextRAM",
+        "About the Store": "О магазине",
+        "Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.": "Конфигурации загружаются из официального репозитория GitHub. Все конфигурации созданы и протестированы сообществом.",
+        "Source:": "Источник:",
+        "Loading configurations from GitHub...": "Загрузка конфигураций из GitHub...",
+        "No configurations found in store.": "Конфигурации не найдены в магазине.",
+        "Visit repository": "Посетить репозиторий",
+        "Error loading configurations": "Ошибка загрузки конфигураций",
+        "Retry": "Повторить",
+        "configurations loaded from GitHub": "конфигураций загружено из GitHub",
+        "New": "Новое",
+        "Loading from GitHub...": "Загрузка из GitHub...",
+        "Device": "Устройство",
+        "Created": "Создано",
+        "Configuration preview:": "Предпросмотр конфигурации:",
+        "Apply Configuration": "Применить конфигурацию",
+        "Loaded from GitHub repository": "Загружено из репозитория GitHub",
+        "Configuration applied to form.": "Конфигурация применена к форме.",
+        "settings updated. Click Save to apply.": "настроек обновлено. Нажмите Сохранить для применения.",
+        "Configuration file not found": "Файл конфигурации не найден",
+        "No valid configuration found in file": "В файле не найдено корректной конфигурации",
         "Module Status": "Статус модуля",
         "Checking module...": "Проверка модуля...",
-        "Install Module": "Установить модуль",
-        "Update Module": "Обновить модуль",
-        "Uninstall Module": "Удалить модуль",
         "Enable": "Включить",
         "Disable": "Выключить",
         "Not installed": "Не установлен",
         "Installed": "Установлен",
+        "Active": "Активен",
         "Enabled": "Включен",
         "Disabled": "Выключен",
         "Version": "Версия",
         "Version Code": "Код версии",
         "Frontend developer, community representative": "Фронтенд разработчик, представитель комьюнити",
         "Tester": "Тестер",
-        "Select ZIP file": "Выберите ZIP файл",
         "Module installed successfully": "Модуль успешно установлен",
         "Module updated successfully": "Модуль успешно обновлен",
         "Module uninstalled successfully": "Модуль успешно удален",
@@ -281,7 +363,7 @@ const translations = {
         "Apply Profile": "Применить профиль",
         "Balanced": "Сбалансированный",
         "Best for most": "Лучший для большинства",
-        "Perfect balance between performance and battery life": "Идеальный баланс между производительностью и временем работы от батареи",
+        "Perfect balance between performance and battery life": "Идельный баланс между производительностью и временем работы от батареи",
         "Performance": "Производительность",
         "For heavy apps": "Для тяжелых приложений",
         "Maximizes multitasking and app keeping": "Максимизирует многозадачность и удержание приложений",
@@ -293,7 +375,6 @@ const translations = {
         "Checking root access": "Проверка root доступа",
         "Root access required!": "Требуется root доступ!",
         "Please grant root permissions to use all features.": "Предоставьте root права для использования всех функций.",
-        "Retry": "Повторить",
         "Home": "Главная",
         "Profiles": "Профили",
         "Config": "Конфиг",
@@ -393,7 +474,7 @@ const translations = {
         "Disable either Auto Tune or manual tuning features": "Отключите автонастройку или ручные настройки",
         "High Compression Streams": "Много потоков сжатия",
         "Using many compression streams may increase CPU usage": "Большое количество потоков сжатия увеличит нагрузку на CPU",
-        "Set streams to match your CPU cores (usually 4-8)": "Установите количество потоков по числу ядер CPU (обычно 4-8)",
+        "Set streams to match your CPU cores (обычно 4-8)": "Установите количество потоков по числу ядер CPU (обычно 4-8)",
         "Your configuration looks good!": "Ваша конфигурация выглядит хорошо!",
         "Applied": "Применен",
         "profile": "профиль",
@@ -413,25 +494,86 @@ const translations = {
         "2 (Enabled with timeout)": "2 (Включено с таймаутом)",
         "0 (Heuristic)": "0 (Эвристика)",
         "1 (Always)": "1 (Всегда)",
-        "2 (Disabled)": "2 (Выключено)"
+        "2 (Disabled)": "2 (Выключено)",
+        "Author": "Автор",
+        "Module not found": "Модуль не найден",
+        "Install via Magisk Manager": "Установить через Magisk Manager",
+        "Delete configuration": "Удалить конфигурацию",
+        "Are you sure you want to delete this configuration?": "Вы уверены, что хотите удалить эту конфигурацию?",
+        "Configuration deleted": "Конфигурация удалена",
+        "Failed to delete configuration": "Ошибка удаления конфигурации",
+        "Apply & Save": "Применить и сохранить",
+        "Configuration applied and saved successfully": "Конфигурация применена и сохранена успешно",
+        "Configuration not found": "Конфигурация не найдена",
+        "Root access required to apply configuration": "Требуется root доступ для применения конфигурации",
+        "Operation failed": "Операция не выполнена",
+        "Configuration Import/Export": "Импорт/Экспорт конфигурации",
+        "Export Configuration": "Экспорт конфигурации",
+        "Import Configuration": "Импорт конфигурации",
+        "Config file path:": "Путь к файлу конфигурации:",
+        "Interface Appearance": "Внешний вид интерфейса",
+        "Glass Effect": "Стеклянный эффект",
+        "Material You": "Material You",
+        "Semi-transparent interface": "Полупрозрачный интерфейс",
+        "Dynamic system colors": "Динамические системные цвета",
+        "Note:": "Примечание:",
+        "Material You requires Android 12+ and compatible system theme": "Material You требует Android 12+ и совместимую системную тему",
+        "Configuration exported successfully": "Конфигурация успешно экспортирована",
+        "Configuration imported successfully": "Конфигурация успешно импортирована",
+        "Failed to export configuration": "Не удалось экспортировать конфигурацию",
+        "Failed to import configuration": "Не удалось импортировать конфигурацию",
+        "Export failed": "Ошибка экспорта",
+        "Import failed": "Ошибка импорта",
+        "Authors": "Авторы",
+        "Description": "Описание",
+        "Active": "Активен",
+        "Disabled": "Отключен",
+        "ID": "ID",
+        "Root required": "Требуется root",
+        "Status": "Статус",
+        "Tested On": "Тестировано на",
+        "Created With": "Создано с",
+        "Export not supported": "Экспорт не поддерживается",
+        "Failed to read current config": "Не удалось прочитать текущую конфигурацию",
+        "Save to History": "Сохранить в историю",
+        "Note: Material You requires Android 12+ and compatible system theme": "Примечание: Material You требует Android 12+ и совместимую системную тему"
     },
     uk: {
+        "Store": "Магазин",
+        "NextRAM Configuration Store": "Магазин конфігурацій NextRAM",
+        "About the Store": "Про магазин",
+        "Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.": "Конфігурації завантажуються з офіційного репозиторію GitHub. Усі конфігурації створені та протестовані спільнотою.",
+        "Source:": "Джерело:",
+        "Loading configurations from GitHub...": "Завантаження конфігурацій з GitHub...",
+        "No configurations found in store.": "Конфігурації не знайдено в магазині.",
+        "Visit repository": "Відвідати репозиторій",
+        "Error loading configurations": "Помилка завантаження конфігурацій",
+        "Retry": "Повторити",
+        "configurations loaded from GitHub": "конфігурацій завантажено з GitHub",
+        "New": "Нове",
+        "Loading from GitHub...": "Завантаження з GitHub...",
+        "Device": "Пристрій",
+        "Created": "Створено",
+        "Configuration preview:": "Попередній перегляд конфігурації:",
+        "Apply Configuration": "Застосувати конфігурацію",
+        "Loaded from GitHub repository": "Завантажено з репозиторію GitHub",
+        "Configuration applied to form.": "Конфігурацію застосовано до форми.",
+        "settings updated. Click Save to apply.": "налаштувань оновлено. Натисніть Зберегти для застосування.",
+        "Configuration file not found": "Файл конфігурації не знайдено",
+        "No valid configuration found in file": "У файлі не знайдено коректної конфігурації",
         "Module Status": "Статус модуля",
         "Checking module...": "Перевірка модуля...",
-        "Install Module": "Встановити модуль",
-        "Update Module": "Оновити модуль",
-        "Uninstall Module": "Видалити модуль",
         "Enable": "Увімкнути",
         "Disable": "Вимкнути",
         "Not installed": "Не встановлено",
         "Installed": "Встановлено",
+        "Active": "Активний",
         "Enabled": "Увімкнено",
         "Disabled": "Вимкнено",
         "Version": "Версія",
         "Version Code": "Код версії",
         "Frontend developer, community representative": "Фронтенд розробник, представник спільноти",
         "Tester": "Тестувальник",
-        "Select ZIP file": "Виберіть ZIP файл",
         "Module installed successfully": "Модуль успішно встановлено",
         "Module updated successfully": "Модуль успішно оновлено",
         "Module uninstalled successfully": "Модуль успішно видалено",
@@ -481,7 +623,6 @@ const translations = {
         "Checking root access": "Перевірка root доступу",
         "Root access required!": "Потрібен root доступ!",
         "Please grant root permissions to use all features.": "Надайте root права для використання всіх функцій.",
-        "Retry": "Повторити",
         "Home": "Головна",
         "Profiles": "Профілі",
         "Config": "Конфіг",
@@ -601,25 +742,86 @@ const translations = {
         "2 (Enabled with timeout)": "2 (Увімкнено з таймаутом)",
         "0 (Heuristic)": "0 (Евристика)",
         "1 (Always)": "1 (Завжди)",
-        "2 (Disabled)": "2 (Вимкнено)"
+        "2 (Disabled)": "2 (Вимкнено)",
+        "Author": "Автор",
+        "Module not found": "Модуль не знайдено",
+        "Install via Magisk Manager": "Встановити через Magisk Manager",
+        "Delete configuration": "Видалити конфігурацію",
+        "Are you sure you want to delete this configuration?": "Ви впевнені, що хочете видалити цю конфігурацію?",
+        "Configuration deleted": "Конфігурацію видалено",
+        "Failed to delete configuration": "Помилка видалення конфігурації",
+        "Apply & Save": "Застосувати та зберегти",
+        "Configuration applied and saved successfully": "Конфігурацію застосовано та збережено успішно",
+        "Configuration not found": "Конфігурацію не знайдено",
+        "Root access required to apply configuration": "Потрібен root доступ для застосування конфігурації",
+        "Operation failed": "Операція не виконана",
+        "Configuration Import/Export": "Імпорт/Експорт конфігурації",
+        "Export Configuration": "Експорт конфігурації",
+        "Import Configuration": "Імпорт конфігурації",
+        "Config file path:": "Шлях до файлу конфігурації:",
+        "Interface Appearance": "Зовнішній вигляд інтерфейсу",
+        "Glass Effect": "Скляний ефект",
+        "Material You": "Material You",
+        "Semi-transparent interface": "Напівпрозорий інтерфейс",
+        "Dynamic system colors": "Динамічні системні кольори",
+        "Note:": "Примітка:",
+        "Material You requires Android 12+ and compatible system theme": "Material You потребує Android 12+ та сумісної системної теми",
+        "Configuration exported successfully": "Конфігурацію успішно експортовано",
+        "Configuration imported successfully": "Конфігурацію успішно імпортовано",
+        "Failed to export configuration": "Не вдалося експортувати конфігурацію",
+        "Failed to import configuration": "Не вдалося імпортувати конфігурацію",
+        "Export failed": "Помилка експорту",
+        "Import failed": "Помилка імпорту",
+        "Authors": "Автори",
+        "Description": "Опис",
+        "Active": "Активний",
+        "Disabled": "Вимкнено",
+        "ID": "ID",
+        "Root required": "Потрібен root",
+        "Status": "Статус",
+        "Tested On": "Тестовано на",
+        "Created With": "Створено з",
+        "Export not supported": "Експорт не підтримується",
+        "Failed to read current config": "Не вдалося прочитати поточну конфігурацію",
+        "Save to History": "Зберегти в історію",
+        "Note: Material You requires Android 12+ and compatible system theme": "Примітка: Material You потребує Android 12+ та сумісної системної теми"
     },
     zh: {
+        "Store": "商店",
+        "NextRAM Configuration Store": "NextRAM 配置商店",
+        "About the Store": "关于商店",
+        "Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.": "配置从官方 GitHub 仓库加载。所有配置均由社区创建和测试。",
+        "Source:": "来源:",
+        "Loading configurations from GitHub...": "从 GitHub 加载配置...",
+        "No configurations found in store.": "商店中未找到配置。",
+        "Visit repository": "访问仓库",
+        "Error loading configurations": "加载配置时出错",
+        "Retry": "重试",
+        "configurations loaded from GitHub": "个配置从 GitHub 加载",
+        "New": "新",
+        "Loading from GitHub...": "从 GitHub 加载...",
+        "Device": "设备",
+        "Created": "创建于",
+        "Configuration preview:": "配置预览:",
+        "Apply Configuration": "应用配置",
+        "Loaded from GitHub repository": "从 GitHub 仓库加载",
+        "Configuration applied to form.": "配置已应用到表单。",
+        "settings updated. Click Save to apply.": "个设置已更新。点击保存以应用。",
+        "Configuration file not found": "配置文件未找到",
+        "No valid configuration found in file": "文件中未找到有效配置",
         "Module Status": "模块状态",
         "Checking module...": "检查模块...",
-        "Install Module": "安装模块",
-        "Update Module": "更新模块",
-        "Uninstall Module": "卸载模块",
         "Enable": "启用",
         "Disable": "禁用",
         "Not installed": "未安装",
         "Installed": "已安装",
+        "Active": "活跃",
         "Enabled": "已启用",
         "Disabled": "已禁用",
         "Version": "版本",
         "Version Code": "版本代码",
         "Frontend developer, community representative": "前端开发者，社区代表",
         "Tester": "测试员",
-        "Select ZIP file": "选择 ZIP 文件",
         "Module installed successfully": "模块安装成功",
         "Module updated successfully": "模块更新成功",
         "Module uninstalled successfully": "模块卸载成功",
@@ -669,7 +871,6 @@ const translations = {
         "Checking root access": "检查 root 权限",
         "Root access required!": "需要 root 权限！",
         "Please grant root permissions to use all features.": "请授予 root 权限以使用所有功能。",
-        "Retry": "重试",
         "Home": "首页",
         "Profiles": "配置方案",
         "Config": "配置",
@@ -789,7 +990,49 @@ const translations = {
         "2 (Enabled with timeout)": "2 (启用带超时)",
         "0 (Heuristic)": "0 (启发式)",
         "1 (Always)": "1 (总是)",
-        "2 (Disabled)": "2 (禁用)"
+        "2 (Disabled)": "2 (禁用)",
+        "Author": "作者",
+        "Module not found": "模块未找到",
+        "Install via Magisk Manager": "通过 Magisk Manager 安装",
+        "Delete configuration": "删除配置",
+        "Are you sure you want to delete this configuration?": "您确定要删除此配置吗？",
+        "Configuration deleted": "配置已删除",
+        "Failed to delete configuration": "删除配置失败",
+        "Apply & Save": "应用并保存",
+        "Configuration applied and saved successfully": "配置已应用并成功保存",
+        "Configuration not found": "配置未找到",
+        "Root access required to apply configuration": "应用配置需要 Root 权限",
+        "Operation failed": "操作失败",
+        "Configuration Import/Export": "配置导入/导出",
+        "Export Configuration": "导出配置",
+        "Import Configuration": "导入配置",
+        "Config file path:": "配置文件路径:",
+        "Interface Appearance": "界面外观",
+        "Glass Effect": "玻璃效果",
+        "Material You": "Material You",
+        "Semi-transparent interface": "半透明界面",
+        "Dynamic system colors": "动态系统颜色",
+        "Note:": "注意:",
+        "Material You requires Android 12+ and compatible system theme": "Material You 需要 Android 12+ 和兼容的系统主题",
+        "Configuration exported successfully": "配置导出成功",
+        "Configuration imported successfully": "配置导入成功",
+        "Failed to export configuration": "导出配置失败",
+        "Failed to import configuration": "导入配置失败",
+        "Export failed": "导出失败",
+        "Import failed": "导入失败",
+        "Authors": "作者",
+        "Description": "描述",
+        "Active": "活跃",
+        "Disabled": "已禁用",
+        "ID": "ID",
+        "Root required": "需要 Root",
+        "Status": "状态",
+        "Tested On": "测试于",
+        "Created With": "创建使用",
+        "Export not supported": "导出不支持",
+        "Failed to read current config": "读取当前配置失败",
+        "Save to History": "保存到历史记录",
+        "Note: Material You requires Android 12+ and compatible system theme": "注意：Material You 需要 Android 12+ 和兼容的系统主题"
     }
 };
 
@@ -1004,7 +1247,7 @@ class ConfigurationHistory {
         };
 
         this.history.unshift(snapshot);
-        this.history = this.history.slice(0, 5);
+        this.history = this.history.slice(0, 10);
         localStorage.setItem('nextram_history', JSON.stringify(this.history));
         this.renderHistory();
     }
@@ -1014,25 +1257,43 @@ class ConfigurationHistory {
         return snapshot ? snapshot.config : null;
     }
 
+    deleteSnapshot(snapshotId) {
+        const index = this.history.findIndex(s => s.id === snapshotId);
+        if (index !== -1) {
+            this.history.splice(index, 1);
+            localStorage.setItem('nextram_history', JSON.stringify(this.history));
+            this.renderHistory();
+            return true;
+        }
+        return false;
+    }
+
     renderHistory() {
         const container = document.getElementById('config-history');
         if (!container) return;
 
         if (this.history.length === 0) {
-            container.innerHTML = '<div class="history-empty">No configuration history yet</div>';
+            container.innerHTML = '<div class="history-empty" data-translate="No configuration history yet">No configuration history yet</div>';
             return;
         }
 
         let html = '';
         this.history.forEach(snapshot => {
             html += `
-                <div class="history-item" onclick="nextram.restoreConfig(${snapshot.id})">
-                    <div class="history-timestamp">${snapshot.timestamp}</div>
+                <div class="history-item">
+                    <div class="history-header">
+                        <div class="history-timestamp">${snapshot.timestamp}</div>
+                        <button class="history-delete-btn" onclick="nextram.deleteConfig(${snapshot.id})" title="${nextram.translate('Delete configuration')}">×</button>
+                    </div>
                     <div class="history-comment">${snapshot.comment}</div>
                     <div class="history-config">
                         <span>ZRAM: ${snapshot.config.ZRAM_RATIO || 'N/A'}</span>
-                        <span>Swap: ${snapshot.config.SWAPPINESS || 'N/A'}</span>
+                        <span>Swappiness: ${snapshot.config.SWAPPINESS || 'N/A'}</span>
+                        <span>${snapshot.config.ZRAM_ENABLED ? 'ZRAM: On' : 'ZRAM: Off'}</span>
                     </div>
+                    <button class="btn btn-small btn-primary" onclick="nextram.applySavedConfig(${snapshot.id})" style="margin-top: 8px; width: 100%;">
+                        ${nextram.translate('Apply & Save')}
+                    </button>
                 </div>
             `;
         });
@@ -1053,8 +1314,6 @@ class NextRAMController {
         this.animationsEnabled = localStorage.getItem('animationsEnabled') !== 'false';
         this.moduleStatus = null;
         this.moduleStatusChecked = false;
-        this.installInProgress = false;
-        this.installLog = "";
         
         this.recommendationEngine = new RecommendationEngine(this.currentLanguage);
         this.configHistory = new ConfigurationHistory();
@@ -1070,190 +1329,100 @@ class NextRAMController {
         this.setupLanguage();
         this.setupFormListeners();
         this.setupParameterInfo();
-        this.setupModuleFileInput();
+        this.setupAppearanceSettings();
         this.configHistory.renderHistory();
         this.updateStatus('Checking root...', false);
-        await this.checkRootAccess();
+        await this.reliableRootCheck();
         this.updateHomeStatus();
         this.generateRecommendations();
         this.checkModuleStatus();
     }
 
-    setupModuleFileInput() {
-        const fileInput = document.getElementById('module-file-input');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    this.handleModuleFile(file);
+    applyMaterialYouSystemColors() {
+        if (!document.getElementById('MATERIAL_YOU').checked) {
+            document.body.classList.remove('material-you');
+            document.documentElement.style.removeProperty('--md-primary');
+            document.documentElement.style.removeProperty('--md-primary-container');
+            return;
+        }
+        
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const androidMatch = userAgent.match(/Android\s+([0-9.]+)/);
+        
+        if (androidMatch && parseFloat(androidMatch[1]) >= 12) {
+            document.body.classList.add('material-you');
+            
+            document.documentElement.style.setProperty('--md-primary', 'var(--material-you-primary, #6750A4)');
+            document.documentElement.style.setProperty('--md-primary-container', 'var(--material-you-primary-container, #EADDFF)');
+            document.documentElement.style.setProperty('--md-on-primary', 'var(--material-you-on-primary, #FFFFFF)');
+            document.documentElement.style.setProperty('--md-secondary', 'var(--material-you-secondary, #625B71)');
+            document.documentElement.style.setProperty('--md-secondary-container', 'var(--material-you-secondary-container, #E8DEF8)');
+            
+            setTimeout(() => {
+                if (!getComputedStyle(document.documentElement).getPropertyValue('--md-primary')) {
+                    this.applyMaterialYouColors();
+                }
+            }, 100);
+        } else {
+            this.applyMaterialYouColors();
+        }
+    }
+
+    async reliableRootCheck() {
+        if (typeof AndroidRoot === 'undefined') {
+            this.hasRoot = false;
+            this.updateRootStatus();
+            this.showNotification(this.translate('Android interface not available'), 'error');
+            return;
+        }
+
+        for (let i = 0; i < 3; i++) {
+            try {
+                this.hasRoot = AndroidRoot.hasRootAccess();
+                if (this.hasRoot) {
+                    const testResult = AndroidRoot.testRoot();
+                    if (testResult && !testResult.startsWith('ERROR:')) {
+                        this.updateRootStatus();
+                        this.showNotification(this.translate('Root access granted'), 'success');
+                        await this.loadConfig();
+                        return;
+                    }
+                }
+                
+                if (i < 2) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            } catch (error) {
+                console.error(`Root check ${i + 1} failed:`, error);
+            }
+        }
+        
+        this.hasRoot = false;
+        this.updateRootStatus();
+        this.showNotification(this.translate('Root access required'), 'warning');
+    }
+
+    setupTabs() {
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`${targetTab}-tab`).classList.add('active');
+                
+                if (targetTab === 'home') {
+                    this.checkModuleStatus();
+                } else if (targetTab === 'store') {
+                    this.loadStoreConfigs();
                 }
             });
-        }
-    }
-
-    async handleModuleFile(file) {
-        if (this.installInProgress) {
-            this.showNotification(this.translate('Installation already in progress'), 'error');
-            return;
-        }
-
-        if (!this.hasRoot) {
-            this.showNotification(this.translate('Root required for module operations'), 'error');
-            return;
-        }
-
-        try {
-            this.installInProgress = true;
-            this.showNotification(this.translate('Starting installation...'), 'info');
-            
-            const reader = new FileReader();
-            
-            reader.onload = async (e) => {
-                try {
-                    const tempUrl = URL.createObjectURL(file);
-                    
-                    if (typeof AndroidRoot !== 'undefined') {
-                        AndroidRoot.clearInstallLog();
-                        const success = AndroidRoot.installModule(tempUrl);
-                        
-                        if (success) {
-                            const isUpdate = this.moduleStatus && this.moduleStatus.installed === 'true';
-                            this.showNotification(
-                                this.translate(isUpdate ? 'Module updated successfully' : 'Module installed successfully'), 
-                                'success'
-                            );
-                            
-                            if (typeof AndroidRoot !== 'undefined') {
-                                const log = AndroidRoot.getInstallLog();
-                                console.log('Install log:', log);
-                            }
-                        } else {
-                            this.showNotification(this.translate('Installation failed'), 'error');
-                            if (typeof AndroidRoot !== 'undefined') {
-                                const log = AndroidRoot.getInstallLog();
-                                console.error('Install failed, log:', log);
-                            }
-                        }
-                        
-                        URL.revokeObjectURL(tempUrl);
-                        this.checkModuleStatus();
-                    }
-                } catch (error) {
-                    console.error('Install error:', error);
-                    this.showNotification(this.translate('Installation failed: ') + error.message, 'error');
-                } finally {
-                    this.installInProgress = false;
-                }
-            };
-            
-            reader.onerror = () => {
-                this.showNotification(this.translate('Failed to read file'), 'error');
-                this.installInProgress = false;
-            };
-            
-            reader.readAsDataURL(file);
-        } catch (error) {
-            console.error('File handling error:', error);
-            this.showNotification(this.translate('Installation failed'), 'error');
-            this.installInProgress = false;
-        }
-    }
-
-    async checkModuleStatus() {
-        if (typeof AndroidRoot === 'undefined') {
-            this.updateModuleStatusUI(null);
-            return;
-        }
-
-        try {
-            const detailsStr = AndroidRoot.getModuleDetails();
-            let details = {};
-            
-            try {
-                details = JSON.parse(detailsStr);
-            } catch (e) {
-                console.error('Failed to parse module details:', e);
-            }
-            
-            this.moduleStatus = details;
-            this.moduleStatusChecked = true;
-            this.updateModuleStatusUI(details);
-        } catch (error) {
-            console.error('Error checking module status:', error);
-            this.updateModuleStatusUI(null);
-        }
-    }
-
-    updateModuleStatusUI(details) {
-        const container = document.getElementById('module-status-container');
-        const actionsContainer = document.getElementById('module-actions');
-        const installBtn = document.getElementById('install-btn');
-        const uninstallBtn = document.getElementById('uninstall-btn');
-        const enableDisableBtn = document.getElementById('enable-disable-btn');
-        
-        if (!container) return;
-        
-        if (!this.hasRoot) {
-            container.innerHTML = `
-                <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Module Status')}</span>
-                    <span class="module-status-value">${this.translate('Root required')}</span>
-                </div>
-            `;
-            actionsContainer.style.display = 'none';
-            return;
-        }
-        
-        if (!this.moduleStatusChecked) {
-            container.innerHTML = `
-                <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Module Status')}</span>
-                    <span class="module-status-value">${this.translate('Checking module...')}</span>
-                </div>
-            `;
-            actionsContainer.style.display = 'none';
-            return;
-        }
-        
-        if (!details || details.installed === 'false') {
-            container.innerHTML = `
-                <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Status')}</span>
-                    <span class="module-status-value not-installed">${this.translate('Not installed')}</span>
-                </div>
-            `;
-            actionsContainer.style.display = 'flex';
-            installBtn.textContent = this.translate('Install Module');
-            uninstallBtn.style.display = 'none';
-            enableDisableBtn.style.display = 'none';
-            return;
-        }
-        
-        const isEnabled = details.enabled === 'true';
-        const version = details.version || 'Unknown';
-        const versionCode = details.versionCode || '0';
-        
-        let statusHtml = `
-            <div class="module-status-item">
-                <span class="module-status-label">${this.translate('Status')}</span>
-                <span class="module-status-value ${isEnabled ? 'enabled' : 'disabled'}">
-                    ${isEnabled ? this.translate('Enabled') : this.translate('Disabled')}
-                </span>
-            </div>
-            <div class="module-status-item">
-                <span class="module-status-label">${this.translate('Version')}</span>
-                <span class="module-status-value">${version} (${versionCode})</span>
-            </div>
-        `;
-        
-        container.innerHTML = statusHtml;
-        actionsContainer.style.display = 'flex';
-        
-        installBtn.textContent = this.translate('Update Module');
-        uninstallBtn.style.display = 'inline-block';
-        enableDisableBtn.style.display = 'inline-block';
-        enableDisableBtn.textContent = isEnabled ? this.translate('Disable') : this.translate('Enable');
-        enableDisableBtn.className = isEnabled ? 'btn btn-small btn-secondary' : 'btn btn-small btn-primary';
+        });
     }
 
     setupParameterInfo() {
@@ -1352,7 +1521,7 @@ class NextRAMController {
     setupFormListeners() {
         const inputs = document.querySelectorAll('input, select');
         inputs.forEach(input => {
-            if (!['THEME', 'LANGUAGE', 'ACCENT_COLOR', 'ANIMATIONS_ENABLED'].includes(input.id)) {
+            if (!['THEME', 'LANGUAGE', 'ACCENT_COLOR', 'ANIMATIONS_ENABLED', 'GLASS_EFFECT', 'MATERIAL_YOU'].includes(input.id)) {
                 input.addEventListener('change', () => this.onFormChange());
             }
         });
@@ -1384,6 +1553,124 @@ class NextRAMController {
                 document.body.classList.add('animations-disabled');
             }
         });
+    }
+
+    setupAppearanceSettings() {
+        if (typeof AndroidRoot !== 'undefined') {
+            try {
+                const settings = AndroidRoot.getAppearanceSettings();
+                if (settings) {
+                    const data = JSON.parse(settings);
+                    if (data.glass_effect !== undefined) {
+                        document.getElementById('GLASS_EFFECT').checked = data.glass_effect;
+                    }
+                    if (data.material_you !== undefined) {
+                        document.getElementById('MATERIAL_YOU').checked = data.material_you;
+                    }
+                    if (data.accent_color) {
+                        document.getElementById('ACCENT_COLOR').value = data.accent_color;
+                        this.currentAccent = data.accent_color;
+                        document.documentElement.setAttribute('data-accent', data.accent_color);
+                    }
+                    this.applyAppearanceSettings(data.glass_effect || false, data.material_you || false);
+                } else {
+                    this.loadLocalAppearanceSettings();
+                }
+            } catch (e) {
+                console.error("Error parsing appearance settings:", e);
+                this.loadLocalAppearanceSettings();
+            }
+        } else {
+            this.loadLocalAppearanceSettings();
+        }
+        
+        document.getElementById('GLASS_EFFECT').addEventListener('change', (e) => {
+            this.saveAppearanceSettings();
+        });
+        
+        document.getElementById('MATERIAL_YOU').addEventListener('change', (e) => {
+            this.saveAppearanceSettings();
+        });
+    }
+
+    loadLocalAppearanceSettings() {
+        const glassEffect = localStorage.getItem('glass_effect') === 'true';
+        const materialYou = localStorage.getItem('material_you') === 'true';
+        
+        document.getElementById('GLASS_EFFECT').checked = glassEffect;
+        document.getElementById('MATERIAL_YOU').checked = materialYou;
+        
+        this.applyAppearanceSettings(glassEffect, materialYou);
+    }
+
+    saveAppearanceSettings() {
+        const glassEffect = document.getElementById('GLASS_EFFECT').checked;
+        const materialYou = document.getElementById('MATERIAL_YOU').checked;
+        const accentColor = document.getElementById('ACCENT_COLOR').value;
+        
+        if (typeof AndroidRoot !== 'undefined') {
+            AndroidRoot.setAppearanceSettings(
+                glassEffect.toString(),
+                materialYou.toString()
+            );
+        }
+        
+        localStorage.setItem('glass_effect', glassEffect);
+        localStorage.setItem('material_you', materialYou);
+        localStorage.setItem('accent', accentColor);
+        
+        this.applyAppearanceSettings(glassEffect, materialYou);
+        
+        if (materialYou) {
+            this.applyMaterialYouSystemColors();
+        }
+    }
+
+    applyAppearanceSettings(glassEffect, materialYou) {
+        if (glassEffect) {
+            document.body.classList.add('glass-effect');
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('glass-card');
+            });
+        } else {
+            document.body.classList.remove('glass-effect');
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('glass-card');
+            });
+        }
+        
+        if (materialYou) {
+            this.applyMaterialYouSystemColors();
+        } else {
+            document.body.classList.remove('material-you');
+            document.documentElement.style.setProperty('--md-primary', '');
+            document.documentElement.style.setProperty('--md-primary-container', '');
+            document.documentElement.style.setProperty('--md-on-primary', '');
+            document.documentElement.style.setProperty('--md-secondary', '');
+            document.documentElement.style.setProperty('--md-secondary-container', '');
+        }
+    }
+
+    applyMaterialYouColors() {
+        if (!document.getElementById('MATERIAL_YOU').checked) {
+            document.body.classList.remove('material-you');
+            document.documentElement.style.removeProperty('--md-primary');
+            document.documentElement.style.removeProperty('--md-primary-container');
+            return;
+        }
+        
+        const storedAccent = localStorage.getItem('material_you_accent');
+        if (storedAccent) {
+            const [h, s, l] = storedAccent.split(',').map(Number);
+            document.documentElement.style.setProperty('--md-primary', `hsl(${h}, ${s}%, ${l}%)`);
+            document.documentElement.style.setProperty('--md-primary-container', `hsl(${h}, ${s}%, 90%)`);
+        } else {
+            const hue = Math.floor(Math.random() * 360);
+            localStorage.setItem('material_you_accent', `${hue},70,50`);
+            document.documentElement.style.setProperty('--md-primary', `hsl(${hue}, 70%, 50%)`);
+            document.documentElement.style.setProperty('--md-primary-container', `hsl(${hue}, 70%, 90%)`);
+        }
+        document.documentElement.style.setProperty('--md-on-primary', '#FFFFFF');
     }
 
     updateHomeStatus() {
@@ -1452,6 +1739,77 @@ class NextRAMController {
         }
     }
 
+    async applySavedConfig(snapshotId) {
+        const config = this.configHistory.restoreSnapshot(snapshotId);
+        if (!config) {
+            this.showNotification(this.translate('Configuration not found'), 'error');
+            return;
+        }
+
+        try {
+            if (this.hasRoot) {
+                const patchedContent = this.patchServiceSh(this.originalContent, config);
+                if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
+                    this.originalContent = patchedContent;
+                    this.config = {...config};
+                    
+                    this.populateForm(config);
+                    
+                    if (typeof AndroidRoot !== 'undefined') {
+                        AndroidRoot.applyConfiguration();
+                        
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        this.hasRoot = AndroidRoot.hasRootAccess();
+                        
+                        try {
+                            AndroidRoot.refreshRootStatus();
+                        } catch (e) {
+                            console.log("refreshRootStatus not available, using fallback");
+                        }
+                        
+                        this.updateRootStatus();
+                        this.updateHomeStatus();
+                        
+                        const rootTest = AndroidRoot.testRoot();
+                        if (rootTest && !rootTest.startsWith('ERROR:')) {
+                            this.hasRoot = true;
+                        } else {
+                            this.hasRoot = false;
+                            this.showNotification(this.translate('Root check failed, retrying...'), 'warning');
+                            
+                            setTimeout(() => {
+                                this.checkRootAccess();
+                            }, 2000);
+                        }
+                    }
+                    
+                    this.showNotification(this.translate('Configuration applied and saved successfully'), 'success');
+                } else {
+                    throw new Error(this.translate('Failed to write service.sh'));
+                }
+            } else {
+                this.showNotification(this.translate('Root access required to apply configuration'), 'error');
+            }
+        } catch (error) {
+            this.showNotification(error.message, 'error');
+        }
+    }
+
+    deleteConfig(snapshotId) {
+        if (confirm(this.translate('Are you sure you want to delete this configuration?'))) {
+            if (this.configHistory.deleteSnapshot(snapshotId)) {
+                this.showNotification(this.translate('Configuration deleted'), 'success');
+            } else {
+                this.showNotification(this.translate('Failed to delete configuration'), 'error');
+            }
+        }
+    }
+
+    getTimestamp() {
+        return new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
     onFormChange() {
         this.isFormChanged = true;
         this.showSaveButton();
@@ -1471,13 +1829,26 @@ class NextRAMController {
             this.updateStatus('Checking root access...', false);
             if (typeof AndroidRoot !== 'undefined') {
                 this.hasRoot = AndroidRoot.hasRootAccess();
+                
+                const testResult = AndroidRoot.testRoot();
+                if (testResult && !testResult.startsWith('ERROR:')) {
+                    this.hasRoot = true;
+                }
+                
                 this.updateRootStatus();
                 
                 if (this.hasRoot) {
                     this.showNotification(this.translate('Root access granted'), 'success');
                     await this.loadConfig();
                 } else {
-                    this.showNotification(this.translate('Root access required'), 'error');
+                    setTimeout(async () => {
+                        this.hasRoot = AndroidRoot.hasRootAccess();
+                        this.updateRootStatus();
+                        
+                        if (!this.hasRoot) {
+                            this.showNotification(this.translate('Root access required'), 'error');
+                        }
+                    }, 1000);
                 }
             } else {
                 this.hasRoot = false;
@@ -1507,7 +1878,17 @@ class NextRAMController {
             this.updateStatus(this.translate('Loading configuration'), false);
             if (typeof AndroidRoot !== 'undefined') {
                 const content = AndroidRoot.readServiceSh();
-                if (content.startsWith('ERROR:')) throw new Error(content);
+                if (content.startsWith('ERROR:')) {
+                    const forcedContent = AndroidRoot.forceReadServiceSh();
+                    if (forcedContent && !forcedContent.startsWith('ERROR:')) {
+                        this.originalContent = forcedContent;
+                        this.parseConfigFromContent(forcedContent);
+                        this.updateStatus(this.translate('Ready'), true);
+                        this.showNotification(this.translate('Configuration loaded successfully'), 'success');
+                        return;
+                    }
+                    throw new Error('File not found or cannot be read');
+                }
                 
                 this.originalContent = content;
                 this.parseConfigFromContent(content);
@@ -1517,8 +1898,27 @@ class NextRAMController {
                 throw new Error(this.translate('Android interface not available'));
             }
         } catch (error) {
-            this.updateStatus(this.translate('Error'), false);
-            this.showNotification(error.message, 'error');
+            if (this.hasRoot) {
+                try {
+                    this.updateStatus('Creating default configuration...', false);
+                    const defaultConfig = performanceProfiles.balanced;
+                    const patchedContent = this.patchServiceSh('', defaultConfig);
+                    if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
+                        this.originalContent = patchedContent;
+                        this.parseConfigFromContent(patchedContent);
+                        this.updateStatus(this.translate('Ready'), true);
+                        this.showNotification('Default configuration created and loaded', 'success');
+                    } else {
+                        throw new Error('Failed to write default configuration');
+                    }
+                } catch (writeError) {
+                    this.updateStatus(this.translate('Error'), false);
+                    this.showNotification(writeError.message, 'error');
+                }
+            } else {
+                this.updateStatus(this.translate('Error'), false);
+                this.showNotification(error.message, 'error');
+            }
         }
     }
 
@@ -1535,6 +1935,7 @@ class NextRAMController {
                 config[key] = value;
             }
         });
+        
         this.config = config;
         this.populateForm(this.config);
     }
@@ -1608,6 +2009,522 @@ class NextRAMController {
     translate(key) {
         return translations[this.currentLanguage]?.[key] || key;
     }
+
+    async loadModuleFullInfo() {
+        try {
+            if (typeof AndroidRoot !== 'undefined') {
+                const infoStr = AndroidRoot.getModuleFullInfo();
+                if (infoStr.startsWith("ERROR:")) {
+                    console.error("Failed to load module info:", infoStr);
+                    return null;
+                }
+                
+                const info = JSON.parse(infoStr);
+                return info;
+            }
+        } catch (error) {
+            console.error("Error loading module info:", error);
+        }
+        return null;
+    }
+
+    async exportConfig() {
+        try {
+            if (typeof AndroidRoot !== 'undefined') {
+                const result = AndroidRoot.exportConfiguration();
+                if (result.startsWith("ERROR:")) {
+                    this.showNotification(this.translate('Failed to export configuration'), 'error');
+                    return;
+                }
+                
+                if (result.includes('/storage/emulated/0/Download/')) {
+                    this.showNotification(`${this.translate('Configuration exported successfully')}: ${result}`, 'success');
+                } else if (result.startsWith('/')) {
+                    this.showNotification(`${this.translate('Configuration exported successfully')}: ${result}`, 'success');
+                } else {
+                    this.showNotification(result, 'info');
+                }
+            } else {
+                this.showNotification(this.translate('Android interface not available'), 'error');
+            }
+        } catch (error) {
+            console.error("Export error:", error);
+            this.showNotification(this.translate('Export failed') + ': ' + error.message, 'error');
+        }
+    }
+
+    async importConfig() {
+        try {
+            if (typeof AndroidRoot === 'undefined') {
+                this.showNotification(this.translate('Android interface not available'), 'error');
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.conf,.txt';
+            
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const importedContent = event.target.result;
+                    
+                    if (typeof AndroidRoot !== 'undefined') {
+                        const success = AndroidRoot.importConfiguration(importedContent);
+                        if (success) {
+                            this.showNotification(this.translate('Configuration imported successfully'), 'success');
+                            await this.reliableRootCheck();
+                        } else {
+                            this.showNotification(this.translate('Failed to import configuration'), 'error');
+                        }
+                    }
+                };
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        } catch (error) {
+            console.error("Import error:", error);
+            this.showNotification(this.translate('Import failed') + ': ' + error.message, 'error');
+        }
+    }
+
+    mergeConfigs(currentContent, importedContent) {
+        const currentLines = currentContent.split('\n');
+        const importedLines = importedContent.split('\n');
+        
+        const currentConfig = {};
+        const importedConfig = {};
+        
+        currentLines.forEach(line => {
+            const match = line.match(/^([A-Z_]+)=([^#]+)/);
+            if (match) {
+                currentConfig[match[1]] = match[2].trim();
+            }
+        });
+        
+        importedLines.forEach(line => {
+            const match = line.match(/^([A-Z_]+)=([^#]+)/);
+            if (match) {
+                importedConfig[match[1]] = match[2].trim();
+            }
+        });
+        
+        const mergedConfig = { ...currentConfig, ...importedConfig };
+        
+        return Object.entries(mergedConfig)
+            .map(([key, value]) => `${key}=${value}`)
+            .join('\n');
+    }
+
+    async checkModuleStatus() {
+        if (typeof AndroidRoot === 'undefined') {
+            this.updateModuleStatusUI(null);
+            return;
+        }
+
+        try {
+            const detailsStr = AndroidRoot.getModuleDetails();
+            let details = {};
+            
+            try {
+                details = JSON.parse(detailsStr);
+            } catch (e) {
+                console.error('Failed to parse module details:', e);
+            }
+            
+            this.moduleStatus = details;
+            this.moduleStatusChecked = true;
+            this.updateModuleStatusUI(details);
+        } catch (error) {
+            console.error('Error checking module status:', error);
+            this.updateModuleStatusUI(null);
+        }
+    }
+
+    async updateModuleStatusUI(details) {
+        const container = document.getElementById('module-status-container');
+        const actionsContainer = document.getElementById('module-actions');
+        const enableDisableBtn = document.getElementById('enable-disable-btn');
+        
+        if (!container) return;
+        
+        const fullInfo = await this.loadModuleFullInfo();
+        
+        if (!this.hasRoot) {
+            container.innerHTML = `
+                <div class="module-status-item">
+                    <span class="module-status-label">${this.translate('Module Status')}</span>
+                    <span class="module-status-value">${this.translate('Root required')}</span>
+                </div>
+            `;
+            if (actionsContainer) actionsContainer.style.display = 'none';
+            return;
+        }
+        
+        if (!this.moduleStatusChecked) {
+            container.innerHTML = `
+                <div class="module-status-item">
+                    <span class="module-status-label">${this.translate('Module Status')}</span>
+                    <span class="module-status-value">${this.translate('Checking module...')}</span>
+                </div>
+            `;
+            if (actionsContainer) actionsContainer.style.display = 'none';
+            return;
+        }
+        
+        if (!details || details.installed === 'false') {
+            container.innerHTML = `
+                <div class="module-status-item">
+                    <span class="module-status-label">${this.translate('Status')}</span>
+                    <span class="module-status-value not-installed">${this.translate('Not installed')}</span>
+                </div>
+                <div class="module-status-item">
+                    <span class="module-status-label">${this.translate('Module not found')}</span>
+                    <span class="module-status-value">${this.translate('Install via Magisk Manager')}</span>
+                </div>
+            `;
+            if (actionsContainer) actionsContainer.style.display = 'none';
+            return;
+        }
+        
+        const isEnabled = details.enabled === 'true';
+        const version = details.version || 'Unknown';
+        const versionCode = details.versionCode || '0';
+        
+        const moduleId = fullInfo?.id || details.id || 'NextRAM';
+        const authors = fullInfo?.authors || details.author || 'Unknown';
+        
+        let statusText;
+        let statusClass;
+        
+        if (isEnabled) {
+            statusText = this.translate('Active');
+            statusClass = 'enabled';
+        } else {
+            statusText = this.translate('Disabled');
+            statusClass = 'disabled';
+        }
+        
+        let statusHtml = `
+            <div class="module-status-item">
+                <span class="module-status-label">ID</span>
+                <span class="module-status-value id-value">${moduleId}</span>
+            </div>
+            <div class="module-status-item">
+                <span class="module-status-label">${this.translate('Version')}</span>
+                <span class="module-status-value">${version} (${versionCode})</span>
+            </div>
+            <div class="module-status-item">
+                <span class="module-status-label">${this.translate('Status')}</span>
+                <span class="module-status-value ${statusClass}">
+                    ${statusText}
+                </span>
+            </div>
+            <div class="module-status-item authors-item">
+                <span class="module-status-label">${this.translate('Authors')}</span>
+                <span class="module-status-value authors-value">${authors}</span>
+            </div>
+        `;
+        
+        if (fullInfo?.description) {
+            statusHtml += `
+                <div class="module-status-item">
+                    <span class="module-status-label">${this.translate('Description')}</span>
+                    <span class="module-status-value" style="font-size: 12px; opacity: 0.8;">
+                        ${fullInfo.description}
+                    </span>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = statusHtml;
+        
+        if (actionsContainer) {
+            actionsContainer.style.display = 'flex';
+            if (enableDisableBtn) {
+                enableDisableBtn.style.display = 'inline-block';
+                enableDisableBtn.textContent = isEnabled ? this.translate('Disable') : this.translate('Enable');
+                enableDisableBtn.className = isEnabled ? 'btn btn-small btn-secondary' : 'btn btn-small btn-primary';
+            }
+        }
+    }
+
+    async loadStoreConfigs() {
+        try {
+            const storeContent = document.getElementById('store-content');
+            const storeLoading = document.getElementById('store-loading');
+            const storeEmpty = document.getElementById('store-empty');
+            const storeError = document.getElementById('store-error');
+            const storeConnectionInfo = document.getElementById('store-connection-info');
+            const storeCount = document.getElementById('store-count');
+            
+            storeLoading.style.display = 'block';
+            storeContent.style.display = 'none';
+            storeEmpty.style.display = 'none';
+            storeError.style.display = 'none';
+            storeConnectionInfo.style.display = 'none';
+            
+            if (typeof AndroidRoot !== 'undefined') {
+                const response = AndroidRoot.getStoreConfigs();
+                const data = JSON.parse(response);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                if (!data.configs || data.configs.length === 0) {
+                    storeLoading.style.display = 'none';
+                    storeEmpty.style.display = 'block';
+                    return;
+                }
+                
+                storeContent.innerHTML = '';
+                
+                if (storeCount) {
+                    storeCount.textContent = data.count || data.configs.length;
+                    storeConnectionInfo.style.display = 'block';
+                }
+                
+                data.configs.forEach(config => {
+                    const configHtml = this.createStoreConfigHTML(config);
+                    storeContent.innerHTML += configHtml;
+                });
+                
+                storeLoading.style.display = 'none';
+                storeContent.style.display = 'block';
+                
+                this.setupStoreEventListeners();
+                
+            } else {
+                throw new Error('Android interface not available');
+            }
+        } catch (error) {
+            const storeLoading = document.getElementById('store-loading');
+            const storeError = document.getElementById('store-error');
+            const errorMessage = document.getElementById('store-error-message');
+            
+            storeLoading.style.display = 'none';
+            errorMessage.textContent = error.message;
+            storeError.style.display = 'block';
+        }
+    }
+
+    createStoreConfigHTML(config) {
+        const name = config.name || config.fileName?.replace('.json', '') || 'Unnamed Configuration';
+        const fileName = config.fileName || '';
+        
+        return `
+            <div class="store-config-item" data-filename="${fileName}">
+                <div class="store-config-header">
+                    <div style="display: flex; align-items: center;">
+                        <h4>${name}</h4>
+                        <span class="config-badge" data-translate="New">New</span>
+                    </div>
+                    <span class="store-config-arrow">▼</span>
+                </div>
+                <div class="store-config-content">
+                    <div class="store-config-loading">
+                        <span class="loading-spinner"></span>
+                        <span data-translate="Loading from GitHub...">Loading from GitHub...</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    setupStoreEventListeners() {
+        const configItems = document.querySelectorAll('.store-config-item');
+        
+        configItems.forEach(item => {
+            const header = item.querySelector('.store-config-header');
+            const arrow = item.querySelector('.store-config-arrow');
+            const content = item.querySelector('.store-config-content');
+            const fileName = item.getAttribute('data-filename');
+            
+            header.addEventListener('click', async () => {
+                const isExpanded = content.style.display === 'block';
+                
+                if (isExpanded) {
+                    content.style.display = 'none';
+                    arrow.classList.remove('expanded');
+                } else {
+                    arrow.classList.add('expanded');
+                    
+                    if (content.children.length === 1 && 
+                        content.children[0].classList.contains('store-config-loading')) {
+                        await this.loadStoreConfigContent(fileName, content);
+                    }
+                    
+                    content.style.display = 'block';
+                }
+            });
+        });
+    }
+
+    async loadStoreConfigContent(fileName, contentContainer) {
+        try {
+            if (typeof AndroidRoot !== 'undefined') {
+                const response = AndroidRoot.getStoreConfigContent(fileName);
+                
+                let data;
+                try {
+                    data = JSON.parse(response);
+                } catch (jsonError) {
+                    throw new Error('Invalid JSON file');
+                }
+                
+                if (data.error) {
+                    if (data.error === 'file_not_found' || data.error === 'invalid_file_format') {
+                        throw new Error(this.translate('Configuration file not found'));
+                    } else if (data.error === 'invalid_json') {
+                        throw new Error('Invalid JSON format in file');
+                    } else {
+                        throw new Error(data.message || data.error);
+                    }
+                }
+                
+                const config = data.config || {};
+                const metadata = {
+                    name: data.name || fileName.replace('.json', ''),
+                    description: data.description || 'No description available',
+                    author: data.author || 'Unknown',
+                    version: data.version || '1.0',
+                    testedOn: data.testedOn || 'Not specified',
+                    device: data.device || 'Not specified',
+                    createdWith: data.createdWith || 'Unknown',
+                    createdDate: data.createdDate || 'Unknown'
+                };
+                
+                const rawContent = data.rawContent || JSON.stringify(data, null, 2);
+                
+                if (Object.keys(config).length === 0) {
+                    throw new Error(this.translate('No valid configuration found in file'));
+                }
+                
+                const configHtml = this.createStoreConfigDetailHTML(metadata, config, rawContent);
+                contentContainer.innerHTML = configHtml;
+                
+                const applyBtn = contentContainer.querySelector('.apply-store-config');
+                if (applyBtn) {
+                    applyBtn.addEventListener('click', () => {
+                        this.applyStoreConfig(config);
+                    });
+                }
+                
+                const saveBtn = contentContainer.querySelector('.btn-secondary');
+                if (saveBtn && saveBtn.textContent.includes('Save to History')) {
+                    saveBtn.addEventListener('click', () => {
+                        const configName = metadata.name;
+                        this.saveStoreConfigToHistory(configName, config);
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading store config:', error);
+            contentContainer.innerHTML = `
+                <div class="recommendation error">
+                    <div class="recommendation-header">
+                        <span>⚠️</span>
+                        <span data-translate="Error">Error</span>
+                    </div>
+                    <div class="recommendation-message">${error.message}</div>
+                    <button class="btn btn-small" onclick="nextram.loadStoreConfigContent('${fileName}', this.parentElement.parentElement)" style="margin-top: 8px;" data-translate="Retry">Retry</button>
+                </div>
+            `;
+        }
+    }
+
+    createStoreConfigDetailHTML(metadata, config, rawContent) {
+        const { name, description, author, version, testedOn, device, createdWith, createdDate } = metadata;
+        
+        let configPreview;
+        try {
+            configPreview = JSON.stringify(config, null, 2);
+        } catch (e) {
+            configPreview = 'Cannot display configuration preview';
+        }
+        
+        return `
+            <div class="store-config-meta">
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Author">Author</span>
+                    <span class="meta-value">${author}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Version">Version</span>
+                    <span class="meta-value">${version}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Tested On">Tested On</span>
+                    <span class="meta-value">${testedOn}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Device">Device</span>
+                    <span class="meta-value">${device}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Created">Created</span>
+                    <span class="meta-value">${createdDate}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label" data-translate="Created With">Created With</span>
+                    <span class="meta-value">${createdWith}</span>
+                </div>
+            </div>
+            
+            <div class="meta-item" style="grid-column: 1 / -1;">
+                <span class="meta-label" data-translate="Description">Description</span>
+                <span class="meta-value" style="font-weight: normal; margin-top: 4px;">${description}</span>
+            </div>
+            
+            <div class="store-config-preview">
+                <div style="margin-bottom: 8px; font-size: 11px; color: var(--md-on-surface-variant);" data-translate="Configuration preview:">Configuration preview:</div>
+                <code>${configPreview}</code>
+            </div>
+            
+            <div class="store-config-actions">
+                <button class="btn btn-primary apply-store-config" data-translate="Apply Configuration">Apply Configuration</button>
+                <button class="btn btn-secondary" data-translate="Save to History">Save to History</button>
+            </div>
+            
+            <div class="store-source-info">
+                <span data-translate="Loaded from GitHub repository">Loaded from GitHub repository</span>
+            </div>
+        `;
+    }
+
+    applyStoreConfig(config) {
+        let appliedCount = 0;
+        Object.keys(config).forEach(key => {
+            const element = document.getElementById(key);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = Boolean(config[key]);
+                } else {
+                    element.value = config[key];
+                }
+                appliedCount++;
+            }
+        });
+        
+        this.onFormChange();
+        this.showNotification(
+            `${this.translate('Configuration applied to form.')} ${appliedCount} ${this.translate('settings updated. Click Save to apply.')}`,
+            'success'
+        );
+        switchTab('config');
+    }
+
+    saveStoreConfigToHistory(name, config) {
+        const currentConfig = this.gatherFormData();
+        const mergedConfig = { ...currentConfig, ...config };
+        this.configHistory.saveSnapshot(mergedConfig, `Store config: ${name}`);
+        this.showNotification(this.translate('Configuration saved to history'), 'success');
+    }
 }
 
 const nextram = new NextRAMController();
@@ -1618,41 +2535,8 @@ document.getElementById('saveButton').addEventListener('click', () => {
 });
 
 function checkRootAccess() {
-    nextram.checkRootAccess();
+    nextram.reliableRootCheck();
     nextram.updateHomeStatus();
-}
-
-function installModule() {
-    if (nextram.installInProgress) {
-        nextram.showNotification(nextram.translate('Installation already in progress'), 'error');
-        return;
-    }
-    
-    const fileInput = document.getElementById('module-file-input');
-    if (fileInput) {
-        fileInput.value = '';
-        fileInput.click();
-    }
-}
-
-async function uninstallModule() {
-    if (typeof AndroidRoot !== 'undefined') {
-        const confirmed = confirm(nextram.translate('Are you sure you want to uninstall the module?'));
-        if (confirmed) {
-            const success = AndroidRoot.uninstallModule();
-            if (success) {
-                nextram.showNotification(nextram.translate('Module uninstalled successfully'), 'success');
-                nextram.moduleStatus = { installed: 'false', enabled: 'false' };
-                nextram.moduleStatusChecked = true;
-                nextram.updateModuleStatusUI(nextram.moduleStatus);
-                setTimeout(() => {
-                    nextram.checkModuleStatus();
-                }, 1000);
-            } else {
-                nextram.showNotification(nextram.translate('Uninstallation failed'), 'error');
-            }
-        }
-    }
 }
 
 async function enableDisableModule() {
@@ -1679,19 +2563,3 @@ async function enableDisableModule() {
         }
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('module-file-input');
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                if (!file.name.endsWith('.zip')) {
-                    nextram.showNotification(nextram.translate('Please select a ZIP file'), 'error');
-                    return;
-                }
-                nextram.handleModuleFile(file);
-            }
-        });
-    }
-});

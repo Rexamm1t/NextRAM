@@ -33,6 +33,7 @@
             <button class="tab" data-tab="swap" data-translate="Swap">Swap</button>
             <button class="tab" data-tab="advanced" data-translate="Advanced">Advanced</button>
             <button class="tab" data-tab="faq" data-translate="FAQ">FAQ</button>
+            <button class="tab" data-tab="store" data-translate="Store">Store</button>
             <button class="tab" data-tab="settings" data-translate="Settings">Settings</button>
         </div>
 
@@ -46,6 +47,16 @@
 
         <div class="tab-content active" id="home-tab">
             <div class="grid">
+                <div class="card">
+                    <h3 data-translate="Module Status">Module Status</h3>
+                    <div id="module-status-container">
+                        <div class="module-status-loading" data-translate="Checking module...">Checking module...</div>
+                    </div>
+                    <div class="module-actions" style="display: none;" id="module-actions">
+                        <button class="btn btn-small" onclick="enableDisableModule()" id="enable-disable-btn" style="display: none;" data-translate="Enable">Enable</button>
+                    </div>
+                </div>
+
                 <div class="card welcome-card">
                     <div class="welcome-header">
                         <h1 data-translate="Welcome to NextRAM">Welcome to NextRAM</h1>
@@ -70,18 +81,6 @@
                     <div class="quick-actions">
                         <button class="btn btn-primary" onclick="switchTab('profiles')" data-translate="Quick Setup">Quick Setup</button>
                         <button class="btn btn-secondary" onclick="switchTab('faq')" data-translate="Learn More">Learn More</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3 data-translate="Module Status">Module Status</h3>
-                    <div id="module-status-container">
-                        <div class="module-status-loading" data-translate="Checking module...">Checking module...</div>
-                    </div>
-                    <div class="module-actions" style="display: none;" id="module-actions">
-                        <button class="btn btn-primary" onclick="installModule()" id="install-btn" data-translate="Install Module">Install Module</button>
-                        <button class="btn btn-secondary" onclick="uninstallModule()" id="uninstall-btn" style="display: none;" data-translate="Uninstall Module">Uninstall Module</button>
-                        <button class="btn btn-small" onclick="enableDisableModule()" id="enable-disable-btn" style="display: none;" data-translate="Enable">Enable</button>
                     </div>
                 </div>
 
@@ -442,7 +441,7 @@
                             <label for="VM_OVERCOMMIT_RATIO" data-translate="Overcommit Ratio">Overcommit Ratio</label>
                             <button class="info-btn" data-param="VM_OVERCOMMIT_RATIO">i</button>
                         </div>
-                        <input type="number" id="VM_OVERCOMMIT_RATIO" name="VM_OVERCOMMIT_RATIO" min="0" value="50">
+                        <input type="number" id="VM_OVERCOMMIT_RATIO" name="VM_OVERCOMMIT_RATio" min="0" value="50">
                     </div>
                     <div class="form-group">
                         <div class="label-with-info">
@@ -475,6 +474,56 @@
             </div>
         </div>
 
+        <div class="tab-content" id="store-tab">
+            <div class="grid-wide">
+                <div class="card">
+                    <h3 data-translate="NextRAM Configuration Store">NextRAM Configuration Store</h3>
+                    <div class="store-info">
+                        <h4 data-translate="About the Store">About the Store</h4>
+                        <p data-translate="Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.">
+                            Configurations are loaded from the official GitHub repository. All configurations are community-created and tested.
+                        </p>
+                        <p style="margin-top: 8px; font-size: 12px; opacity: 0.8;">
+                            <span data-translate="Source:">Source:</span> 
+                            <a href="https://github.com/Rexamm1t/NextRAM-web/tree/main/store" target="_blank" style="color: var(--md-primary); text-decoration: none;">
+                                github.com/Rexamm1t/NextRAM-web/store
+                            </a>
+                        </p>
+                    </div>
+                    
+                    <div id="store-loading" style="text-align: center; padding: 40px;">
+                        <div class="module-status-loading" data-translate="Loading configurations from GitHub...">Loading configurations from GitHub...</div>
+                    </div>
+                    
+                    <div id="store-content" style="display: none;">
+                    </div>
+                    
+                    <div id="store-empty" style="display: none; text-align: center; padding: 40px; color: var(--md-on-surface-variant);">
+                        <span data-translate="No configurations found in store.">No configurations found in store.</span>
+                        <br>
+                        <a href="https://github.com/Rexamm1t/NextRAM-web/tree/main/store" target="_blank" style="color: var(--md-primary); text-decoration: none; margin-top: 8px; display: inline-block;">
+                            <span data-translate="Visit repository">Visit repository</span> →
+                        </a>
+                    </div>
+                    
+                    <div id="store-error" style="display: none; text-align: center; padding: 40px;">
+                        <div class="recommendation error">
+                            <div class="recommendation-header">
+                                <span>⚠️</span>
+                                <span data-translate="Error loading configurations">Error loading configurations</span>
+                            </div>
+                            <div class="recommendation-message" id="store-error-message"></div>
+                            <button class="btn btn-small" onclick="nextram.loadStoreConfigs()" style="margin-top: 8px;" data-translate="Retry">Retry</button>
+                        </div>
+                    </div>
+                    
+                    <div id="store-connection-info" style="margin-top: 16px; padding: 12px; background: var(--md-surface-variant); border-radius: 8px; font-size: 12px; color: var(--md-on-surface-variant); display: none;">
+                        <span id="store-count">0</span> <span data-translate="configurations loaded from GitHub">configurations loaded from GitHub</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="tab-content" id="settings-tab">
             <div class="grid-wide">
                 <div class="card">
@@ -500,6 +549,15 @@
                         </select>
                     </div>
                     <div class="checkbox-group">
+                        <input type="checkbox" id="GLASS_EFFECT" name="GLASS_EFFECT">
+                        <label for="GLASS_EFFECT" data-translate="Glass Effect">Glass Effect</label>
+                    </div>
+                    <div class="checkbox-group">
+    <input type="checkbox" id="MATERIAL_YOU" name="MATERIAL_YOU">
+    <label for="MATERIAL_YOU" data-translate="Material You">Material You</label>
+    <div class="material-you-notice" data-translate="Note: Material You requires Android 12+ and compatible system theme">Note: Material You requires Android 12+ and compatible system theme</div>
+</div>
+                    <div class="checkbox-group">
                         <input type="checkbox" id="ANIMATIONS_ENABLED" name="ANIMATIONS_ENABLED">
                         <label for="ANIMATIONS_ENABLED" data-translate="Enable Animations">Enable Animations</label>
                     </div>
@@ -520,6 +578,10 @@
                 
                 <div class="card">
                     <h3 data-translate="Configuration History">Configuration History</h3>
+                    <div class="config-actions">
+                        <button class="btn btn-secondary" onclick="nextram.exportConfig()" data-translate="Export Configuration">Export Configuration</button>
+                        <button class="btn btn-secondary" onclick="nextram.importConfig()" data-translate="Import Configuration">Import Configuration</button>
+                    </div>
                     <div id="config-history">
                         <div class="history-empty" data-translate="No configuration history yet">No configuration history yet</div>
                     </div>
@@ -573,8 +635,6 @@
         <div id="saveButtonContainer" class="save-button-container">
             <button id="saveButton" class="btn btn-primary save-button" data-translate="Save Changes">Save Changes</button>
         </div>
-
-        <input type="file" id="module-file-input" accept=".zip" style="display: none;">
     </div>
 
     <script src="spl.js"></script>

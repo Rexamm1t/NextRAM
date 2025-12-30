@@ -204,7 +204,19 @@ class SettingsParameterLibrary {
                 ru: { title: 'Kernel Threads Max', description: 'Максимальное количество потоков ядра (0=авто). Увеличить для тяжелой многозадачности, уменьшить для устройств с ограниченной памятью.' },
                 uk: { title: 'Kernel Threads Max', description: 'Максимальна кількість потоків ядра (0=авто). Збільшити для важкої багатозадачності, зменшити для пристроїв з обмеженою пам\'яттю.' },
                 zh: { title: '内核线程最大数', description: '内核线程的最大数量 (0=自动)。增加用于重度多任务，减少用于内存受限设备。' }
-            }
+            },
+'GLASS_EFFECT': {
+    en: { title: 'Glass Effect', description: 'Applies semi-transparent background with blur effect for modern glass-like interface appearance.' },
+    ru: { title: 'Стеклянный эффект', description: 'Применяет полупрозрачный фон с эффектом размытия для современного стеклоподобного интерфейса.' },
+    uk: { title: 'Скляний ефект', description: 'Застосовує напівпрозорий фон з ефектом розмиття для сучасного склоподібного інтерфейсу.' },
+    zh: { title: '玻璃效果', description: '应用半透明背景和模糊效果，实现现代玻璃般的界面外观。' }
+},
+'MATERIAL_YOU': {
+    en: { title: 'Material You', description: 'Uses dynamic system colors from Android 12+ for personalized interface that matches your wallpaper.' },
+    ru: { title: 'Material You', description: 'Использует динамические системные цвета из Android 12+ для персонализированного интерфейса, соответствующего вашим обоям.' },
+    uk: { title: 'Material You', description: 'Використовує динамічні системні кольори з Android 12+ для персоналізованого інтерфейсу, що відповідає вашим шпалерам.' },
+    zh: { title: 'Material You', description: '使用 Android 12+ 的动态系统颜色，实现与壁纸匹配的个性化界面。' }
+}
         };
     }
 

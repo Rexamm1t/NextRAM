@@ -12,10 +12,6 @@ ui_print() {
     echo "- $1"
 }
 
-aicf_print() {
-    echo "[AICF] > $1"
-}
-
 run_aicf_analysis() {
     if [ ! -x "$MODPATH/tools/nextramaicf" ]; then
         aicf_print "ERROR: AICF driver not found"
@@ -34,9 +30,9 @@ run_aicf_analysis() {
 
 open_browser() {
     ui_print "Opening browser..."
-    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official" >/dev/null 2>&1 &
-    am start -n com.android.chrome/com.google.android.apps.chrome.Main -d "https://t.me/nextram_official" >/dev/null 2>&1 &
-    am start -a android.intent.action.VIEW -d "https://t.me/nextram_official" --user 0 >/dev/null 2>&1 &
+    am start -a android.intent.action.VIEW -d "https://nextram.cocal.ru" >/dev/null 2>&1 &
+    am start -n com.android.chrome/com.google.android.apps.chrome.Main -d "https://nextram.cocal.ru" >/dev/null 2>&1 &
+    am start -a android.intent.action.VIEW -d "https://nextram.cocal.ru" --user 0 >/dev/null 2>&1 &
 }
 
 print_modname() {
@@ -147,7 +143,6 @@ on_install() {
   unzip -o "$ZIPFILE" 'status_gt' -d $MODPATH >&2
   
   chmod 0755 $MODPATH/tools/* 2>/dev/null
-  chmod 0755 $MODPATH/status_gt 2>/dev/null
 
   if [ ! -f "$MODPATH/system/bin/nextram" ]; then
     ui_print "ERROR: nextram binary not found"
@@ -157,16 +152,25 @@ on_install() {
   if [ ! -f "$MODPATH/apk/nextram.apk" ]; then
     ui_print "ERROR: nextram.apk not found, skip..."
   else
-   mkdir $APKDIR
+   mkdir -p $APKDIR
    cp -r $MODPATH/apk/nextram.apk $APKDIR
    unzip -o "$ZIPFILE" 'apk/bin/aapt/*' -d $APKDIR >&2
    chmod 775 $APKDIR/apk/bin/aapt/aapt-$(uname -m)
 
-   if [ -z "$(pm list packages | grep "com.nextram.manager")" ] || [ "$(pm dump com.nextram.manager 2>/dev/null | grep 'versionCode' | grep -o -E '[0-9]+' | head -n 1)" -lt "$($APKDIR/apk/bin/aapt/aapt-$(uname -m) dump badging $APKDIR/nextram.apk 2>/dev/null | grep "versionCode=" | cut -d"'" -f4)" ]; then  
+   if [ -z "$(pm list packages | grep "com.nextram.manager")" ]; then  
      ui_print "installing nextram.apk..."
      pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
    else
-     ui_print "nextram.apk already updated, skip..."
+     ui_print "nextram.apk already exists, updating..."
+     
+     pm install -r $APKDIR/nextram.apk >&2 || su -c pm install -r $APKDIR/nextram.apk >&2
+     
+     if [ $? -ne 0 ]; then
+         ui_print "update failed, uninstalling old version..."
+         pm uninstall com.nextram.manager >&2 || su -c pm uninstall com.nextram.manager >&2
+         ui_print "installing new version..."
+         pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
+     fi
    fi
    rm -rf $APKDIR
   fi

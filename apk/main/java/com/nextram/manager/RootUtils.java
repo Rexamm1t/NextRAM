@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,7 +17,41 @@ public class RootUtils {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             process.waitFor();
             String output = reader.readLine();
-            return process.exitValue() == 0 && output != null && output.contains("uid=0");
+            boolean firstCheck = process.exitValue() == 0 && output != null && output.contains("uid=0");
+            
+            if (!firstCheck) {
+                return false;
+            }
+            
+            Process process2 = Runtime.getRuntime().exec("su -c echo 'root_test'");
+            BufferedReader reader2 = new BufferedReader(new InputStreamReader(process2.getInputStream()));
+            process2.waitFor();
+            String output2 = reader2.readLine();
+            boolean secondCheck = process2.exitValue() == 0 && output2 != null && output2.contains("root_test");
+            
+            return secondCheck;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    public boolean isRootAvailableWithTest() {
+        try {
+            Process process = Runtime.getRuntime().exec("su -c id");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            process.waitFor();
+            String output = reader.readLine();
+            boolean firstCheck = process.exitValue() == 0 && output != null && output.contains("uid=0");
+            
+            if (!firstCheck) return false;
+            
+            Process process2 = Runtime.getRuntime().exec("su -c echo 'root_test'");
+            BufferedReader reader2 = new BufferedReader(new InputStreamReader(process2.getInputStream()));
+            process2.waitFor();
+            String output2 = reader2.readLine();
+            boolean secondCheck = process2.exitValue() == 0 && output2 != null && output2.contains("root_test");
+            
+            return secondCheck;
         } catch (Exception e) {
             return false;
         }
@@ -173,6 +209,21 @@ public class RootUtils {
         }
     }
     
+    public Map<String, String> getModulePropInfo() {
+        Map<String, String> props = getModuleProperties();
+        if (props == null) {
+            return null;
+        }
+        
+        if (props.containsKey("author")) {
+            String authors = props.get("author");
+            authors = authors.replaceAll(",\\s+", ", ").trim();
+            props.put("author_formatted", authors);
+        }
+        
+        return props;
+    }
+    
     public String getModuleVersion() {
         Map<String, String> props = getModuleProperties();
         return (props != null && props.containsKey("version")) ? props.get("version") : "Unknown";
@@ -260,5 +311,90 @@ public class RootUtils {
         
         String command = "chown " + owner + " \"" + path + "\"";
         return executeCommand(command);
+    }
+
+    public String exportConfig() {
+        String content = readFile("/data/adb/modules/NextRAM/config.conf");
+        if (content.startsWith("ERROR:")) {
+            return content;
+        }
+        
+        try {
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd-HHmmss").format(new Date());
+            String fileName = "NextRAM-config-" + timestamp + ".conf";
+            String filePath = "/storage/emulated/0/Download/" + fileName;
+            
+            boolean success = writeFile(filePath, content);
+            return success ? filePath : "ERROR: Failed to write file to Downloads";
+        } catch (Exception e) {
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+    public boolean importConfig(String content) {
+        if (!isRootAvailable()) {
+            return false;
+        }
+        
+        try {
+            String currentContent = readFile("/data/adb/modules/NextRAM/config.conf");
+            if (currentContent.startsWith("ERROR:")) {
+                return writeFile("/data/adb/modules/NextRAM/config.conf", content);
+            }
+            
+            String mergedContent = mergeConfigs(currentContent, content);
+            return writeFile("/data/adb/modules/NextRAM/config.conf", mergedContent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    private String mergeConfigs(String currentContent, String importedContent) {
+        Map<String, String> currentConfig = new HashMap<>();
+        Map<String, String> importedConfig = new HashMap<>();
+        
+        parseConfigContent(currentContent, currentConfig);
+        parseConfigContent(importedContent, importedConfig);
+        
+        currentConfig.putAll(importedConfig);
+        
+        StringBuilder merged = new StringBuilder();
+        for (Map.Entry<String, String> entry : currentConfig.entrySet()) {
+            merged.append(entry.getKey()).append("=").append(entry.getValue()).append("\n");
+        }
+        
+        return merged.toString();
+    }
+    
+    private void parseConfigContent(String content, Map<String, String> config) {
+        String[] lines = content.split("\n");
+        for (String line : lines) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+            
+            int equalsIndex = line.indexOf('=');
+            if (equalsIndex > 0) {
+                String key = line.substring(0, equalsIndex).trim();
+                String value = line.substring(equalsIndex + 1).trim();
+                config.put(key, value);
+            }
+        }
+    }
+    
+    public boolean writeFileToDownloads(String fileName, String content) {
+        if (!isRootAvailable()) {
+            return false;
+        }
+        
+        try {
+            String filePath = "/storage/emulated/0/Download/" + fileName;
+            return writeFile(filePath, content);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

@@ -1,7 +1,19 @@
-## NextRAM Fusion v9.1.371-(91371)
+## NextRAM Whole v9.2.371-(92371)
+
+**[APP]**
+- added the material you theme
+- added liquid glass
+- added a map with information about the module
+- added a function to turn on/off the module
+- added import/export of configurations
+- changed the themes
+- fixed the recording of configurations from the history
+- added NextRAM Store
+- fixed small bugs
 
 **[INSTALL]**
-- fixed timeout
+- fixed an issue with installing the app
+- fixed time-out
 ___
 Telegram: https://t.me/nextram_official
 Web Site: https://nextram.cocal.ru
