@@ -423,12 +423,11 @@ int main() {
         std::string config_path = "/data/adb/modules/NextRAM/config.conf";
         
         if (ensureModuleDirectory() && writeConfig(config, config_path)) {
-            std::cout << "[NextRAM] Configuration successfully generated!" << std::endl;
-            std::cout << "[NextRAM] ZRAM Ratio: " << config.at("ZRAM_RATIO") << std::endl;
-            std::cout << "[NextRAM] Algorithm: " << config.at("ZRAM_ALGORITHM") << std::endl;
-            std::cout << "[NextRAM] Swappiness: " << config.at("SWAPPINESS") << std::endl;
-            std::cout << "[NextRAM] Cache Pressure: " << config.at("CACHE_PRESSURE") << std::endl;
-            std::cout << "[NextRAM] Streams: " << config.at("MAX_COMP_STREAMS") << std::endl;
+            std::cout << "[NextRAM [AICF]] > ZRAM Ratio: " << config.at("ZRAM_RATIO") << std::endl;
+            std::cout << "[NextRAM [AICF]] > Algorithm: " << config.at("ZRAM_ALGORITHM") << std::endl;
+            std::cout << "[NextRAM [AICF]] > Swappiness: " << config.at("SWAPPINESS") << std::endl;
+            std::cout << "[NextRAM [AICF]] > Cache Pressure: " << config.at("CACHE_PRESSURE") << std::endl;
+            std::cout << "[NextRAM [AICF]] > Streams: " << config.at("MAX_COMP_STREAMS") << std::endl;
             return 0;
         } else {
             std::string fallback_path = "./NextRAM_config.conf";

@@ -13,9 +13,9 @@ function setupTabs() {
             document.getElementById(`${targetTab}-tab`).classList.add('active');
             
             if (targetTab === 'home') {
-                nextram.checkModuleStatus();
+                window.nextram.checkModuleStatus();
             } else if (targetTab === 'store') {
-                nextram.loadStoreConfigs();
+                window.nextram.loadStoreConfigs();
             }
         });
     });
@@ -36,9 +36,9 @@ function switchTab(tabName) {
     }
     
     if (tabName === 'home') {
-        nextram.checkModuleStatus();
+        window.nextram.checkModuleStatus();
     } else if (tabName === 'store') {
-        nextram.loadStoreConfigs();
+        window.nextram.loadStoreConfigs();
     }
 }
 
@@ -1283,7 +1283,7 @@ class ConfigurationHistory {
                 <div class="history-item">
                     <div class="history-header">
                         <div class="history-timestamp">${snapshot.timestamp}</div>
-                        <button class="history-delete-btn" onclick="nextram.deleteConfig(${snapshot.id})" title="${nextram.translate('Delete configuration')}">×</button>
+                        <button class="history-delete-btn" onclick="nextram.deleteConfig(${snapshot.id})" title="${window.nextram ? window.nextram.translate('Delete configuration') : 'Delete'}">×</button>
                     </div>
                     <div class="history-comment">${snapshot.comment}</div>
                     <div class="history-config">
@@ -1292,7 +1292,7 @@ class ConfigurationHistory {
                         <span>${snapshot.config.ZRAM_ENABLED ? 'ZRAM: On' : 'ZRAM: Off'}</span>
                     </div>
                     <button class="btn btn-small btn-primary" onclick="nextram.applySavedConfig(${snapshot.id})" style="margin-top: 8px; width: 100%;">
-                        ${nextram.translate('Apply & Save')}
+                        ${window.nextram ? window.nextram.translate('Apply & Save') : 'Apply & Save'}
                     </button>
                 </div>
             `;
@@ -1302,623 +1302,241 @@ class ConfigurationHistory {
     }
 }
 
-class NextRAMController {
+class AppState {
     constructor() {
-        this.config = {};
-        this.originalContent = "";
+        this.reset();
+    }
+
+    reset() {
         this.hasRoot = false;
+        this.rootChecked = false;
+        this.configLoaded = false;
+        this.appInitialized = false;
+        this.initInProgress = false;
         this.isFormChanged = false;
-        this.currentTheme = localStorage.getItem('theme') || 'auto';
-        this.currentLanguage = localStorage.getItem('language') || 'en';
-        this.currentAccent = localStorage.getItem('accent') || 'orange';
-        this.animationsEnabled = localStorage.getItem('animationsEnabled') !== 'false';
         this.moduleStatus = null;
         this.moduleStatusChecked = false;
-        
-        this.recommendationEngine = new RecommendationEngine(this.currentLanguage);
-        this.configHistory = new ConfigurationHistory();
-        
-        this.init();
+        this.lastRootCheckTime = 0;
+        this.rootCheckAttempts = 0;
+        this.currentConfig = {};
+        this.originalContent = "";
     }
 
-    async init() {
-        setupTabs();
-        this.setupTheme();
-        this.setupAccentColor();
-        this.setupAnimations();
-        this.setupLanguage();
-        this.setupFormListeners();
-        this.setupParameterInfo();
-        this.setupAppearanceSettings();
-        this.configHistory.renderHistory();
-        this.updateStatus('Checking root...', false);
-        await this.reliableRootCheck();
-        this.updateHomeStatus();
-        this.generateRecommendations();
-        this.checkModuleStatus();
+    setRootStatus(hasRoot) {
+        this.hasRoot = hasRoot;
+        this.rootChecked = true;
+        this.lastRootCheckTime = Date.now();
+    }
+}
+
+class SystemCheckManager {
+    constructor(state) {
+        this.state = state;
     }
 
-    applyMaterialYouSystemColors() {
-        if (!document.getElementById('MATERIAL_YOU').checked) {
-            document.body.classList.remove('material-you');
-            document.documentElement.style.removeProperty('--md-primary');
-            document.documentElement.style.removeProperty('--md-primary-container');
-            return;
-        }
-        
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-        const androidMatch = userAgent.match(/Android\s+([0-9.]+)/);
-        
-        if (androidMatch && parseFloat(androidMatch[1]) >= 12) {
-            document.body.classList.add('material-you');
-            
-            document.documentElement.style.setProperty('--md-primary', 'var(--material-you-primary, #6750A4)');
-            document.documentElement.style.setProperty('--md-primary-container', 'var(--material-you-primary-container, #EADDFF)');
-            document.documentElement.style.setProperty('--md-on-primary', 'var(--material-you-on-primary, #FFFFFF)');
-            document.documentElement.style.setProperty('--md-secondary', 'var(--material-you-secondary, #625B71)');
-            document.documentElement.style.setProperty('--md-secondary-container', 'var(--material-you-secondary-container, #E8DEF8)');
-            
-            setTimeout(() => {
-                if (!getComputedStyle(document.documentElement).getPropertyValue('--md-primary')) {
-                    this.applyMaterialYouColors();
-                }
-            }, 100);
-        } else {
-            this.applyMaterialYouColors();
-        }
-    }
-
-    async reliableRootCheck() {
+    async checkAndroidInterface() {
         if (typeof AndroidRoot === 'undefined') {
-            this.hasRoot = false;
-            this.updateRootStatus();
-            this.showNotification(this.translate('Android interface not available'), 'error');
-            return;
+            return {
+                available: false,
+                reason: 'AndroidRoot interface not found'
+            };
         }
 
-        for (let i = 0; i < 3; i++) {
+        const requiredMethods = ['hasRootAccess', 'testRoot', 'readServiceSh'];
+        const missingMethods = requiredMethods.filter(m => typeof AndroidRoot[m] !== 'function');
+
+        if (missingMethods.length > 0) {
+            return {
+                available: false,
+                reason: `Missing methods: ${missingMethods.join(', ')}`
+            };
+        }
+
+        return { available: true };
+    }
+
+    async safeRootCheck() {
+        try {
+            const hasRoot = AndroidRoot.hasRootAccess();
+            if (!hasRoot) {
+                return { success: false, error: 'hasRootAccess returned false' };
+            }
+
+            const testResult = AndroidRoot.testRoot();
+            if (testResult && testResult.startsWith('ERROR:')) {
+                return { success: false, error: `testRoot error: ${testResult}` };
+            }
+
             try {
-                this.hasRoot = AndroidRoot.hasRootAccess();
-                if (this.hasRoot) {
-                    const testResult = AndroidRoot.testRoot();
-                    if (testResult && !testResult.startsWith('ERROR:')) {
-                        this.updateRootStatus();
-                        this.showNotification(this.translate('Root access granted'), 'success');
-                        await this.loadConfig();
-                        return;
-                    }
+                const testContent = AndroidRoot.readServiceSh();
+                if (testContent && testContent.startsWith('ERROR:')) {
+                    return { success: false, error: `Cannot read service.sh: ${testContent}` };
                 }
-                
-                if (i < 2) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (readError) {}
+
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    }
+
+    async performRootCheckWithRetry() {
+        this.state.rootCheckAttempts = 0;
+
+        while (this.state.rootCheckAttempts < 5) {
+            try {
+                this.state.rootCheckAttempts++;
+                const result = await this.safeRootCheck();
+
+                if (result.success) {
+                    this.state.setRootStatus(true);
+                    return { success: true };
+                }
+
+                if (this.state.rootCheckAttempts < 5) {
+                    const delay = 2000 * this.state.rootCheckAttempts;
+                    await this.delay(delay);
                 }
             } catch (error) {
-                console.error(`Root check ${i + 1} failed:`, error);
-            }
-        }
-        
-        this.hasRoot = false;
-        this.updateRootStatus();
-        this.showNotification(this.translate('Root access required'), 'warning');
-    }
-
-    setupTabs() {
-        const tabs = document.querySelectorAll('.tab');
-        const tabContents = document.querySelectorAll('.tab-content');
-        
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const targetTab = tab.getAttribute('data-tab');
-                
-                tabs.forEach(t => t.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-                
-                tab.classList.add('active');
-                document.getElementById(`${targetTab}-tab`).classList.add('active');
-                
-                if (targetTab === 'home') {
-                    this.checkModuleStatus();
-                } else if (targetTab === 'store') {
-                    this.loadStoreConfigs();
+                if (this.state.rootCheckAttempts < 5) {
+                    const delay = 2000 * this.state.rootCheckAttempts;
+                    await this.delay(delay);
                 }
-            });
-        });
-    }
-
-    setupParameterInfo() {
-        const infoButtons = document.querySelectorAll('.info-btn');
-        const modal = document.getElementById('paramInfoModal');
-        const closeBtn = document.querySelector('.modal-close');
-        const modalTitle = document.getElementById('modalParamTitle');
-        const modalDescription = document.getElementById('modalParamDescription');
-
-        infoButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const paramId = e.target.getAttribute('data-param');
-                const description = spl.getDescription(paramId);
-                
-                if (description) {
-                    modalTitle.textContent = description.title;
-                    modalDescription.textContent = description.description;
-                    modal.style.display = 'block';
-                }
-            });
-        });
-
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        window.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
             }
-        });
+        }
+
+        this.state.setRootStatus(false);
+        return { success: false, error: 'Max retries reached' };
     }
 
-    setupTheme() {
-        if (this.currentTheme === 'auto') {
-            this.applyAutoTheme();
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+class ConfigManager {
+    constructor(state, systemCheck) {
+        this.state = state;
+        this.systemCheck = systemCheck;
+    }
+
+    async loadConfiguration() {
+        if (!this.state.rootChecked) {
+            const rootResult = await this.systemCheck.performRootCheckWithRetry();
+            if (!rootResult.success) {
+                return await this.loadFromLocalStorage();
+            }
+        }
+
+        if (this.state.hasRoot) {
+            return await this.loadWithRoot();
         } else {
-            document.documentElement.setAttribute('data-theme', this.currentTheme);
-        }
-        
-        document.getElementById('THEME').value = this.currentTheme;
-        
-        if (this.currentTheme === 'auto' && window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                if (this.currentTheme === 'auto') this.applyAutoTheme();
-            });
+            return await this.loadFromLocalStorage();
         }
     }
 
-    setupAccentColor() {
-        document.documentElement.setAttribute('data-accent', this.currentAccent);
-        document.getElementById('ACCENT_COLOR').value = this.currentAccent;
-    }
-
-    setupAnimations() {
-        document.getElementById('ANIMATIONS_ENABLED').checked = this.animationsEnabled;
-        if (!this.animationsEnabled) {
-            document.body.classList.add('animations-disabled');
-        }
-    }
-
-    applyAutoTheme() {
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    }
-
-    setupLanguage() {
-        document.getElementById('LANGUAGE').value = this.currentLanguage;
-        this.updateLanguage();
-    }
-
-    updateLanguage() {
-        const elements = document.querySelectorAll('[data-translate]');
-        elements.forEach(element => {
-            const key = element.getAttribute('data-translate');
-            if (translations[this.currentLanguage]?.[key]) {
-                element.textContent = translations[this.currentLanguage][key];
-            }
-        });
-        
-        this.recommendationEngine.language = this.currentLanguage;
-        
-        if (window.spl) {
-            window.spl.setLanguage(this.currentLanguage);
-        }
-        
-        this.generateRecommendations();
-        
-        if (window.faqManager) {
-            window.faqManager.renderFAQ();
-        }
-        
-        this.checkModuleStatus();
-    }
-
-    setupFormListeners() {
-        const inputs = document.querySelectorAll('input, select');
-        inputs.forEach(input => {
-            if (!['THEME', 'LANGUAGE', 'ACCENT_COLOR', 'ANIMATIONS_ENABLED', 'GLASS_EFFECT', 'MATERIAL_YOU'].includes(input.id)) {
-                input.addEventListener('change', () => this.onFormChange());
-            }
-        });
-
-        document.getElementById('THEME').addEventListener('change', (e) => {
-            this.currentTheme = e.target.value;
-            localStorage.setItem('theme', this.currentTheme);
-            this.setupTheme();
-        });
-
-        document.getElementById('LANGUAGE').addEventListener('change', (e) => {
-            this.currentLanguage = e.target.value;
-            localStorage.setItem('language', this.currentLanguage);
-            this.updateLanguage();
-        });
-
-        document.getElementById('ACCENT_COLOR').addEventListener('change', (e) => {
-            this.currentAccent = e.target.value;
-            localStorage.setItem('accent', this.currentAccent);
-            this.setupAccentColor();
-        });
-
-        document.getElementById('ANIMATIONS_ENABLED').addEventListener('change', (e) => {
-            this.animationsEnabled = e.target.checked;
-            localStorage.setItem('animationsEnabled', this.animationsEnabled);
-            if (this.animationsEnabled) {
-                document.body.classList.remove('animations-disabled');
-            } else {
-                document.body.classList.add('animations-disabled');
-            }
-        });
-    }
-
-    setupAppearanceSettings() {
-        if (typeof AndroidRoot !== 'undefined') {
-            try {
-                const settings = AndroidRoot.getAppearanceSettings();
-                if (settings) {
-                    const data = JSON.parse(settings);
-                    if (data.glass_effect !== undefined) {
-                        document.getElementById('GLASS_EFFECT').checked = data.glass_effect;
-                    }
-                    if (data.material_you !== undefined) {
-                        document.getElementById('MATERIAL_YOU').checked = data.material_you;
-                    }
-                    if (data.accent_color) {
-                        document.getElementById('ACCENT_COLOR').value = data.accent_color;
-                        this.currentAccent = data.accent_color;
-                        document.documentElement.setAttribute('data-accent', data.accent_color);
-                    }
-                    this.applyAppearanceSettings(data.glass_effect || false, data.material_you || false);
-                } else {
-                    this.loadLocalAppearanceSettings();
-                }
-            } catch (e) {
-                console.error("Error parsing appearance settings:", e);
-                this.loadLocalAppearanceSettings();
-            }
-        } else {
-            this.loadLocalAppearanceSettings();
-        }
-        
-        document.getElementById('GLASS_EFFECT').addEventListener('change', (e) => {
-            this.saveAppearanceSettings();
-        });
-        
-        document.getElementById('MATERIAL_YOU').addEventListener('change', (e) => {
-            this.saveAppearanceSettings();
-        });
-    }
-
-    loadLocalAppearanceSettings() {
-        const glassEffect = localStorage.getItem('glass_effect') === 'true';
-        const materialYou = localStorage.getItem('material_you') === 'true';
-        
-        document.getElementById('GLASS_EFFECT').checked = glassEffect;
-        document.getElementById('MATERIAL_YOU').checked = materialYou;
-        
-        this.applyAppearanceSettings(glassEffect, materialYou);
-    }
-
-    saveAppearanceSettings() {
-        const glassEffect = document.getElementById('GLASS_EFFECT').checked;
-        const materialYou = document.getElementById('MATERIAL_YOU').checked;
-        const accentColor = document.getElementById('ACCENT_COLOR').value;
-        
-        if (typeof AndroidRoot !== 'undefined') {
-            AndroidRoot.setAppearanceSettings(
-                glassEffect.toString(),
-                materialYou.toString()
-            );
-        }
-        
-        localStorage.setItem('glass_effect', glassEffect);
-        localStorage.setItem('material_you', materialYou);
-        localStorage.setItem('accent', accentColor);
-        
-        this.applyAppearanceSettings(glassEffect, materialYou);
-        
-        if (materialYou) {
-            this.applyMaterialYouSystemColors();
-        }
-    }
-
-    applyAppearanceSettings(glassEffect, materialYou) {
-        if (glassEffect) {
-            document.body.classList.add('glass-effect');
-            document.querySelectorAll('.card').forEach(card => {
-                card.classList.add('glass-card');
-            });
-        } else {
-            document.body.classList.remove('glass-effect');
-            document.querySelectorAll('.card').forEach(card => {
-                card.classList.remove('glass-card');
-            });
-        }
-        
-        if (materialYou) {
-            this.applyMaterialYouSystemColors();
-        } else {
-            document.body.classList.remove('material-you');
-            document.documentElement.style.setProperty('--md-primary', '');
-            document.documentElement.style.setProperty('--md-primary-container', '');
-            document.documentElement.style.setProperty('--md-on-primary', '');
-            document.documentElement.style.setProperty('--md-secondary', '');
-            document.documentElement.style.setProperty('--md-secondary-container', '');
-        }
-    }
-
-    applyMaterialYouColors() {
-        if (!document.getElementById('MATERIAL_YOU').checked) {
-            document.body.classList.remove('material-you');
-            document.documentElement.style.removeProperty('--md-primary');
-            document.documentElement.style.removeProperty('--md-primary-container');
-            return;
-        }
-        
-        const storedAccent = localStorage.getItem('material_you_accent');
-        if (storedAccent) {
-            const [h, s, l] = storedAccent.split(',').map(Number);
-            document.documentElement.style.setProperty('--md-primary', `hsl(${h}, ${s}%, ${l}%)`);
-            document.documentElement.style.setProperty('--md-primary-container', `hsl(${h}, ${s}%, 90%)`);
-        } else {
-            const hue = Math.floor(Math.random() * 360);
-            localStorage.setItem('material_you_accent', `${hue},70,50`);
-            document.documentElement.style.setProperty('--md-primary', `hsl(${hue}, 70%, 50%)`);
-            document.documentElement.style.setProperty('--md-primary-container', `hsl(${hue}, 70%, 90%)`);
-        }
-        document.documentElement.style.setProperty('--md-on-primary', '#FFFFFF');
-    }
-
-    updateHomeStatus() {
-        const rootStatus = document.getElementById('home-root-status');
-        const zramStatus = document.getElementById('home-zram-status');
-        const swapStatus = document.getElementById('home-swap-status');
-        
-        if (rootStatus) rootStatus.textContent = this.hasRoot ? 'Granted' : 'Required';
-        if (zramStatus) zramStatus.textContent = document.getElementById('ZRAM_ENABLED')?.checked ? 'Enabled' : 'Disabled';
-        if (swapStatus) swapStatus.textContent = document.getElementById('SWAP_ENABLED')?.checked ? 'Enabled' : 'Disabled';
-    }
-
-    generateRecommendations() {
-        const currentConfig = this.gatherFormData();
-        const recommendations = this.recommendationEngine.getRecommendations(currentConfig);
-        const container = document.getElementById('recommendations-list');
-        
-        if (!container) return;
-
-        if (recommendations.length === 0) {
-            container.innerHTML = `<div class="recommendation info">${this.translate('Your configuration looks good!')}</div>`;
-            return;
-        }
-
-        container.innerHTML = recommendations.map(rec => `
-            <div class="recommendation ${rec.type}">
-                <div class="recommendation-header">
-                    <span>${rec.icon}</span>
-                    <span>${rec.title}</span>
-                </div>
-                <div class="recommendation-message">${rec.message}</div>
-                <div class="recommendation-action">${rec.action}</div>
-            </div>
-        `).join('');
-    }
-
-    applyProfile(profileName) {
-        const profile = performanceProfiles[profileName];
-        if (!profile) return;
-
-        Object.keys(profile).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                element.type === 'checkbox' ? element.checked = profile[key] : element.value = profile[key];
-            }
-        });
-
-        this.onFormChange();
-        this.showNotification(`${this.translate('Applied')} ${this.translate(profileName)} ${this.translate('profile')}`, 'success');
-    }
-
-    saveCurrentConfig() {
-        const config = this.gatherFormData();
-        const comment = prompt(this.translate('Enter a description for this configuration:'), this.translate('Manual save'));
-        if (comment) {
-            this.configHistory.saveSnapshot(config, comment);
-            this.showNotification(this.translate('Configuration saved to history'), 'success');
-        }
-    }
-
-    restoreConfig(snapshotId) {
-        const config = this.configHistory.restoreSnapshot(snapshotId);
-        if (config) {
-            this.populateForm(config);
-            this.showNotification(this.translate('Configuration restored from history'), 'success');
-        }
-    }
-
-    async applySavedConfig(snapshotId) {
-        const config = this.configHistory.restoreSnapshot(snapshotId);
-        if (!config) {
-            this.showNotification(this.translate('Configuration not found'), 'error');
-            return;
-        }
-
+    async loadWithRoot() {
         try {
-            if (this.hasRoot) {
-                const patchedContent = this.patchServiceSh(this.originalContent, config);
-                if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
-                    this.originalContent = patchedContent;
-                    this.config = {...config};
-                    
-                    this.populateForm(config);
-                    
-                    if (typeof AndroidRoot !== 'undefined') {
-                        AndroidRoot.applyConfiguration();
-                        
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        this.hasRoot = AndroidRoot.hasRootAccess();
-                        
-                        try {
-                            AndroidRoot.refreshRootStatus();
-                        } catch (e) {
-                            console.log("refreshRootStatus not available, using fallback");
-                        }
-                        
-                        this.updateRootStatus();
-                        this.updateHomeStatus();
-                        
-                        const rootTest = AndroidRoot.testRoot();
-                        if (rootTest && !rootTest.startsWith('ERROR:')) {
-                            this.hasRoot = true;
-                        } else {
-                            this.hasRoot = false;
-                            this.showNotification(this.translate('Root check failed, retrying...'), 'warning');
-                            
-                            setTimeout(() => {
-                                this.checkRootAccess();
-                            }, 2000);
-                        }
-                    }
-                    
-                    this.showNotification(this.translate('Configuration applied and saved successfully'), 'success');
-                } else {
-                    throw new Error(this.translate('Failed to write service.sh'));
+            let content = await this.readConfigurationFile();
+
+            if (!content) {
+                return await this.createDefaultConfiguration();
+            }
+
+            this.state.originalContent = content;
+            const config = this.parseConfigFromContent(content);
+            this.state.currentConfig = config;
+            this.state.configLoaded = true;
+
+            this.saveToLocalStorage(config, content);
+            return { success: true, config };
+        } catch (error) {
+            console.error('Load with root failed:', error);
+            return await this.loadFromLocalStorage();
+        }
+    }
+
+    async readConfigurationFile() {
+        try {
+            let content = AndroidRoot.readServiceSh();
+            if (!content.startsWith('ERROR:')) {
+                return content;
+            }
+
+            content = AndroidRoot.forceReadServiceSh();
+            if (!content.startsWith('ERROR:')) {
+                return content;
+            }
+
+            if (typeof AndroidRoot.fileExists === 'function') {
+                const exists = AndroidRoot.fileExists('/data/adb/service.d/nextram.sh');
+                if (!exists) {
+                    return null;
                 }
+            }
+
+            throw new Error('File not found or cannot be read');
+        } catch (error) {
+            return null;
+        }
+    }
+
+    async createDefaultConfiguration() {
+        try {
+            const defaultConfig = performanceProfiles.balanced;
+            const patchedContent = this.patchServiceSh('', defaultConfig);
+
+            if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
+                this.state.originalContent = patchedContent;
+                this.state.currentConfig = defaultConfig;
+                this.state.configLoaded = true;
+
+                this.saveToLocalStorage(defaultConfig, patchedContent);
+                return { success: true, config: defaultConfig };
             } else {
-                this.showNotification(this.translate('Root access required to apply configuration'), 'error');
+                throw new Error('Failed to write default configuration');
             }
         } catch (error) {
-            this.showNotification(error.message, 'error');
+            console.error('Create default config failed:', error);
+            return { success: false, config: performanceProfiles.balanced };
         }
     }
 
-    deleteConfig(snapshotId) {
-        if (confirm(this.translate('Are you sure you want to delete this configuration?'))) {
-            if (this.configHistory.deleteSnapshot(snapshotId)) {
-                this.showNotification(this.translate('Configuration deleted'), 'success');
-            } else {
-                this.showNotification(this.translate('Failed to delete configuration'), 'error');
-            }
-        }
-    }
-
-    getTimestamp() {
-        return new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    }
-
-    onFormChange() {
-        this.isFormChanged = true;
-        this.showSaveButton();
-        this.generateRecommendations();
-    }
-
-    showSaveButton() {
-        document.getElementById('saveButtonContainer').style.display = 'block';
-    }
-
-    hideSaveButton() {
-        document.getElementById('saveButtonContainer').style.display = 'none';
-    }
-
-    async checkRootAccess() {
+    async loadFromLocalStorage() {
         try {
-            this.updateStatus('Checking root access...', false);
-            if (typeof AndroidRoot !== 'undefined') {
-                this.hasRoot = AndroidRoot.hasRootAccess();
-                
-                const testResult = AndroidRoot.testRoot();
-                if (testResult && !testResult.startsWith('ERROR:')) {
-                    this.hasRoot = true;
+            const savedConfig = localStorage.getItem('nextram_config');
+            const savedContent = localStorage.getItem('nextram_content');
+
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                this.state.currentConfig = config;
+                this.state.configLoaded = true;
+
+                if (savedContent) {
+                    this.state.originalContent = savedContent;
                 }
-                
-                this.updateRootStatus();
-                
-                if (this.hasRoot) {
-                    this.showNotification(this.translate('Root access granted'), 'success');
-                    await this.loadConfig();
-                } else {
-                    setTimeout(async () => {
-                        this.hasRoot = AndroidRoot.hasRootAccess();
-                        this.updateRootStatus();
-                        
-                        if (!this.hasRoot) {
-                            this.showNotification(this.translate('Root access required'), 'error');
-                        }
-                    }, 1000);
-                }
-            } else {
-                this.hasRoot = false;
-                this.updateRootStatus();
-                this.showNotification(this.translate('Android interface not available'), 'error');
+
+                return { success: true, config, cached: true };
+            }
+
+            const defaultConfig = performanceProfiles.balanced;
+            this.state.currentConfig = defaultConfig;
+            this.state.configLoaded = true;
+            return { success: true, config: defaultConfig, cached: false };
+        } catch (error) {
+            console.error('Load from localStorage failed:', error);
+            return { success: false, config: performanceProfiles.balanced };
+        }
+    }
+
+    saveToLocalStorage(config, content = '') {
+        try {
+            localStorage.setItem('nextram_config', JSON.stringify(config));
+            if (content) {
+                localStorage.setItem('nextram_content', content);
             }
         } catch (error) {
-            this.hasRoot = false;
-            this.updateRootStatus();
-            this.showNotification(this.translate('Root check error: ') + error.message, 'error');
-        }
-    }
-
-    updateRootStatus() {
-        const statusElement = document.getElementById('rootStatus');
-        const warningElement = document.getElementById('rootWarning');
-        if (statusElement) {
-            statusElement.textContent = this.hasRoot ? 'Root: Granted' : 'Root: Access Required';
-        }
-        if (warningElement) {
-            warningElement.style.display = this.hasRoot ? 'none' : 'flex';
-        }
-    }
-
-    async loadConfig() {
-        try {
-            this.updateStatus(this.translate('Loading configuration'), false);
-            if (typeof AndroidRoot !== 'undefined') {
-                const content = AndroidRoot.readServiceSh();
-                if (content.startsWith('ERROR:')) {
-                    const forcedContent = AndroidRoot.forceReadServiceSh();
-                    if (forcedContent && !forcedContent.startsWith('ERROR:')) {
-                        this.originalContent = forcedContent;
-                        this.parseConfigFromContent(forcedContent);
-                        this.updateStatus(this.translate('Ready'), true);
-                        this.showNotification(this.translate('Configuration loaded successfully'), 'success');
-                        return;
-                    }
-                    throw new Error('File not found or cannot be read');
-                }
-                
-                this.originalContent = content;
-                this.parseConfigFromContent(content);
-                this.updateStatus(this.translate('Ready'), true);
-                this.showNotification(this.translate('Configuration loaded successfully'), 'success');
-            } else {
-                throw new Error(this.translate('Android interface not available'));
-            }
-        } catch (error) {
-            if (this.hasRoot) {
-                try {
-                    this.updateStatus('Creating default configuration...', false);
-                    const defaultConfig = performanceProfiles.balanced;
-                    const patchedContent = this.patchServiceSh('', defaultConfig);
-                    if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
-                        this.originalContent = patchedContent;
-                        this.parseConfigFromContent(patchedContent);
-                        this.updateStatus(this.translate('Ready'), true);
-                        this.showNotification('Default configuration created and loaded', 'success');
-                    } else {
-                        throw new Error('Failed to write default configuration');
-                    }
-                } catch (writeError) {
-                    this.updateStatus(this.translate('Error'), false);
-                    this.showNotification(writeError.message, 'error');
-                }
-            } else {
-                this.updateStatus(this.translate('Error'), false);
-                this.showNotification(error.message, 'error');
-            }
+            console.error('Save to localStorage failed:', error);
         }
     }
 
@@ -1935,26 +1553,6 @@ class NextRAMController {
                 config[key] = value;
             }
         });
-        
-        this.config = config;
-        this.populateForm(this.config);
-    }
-
-    populateForm(config) {
-        Object.keys(config).forEach(key => {
-            const element = document.getElementById(key);
-            if (element) {
-                element.type === 'checkbox' ? element.checked = config[key] : element.value = config[key];
-            }
-        });
-        this.generateRecommendations();
-    }
-
-    gatherFormData() {
-        const config = {};
-        document.querySelectorAll('input, select').forEach(element => {
-            config[element.name] = element.type === 'checkbox' ? element.checked : element.value;
-        });
         return config;
     }
 
@@ -1968,23 +1566,416 @@ class NextRAMController {
         return newContent;
     }
 
-    async saveChanges() {
+    async applyConfiguration(config, description = 'Manual application') {
         try {
-            if (this.isFormChanged) {
-                const newConfig = this.gatherFormData();
-                const patchedContent = this.patchServiceSh(this.originalContent, newConfig);
-                if (typeof AndroidRoot !== 'undefined' && AndroidRoot.writeServiceSh(patchedContent)) {
-                    this.originalContent = patchedContent;
-                    this.config = newConfig;
-                    this.isFormChanged = false;
-                    this.hideSaveButton();
-                    this.showNotification(this.translate("Configuration saved. Please reboot your device."), 'success');
-                } else {
-                    throw new Error(this.translate('Failed to write service.sh'));
+            if (!this.validateConfiguration(config)) {
+                throw new Error('Invalid configuration');
+            }
+
+            const patchedContent = this.patchServiceSh(this.state.originalContent, config);
+
+            if (!patchedContent || patchedContent.trim() === '') {
+                throw new Error('Failed to patch configuration');
+            }
+
+            if (typeof AndroidRoot !== 'undefined') {
+                const writeSuccess = AndroidRoot.writeServiceSh(patchedContent);
+                if (!writeSuccess) {
+                    throw new Error('Failed to write service.sh');
                 }
+
+                this.state.originalContent = patchedContent;
+                this.state.currentConfig = { ...config };
+
+                AndroidRoot.applyConfiguration();
+                await this.systemCheck.delay(1500);
+
+                this.saveToLocalStorage(config, patchedContent);
+                return { success: true, content: patchedContent };
+            } else {
+                throw new Error('Android interface not available');
             }
         } catch (error) {
-            this.showNotification(error.message, 'error');
+            return { success: false, error: error.message };
+        }
+    }
+
+    validateConfiguration(config) {
+        if (!config || typeof config !== 'object') {
+            return false;
+        }
+
+        const requiredFields = ['ZRAM_ENABLED', 'SWAP_ENABLED', 'ZRAM_RATIO', 'SWAPPINESS'];
+        for (const field of requiredFields) {
+            if (!(field in config)) {
+                return false;
+            }
+        }
+
+        if (config.ZRAM_RATIO < 0 || config.ZRAM_RATIO > 10) {
+            return false;
+        }
+
+        if (config.SWAPPINESS < 0 || config.SWAPPINESS > 200) {
+            return false;
+        }
+
+        return true;
+    }
+}
+
+class UIManager {
+    constructor(state, translations) {
+        this.state = state;
+        this.translations = translations;
+        this.currentLanguage = localStorage.getItem('language') || 'en';
+        this.currentTheme = localStorage.getItem('theme') || 'auto';
+        this.currentAccent = localStorage.getItem('accent') || 'orange';
+        this.animationsEnabled = localStorage.getItem('animationsEnabled') !== 'false';
+    }
+
+    initUIComponents() {
+        this.validateDOMElements();
+        this.setupTabs();
+        this.setupTheme();
+        this.setupAccentColor();
+        this.setupAnimations();
+        this.setupLanguage();
+        this.setupFormListeners();
+        this.setupParameterInfo();
+        this.setupAppearanceSettings();
+        this.setupStoreEventListeners();
+    }
+
+    validateDOMElements() {
+        const requiredElements = [
+            'statusText',
+            'statusIndicator',
+            'rootStatus',
+            'rootWarning',
+            'saveButtonContainer',
+            'config-history',
+            'recommendations-list',
+            'module-status-container'
+        ];
+
+        const missingElements = [];
+        requiredElements.forEach(id => {
+            if (!document.getElementById(id)) {
+                missingElements.push(id);
+            }
+        });
+
+        if (missingElements.length > 0) {
+            console.warn('Missing DOM elements:', missingElements);
+        }
+    }
+
+    setupTabs() {
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(`${targetTab}-tab`).classList.add('active');
+
+                this.onTabChange(targetTab);
+            });
+        });
+    }
+
+    onTabChange(tabName) {
+        if (tabName === 'home' && window.nextram) {
+            window.nextram.checkModuleStatus();
+        } else if (tabName === 'store' && window.nextram) {
+            window.nextram.loadStoreConfigs();
+        } else if (tabName === 'faq' && window.faqManager) {
+            window.faqManager.renderFAQ();
+        }
+    }
+
+    setupTheme() {
+        if (this.currentTheme === 'auto') {
+            this.applyAutoTheme();
+        } else {
+            document.documentElement.setAttribute('data-theme', this.currentTheme);
+        }
+
+        const themeElement = document.getElementById('THEME');
+        if (themeElement) {
+            themeElement.value = this.currentTheme;
+        }
+
+        if (this.currentTheme === 'auto' && window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (this.currentTheme === 'auto') this.applyAutoTheme();
+            });
+        }
+    }
+
+    applyAutoTheme() {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    }
+
+    setupAccentColor() {
+        document.documentElement.setAttribute('data-accent', this.currentAccent);
+        const accentElement = document.getElementById('ACCENT_COLOR');
+        if (accentElement) {
+            accentElement.value = this.currentAccent;
+        }
+    }
+
+    setupAnimations() {
+        const animationsElement = document.getElementById('ANIMATIONS_ENABLED');
+        if (animationsElement) {
+            animationsElement.checked = this.animationsEnabled;
+        }
+        if (!this.animationsEnabled) {
+            document.body.classList.add('animations-disabled');
+        }
+    }
+
+    setupLanguage() {
+        const languageElement = document.getElementById('LANGUAGE');
+        if (languageElement) {
+            languageElement.value = this.currentLanguage;
+        }
+        this.updateLanguage();
+    }
+
+    updateLanguage() {
+        const elements = document.querySelectorAll('[data-translate]');
+        elements.forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (this.translations[this.currentLanguage]?.[key]) {
+                element.textContent = this.translations[this.currentLanguage][key];
+            }
+        });
+    }
+
+    setupFormListeners() {
+        const inputs = document.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (!['THEME', 'LANGUAGE', 'ACCENT_COLOR', 'ANIMATIONS_ENABLED', 'GLASS_EFFECT', 'MATERIAL_YOU'].includes(input.id)) {
+                input.addEventListener('change', () => {
+                    if (window.nextram) {
+                        window.nextram.onFormChange();
+                    }
+                });
+            }
+        });
+
+        const themeElement = document.getElementById('THEME');
+        if (themeElement) {
+            themeElement.addEventListener('change', (e) => {
+                this.currentTheme = e.target.value;
+                localStorage.setItem('theme', this.currentTheme);
+                this.setupTheme();
+            });
+        }
+
+        const languageElement = document.getElementById('LANGUAGE');
+        if (languageElement) {
+            languageElement.addEventListener('change', (e) => {
+                this.currentLanguage = e.target.value;
+                localStorage.setItem('language', this.currentLanguage);
+                this.updateLanguage();
+                if (window.nextram) {
+                    window.nextram.onLanguageChange();
+                }
+            });
+        }
+
+        const accentElement = document.getElementById('ACCENT_COLOR');
+        if (accentElement) {
+            accentElement.addEventListener('change', (e) => {
+                this.currentAccent = e.target.value;
+                localStorage.setItem('accent', this.currentAccent);
+                this.setupAccentColor();
+            });
+        }
+
+        const animationsElement = document.getElementById('ANIMATIONS_ENABLED');
+        if (animationsElement) {
+            animationsElement.addEventListener('change', (e) => {
+                this.animationsEnabled = e.target.checked;
+                localStorage.setItem('animationsEnabled', this.animationsEnabled);
+                if (this.animationsEnabled) {
+                    document.body.classList.remove('animations-disabled');
+                } else {
+                    document.body.classList.add('animations-disabled');
+                }
+            });
+        }
+    }
+
+    setupParameterInfo() {
+        const infoButtons = document.querySelectorAll('.info-btn');
+        const modal = document.getElementById('paramInfoModal');
+        const closeBtn = document.querySelector('.modal-close');
+        const modalTitle = document.getElementById('modalParamTitle');
+        const modalDescription = document.getElementById('modalParamDescription');
+
+        if (!modal || !closeBtn || !modalTitle || !modalDescription) return;
+
+        infoButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const paramId = e.target.getAttribute('data-param');
+                let description = '';
+                
+                if (window.spl) {
+                    description = window.spl.getDescription(paramId);
+                }
+                
+                if (description) {
+                    modalTitle.textContent = description.title || paramId;
+                    modalDescription.textContent = description.description || 'No description available';
+                    modal.style.display = 'block';
+                }
+            });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    setupAppearanceSettings() {
+        let glassEffect = false;
+        let materialYou = false;
+
+        if (typeof AndroidRoot !== 'undefined') {
+            try {
+                const settings = AndroidRoot.getAppearanceSettings();
+                if (settings) {
+                    const data = JSON.parse(settings);
+                    glassEffect = data.glass_effect || false;
+                    materialYou = data.material_you || false;
+                }
+            } catch (e) {}
+        } else {
+            glassEffect = localStorage.getItem('glass_effect') === 'true';
+            materialYou = localStorage.getItem('material_you') === 'true';
+        }
+
+        const glassEffectElement = document.getElementById('GLASS_EFFECT');
+        const materialYouElement = document.getElementById('MATERIAL_YOU');
+
+        if (glassEffectElement) glassEffectElement.checked = glassEffect;
+        if (materialYouElement) materialYouElement.checked = materialYou;
+
+        this.applyAppearanceSettings(glassEffect, materialYou);
+
+        if (glassEffectElement) {
+            glassEffectElement.addEventListener('change', () => this.saveAppearanceSettings());
+        }
+        if (materialYouElement) {
+            materialYouElement.addEventListener('change', () => this.saveAppearanceSettings());
+        }
+    }
+
+    applyAppearanceSettings(glassEffect, materialYou) {
+        if (glassEffect) {
+            document.body.classList.add('glass-effect');
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('glass-card');
+            });
+        } else {
+            document.body.classList.remove('glass-effect');
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('glass-card');
+            });
+        }
+
+        if (materialYou) {
+            this.applyMaterialYouColors();
+        } else {
+            document.body.classList.remove('material-you');
+        }
+    }
+
+    applyMaterialYouColors() {
+        if (!document.getElementById('MATERIAL_YOU')?.checked) {
+            document.body.classList.remove('material-you');
+            return;
+        }
+
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const androidMatch = userAgent.match(/Android\s+([0-9.]+)/);
+
+        if (androidMatch && parseFloat(androidMatch[1]) >= 12) {
+            document.body.classList.add('material-you');
+            
+            setTimeout(() => {
+                if (!getComputedStyle(document.documentElement).getPropertyValue('--md-primary')) {
+                    this.applyFallbackMaterialYouColors();
+                }
+            }, 100);
+        } else {
+            this.applyFallbackMaterialYouColors();
+        }
+    }
+
+    applyFallbackMaterialYouColors() {
+        const storedAccent = localStorage.getItem('material_you_accent');
+        if (storedAccent) {
+            const [h, s, l] = storedAccent.split(',').map(Number);
+            document.documentElement.style.setProperty('--md-primary', `hsl(${h}, ${s}%, ${l}%)`);
+            document.documentElement.style.setProperty('--md-primary-container', `hsl(${h}, ${s}%, 90%)`);
+        } else {
+            const hue = Math.floor(Math.random() * 360);
+            localStorage.setItem('material_you_accent', `${hue},70,50`);
+            document.documentElement.style.setProperty('--md-primary', `hsl(${hue}, 70%, 50%)`);
+            document.documentElement.style.setProperty('--md-primary-container', `hsl(${hue}, 70%, 90%)`);
+        }
+        document.documentElement.style.setProperty('--md-on-primary', '#FFFFFF');
+    }
+
+    saveAppearanceSettings() {
+        const glassEffect = document.getElementById('GLASS_EFFECT')?.checked || false;
+        const materialYou = document.getElementById('MATERIAL_YOU')?.checked || false;
+
+        if (typeof AndroidRoot !== 'undefined') {
+            try {
+                AndroidRoot.setAppearanceSettings(
+                    glassEffect.toString(),
+                    materialYou.toString()
+                );
+            } catch (e) {
+                console.error('Failed to save appearance settings to AndroidRoot:', e);
+            }
+        }
+
+        localStorage.setItem('glass_effect', glassEffect);
+        localStorage.setItem('material_you', materialYou);
+
+        this.applyAppearanceSettings(glassEffect, materialYou);
+    }
+
+    updateRootStatus(hasRoot) {
+        const statusElement = document.getElementById('rootStatus');
+        const warningElement = document.getElementById('rootWarning');
+
+        if (statusElement) {
+            statusElement.textContent = hasRoot ? 'Root: Granted' : 'Root: Access Required';
+            statusElement.className = hasRoot ? 'status-granted' : 'status-required';
+        }
+
+        if (warningElement) {
+            warningElement.style.display = hasRoot ? 'none' : 'flex';
         }
     }
 
@@ -1995,129 +1986,36 @@ class NextRAMController {
         if (indicator) indicator.style.background = isOnline ? '#059669' : '#dc2626';
     }
 
-    showNotification(message, type) {
-        if (typeof AndroidRoot !== 'undefined') AndroidRoot.showToast(message);
-        
+    showNotification(message, type = 'info') {
+        if (typeof AndroidRoot !== 'undefined') {
+            try {
+                AndroidRoot.showToast(message);
+            } catch (e) {}
+        }
+
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.style.background = type === 'success' ? '#059669' : '#dc2626';
         notification.textContent = message;
         document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 3000);
+
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 3000);
     }
+
+    setupStoreEventListeners() {}
 
     translate(key) {
-        return translations[this.currentLanguage]?.[key] || key;
+        return this.translations[this.currentLanguage]?.[key] || key;
     }
+}
 
-    async loadModuleFullInfo() {
-        try {
-            if (typeof AndroidRoot !== 'undefined') {
-                const infoStr = AndroidRoot.getModuleFullInfo();
-                if (infoStr.startsWith("ERROR:")) {
-                    console.error("Failed to load module info:", infoStr);
-                    return null;
-                }
-                
-                const info = JSON.parse(infoStr);
-                return info;
-            }
-        } catch (error) {
-            console.error("Error loading module info:", error);
-        }
-        return null;
-    }
-
-    async exportConfig() {
-        try {
-            if (typeof AndroidRoot !== 'undefined') {
-                const result = AndroidRoot.exportConfiguration();
-                if (result.startsWith("ERROR:")) {
-                    this.showNotification(this.translate('Failed to export configuration'), 'error');
-                    return;
-                }
-                
-                if (result.includes('/storage/emulated/0/Download/')) {
-                    this.showNotification(`${this.translate('Configuration exported successfully')}: ${result}`, 'success');
-                } else if (result.startsWith('/')) {
-                    this.showNotification(`${this.translate('Configuration exported successfully')}: ${result}`, 'success');
-                } else {
-                    this.showNotification(result, 'info');
-                }
-            } else {
-                this.showNotification(this.translate('Android interface not available'), 'error');
-            }
-        } catch (error) {
-            console.error("Export error:", error);
-            this.showNotification(this.translate('Export failed') + ': ' + error.message, 'error');
-        }
-    }
-
-    async importConfig() {
-        try {
-            if (typeof AndroidRoot === 'undefined') {
-                this.showNotification(this.translate('Android interface not available'), 'error');
-                return;
-            }
-
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.conf,.txt';
-            
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    const importedContent = event.target.result;
-                    
-                    if (typeof AndroidRoot !== 'undefined') {
-                        const success = AndroidRoot.importConfiguration(importedContent);
-                        if (success) {
-                            this.showNotification(this.translate('Configuration imported successfully'), 'success');
-                            await this.reliableRootCheck();
-                        } else {
-                            this.showNotification(this.translate('Failed to import configuration'), 'error');
-                        }
-                    }
-                };
-                reader.readAsText(file);
-            };
-            
-            input.click();
-        } catch (error) {
-            console.error("Import error:", error);
-            this.showNotification(this.translate('Import failed') + ': ' + error.message, 'error');
-        }
-    }
-
-    mergeConfigs(currentContent, importedContent) {
-        const currentLines = currentContent.split('\n');
-        const importedLines = importedContent.split('\n');
-        
-        const currentConfig = {};
-        const importedConfig = {};
-        
-        currentLines.forEach(line => {
-            const match = line.match(/^([A-Z_]+)=([^#]+)/);
-            if (match) {
-                currentConfig[match[1]] = match[2].trim();
-            }
-        });
-        
-        importedLines.forEach(line => {
-            const match = line.match(/^([A-Z_]+)=([^#]+)/);
-            if (match) {
-                importedConfig[match[1]] = match[2].trim();
-            }
-        });
-        
-        const mergedConfig = { ...currentConfig, ...importedConfig };
-        
-        return Object.entries(mergedConfig)
-            .map(([key, value]) => `${key}=${value}`)
-            .join('\n');
+class ModuleManager {
+    constructor(state, uiManager) {
+        this.state = state;
+        this.uiManager = uiManager;
     }
 
     async checkModuleStatus() {
@@ -2132,15 +2030,13 @@ class NextRAMController {
             
             try {
                 details = JSON.parse(detailsStr);
-            } catch (e) {
-                console.error('Failed to parse module details:', e);
-            }
+            } catch (e) {}
             
-            this.moduleStatus = details;
-            this.moduleStatusChecked = true;
+            this.state.moduleStatus = details;
+            this.state.moduleStatusChecked = true;
             this.updateModuleStatusUI(details);
         } catch (error) {
-            console.error('Error checking module status:', error);
+            console.error('Module status check failed:', error);
             this.updateModuleStatusUI(null);
         }
     }
@@ -2148,28 +2044,25 @@ class NextRAMController {
     async updateModuleStatusUI(details) {
         const container = document.getElementById('module-status-container');
         const actionsContainer = document.getElementById('module-actions');
-        const enableDisableBtn = document.getElementById('enable-disable-btn');
         
         if (!container) return;
         
-        const fullInfo = await this.loadModuleFullInfo();
-        
-        if (!this.hasRoot) {
+        if (!this.state.hasRoot) {
             container.innerHTML = `
                 <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Module Status')}</span>
-                    <span class="module-status-value">${this.translate('Root required')}</span>
+                    <span class="module-status-label">${this.uiManager.translate('Module Status')}</span>
+                    <span class="module-status-value">${this.uiManager.translate('Root required')}</span>
                 </div>
             `;
             if (actionsContainer) actionsContainer.style.display = 'none';
             return;
         }
         
-        if (!this.moduleStatusChecked) {
+        if (!this.state.moduleStatusChecked) {
             container.innerHTML = `
                 <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Module Status')}</span>
-                    <span class="module-status-value">${this.translate('Checking module...')}</span>
+                    <span class="module-status-label">${this.uiManager.translate('Module Status')}</span>
+                    <span class="module-status-value">${this.uiManager.translate('Checking module...')}</span>
                 </div>
             `;
             if (actionsContainer) actionsContainer.style.display = 'none';
@@ -2179,12 +2072,12 @@ class NextRAMController {
         if (!details || details.installed === 'false') {
             container.innerHTML = `
                 <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Status')}</span>
-                    <span class="module-status-value not-installed">${this.translate('Not installed')}</span>
+                    <span class="module-status-label">${this.uiManager.translate('Status')}</span>
+                    <span class="module-status-value not-installed">${this.uiManager.translate('Not installed')}</span>
                 </div>
                 <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Module not found')}</span>
-                    <span class="module-status-value">${this.translate('Install via Magisk Manager')}</span>
+                    <span class="module-status-label">${this.uiManager.translate('Module not found')}</span>
+                    <span class="module-status-value">${this.uiManager.translate('Install via Magisk Manager')}</span>
                 </div>
             `;
             if (actionsContainer) actionsContainer.style.display = 'none';
@@ -2195,62 +2088,84 @@ class NextRAMController {
         const version = details.version || 'Unknown';
         const versionCode = details.versionCode || '0';
         
-        const moduleId = fullInfo?.id || details.id || 'NextRAM';
-        const authors = fullInfo?.authors || details.author || 'Unknown';
-        
         let statusText;
         let statusClass;
         
         if (isEnabled) {
-            statusText = this.translate('Active');
+            statusText = this.uiManager.translate('Active');
             statusClass = 'enabled';
         } else {
-            statusText = this.translate('Disabled');
+            statusText = this.uiManager.translate('Disabled');
             statusClass = 'disabled';
         }
         
-        let statusHtml = `
+        const statusHtml = `
             <div class="module-status-item">
                 <span class="module-status-label">ID</span>
-                <span class="module-status-value id-value">${moduleId}</span>
+                <span class="module-status-value id-value">${details.id || 'NextRAM'}</span>
             </div>
             <div class="module-status-item">
-                <span class="module-status-label">${this.translate('Version')}</span>
+                <span class="module-status-label">${this.uiManager.translate('Version')}</span>
                 <span class="module-status-value">${version} (${versionCode})</span>
             </div>
             <div class="module-status-item">
-                <span class="module-status-label">${this.translate('Status')}</span>
+                <span class="module-status-label">${this.uiManager.translate('Status')}</span>
                 <span class="module-status-value ${statusClass}">
                     ${statusText}
                 </span>
             </div>
-            <div class="module-status-item authors-item">
-                <span class="module-status-label">${this.translate('Authors')}</span>
-                <span class="module-status-value authors-value">${authors}</span>
-            </div>
         `;
-        
-        if (fullInfo?.description) {
-            statusHtml += `
-                <div class="module-status-item">
-                    <span class="module-status-label">${this.translate('Description')}</span>
-                    <span class="module-status-value" style="font-size: 12px; opacity: 0.8;">
-                        ${fullInfo.description}
-                    </span>
-                </div>
-            `;
-        }
         
         container.innerHTML = statusHtml;
         
         if (actionsContainer) {
             actionsContainer.style.display = 'flex';
+            const enableDisableBtn = document.getElementById('enable-disable-btn');
             if (enableDisableBtn) {
                 enableDisableBtn.style.display = 'inline-block';
-                enableDisableBtn.textContent = isEnabled ? this.translate('Disable') : this.translate('Enable');
-                enableDisableBtn.className = isEnabled ? 'btn btn-small btn-secondary' : 'btn btn-small btn-primary';
+                enableDisableBtn.textContent = isEnabled ? 
+                    this.uiManager.translate('Disable') : 
+                    this.uiManager.translate('Enable');
+                enableDisableBtn.className = isEnabled ? 
+                    'btn btn-small btn-secondary' : 
+                    'btn btn-small btn-primary';
             }
         }
+    }
+
+    async enableDisableModule() {
+        if (typeof AndroidRoot !== 'undefined' && this.state.moduleStatus && this.state.moduleStatus.installed === 'true') {
+            const isEnabled = this.state.moduleStatus.enabled === 'true';
+            let success = false;
+            
+            if (isEnabled) {
+                success = AndroidRoot.disableModule();
+            } else {
+                success = AndroidRoot.enableModule();
+            }
+            
+            if (success) {
+                this.uiManager.showNotification(
+                    isEnabled ? 
+                    this.uiManager.translate('Module disabled') : 
+                    this.uiManager.translate('Module enabled'), 
+                    'success'
+                );
+                setTimeout(() => {
+                    this.checkModuleStatus();
+                }, 1000);
+            } else {
+                this.uiManager.showNotification(this.uiManager.translate('Operation failed'), 'error');
+            }
+        }
+    }
+}
+
+class StoreManager {
+    constructor(state, uiManager, configManager) {
+        this.state = state;
+        this.uiManager = uiManager;
+        this.configManager = configManager;
     }
 
     async loadStoreConfigs() {
@@ -2262,11 +2177,13 @@ class NextRAMController {
             const storeConnectionInfo = document.getElementById('store-connection-info');
             const storeCount = document.getElementById('store-count');
             
+            if (!storeContent || !storeLoading) return;
+            
             storeLoading.style.display = 'block';
-            storeContent.style.display = 'none';
-            storeEmpty.style.display = 'none';
-            storeError.style.display = 'none';
-            storeConnectionInfo.style.display = 'none';
+            if (storeContent) storeContent.style.display = 'none';
+            if (storeEmpty) storeEmpty.style.display = 'none';
+            if (storeError) storeError.style.display = 'none';
+            if (storeConnectionInfo) storeConnectionInfo.style.display = 'none';
             
             if (typeof AndroidRoot !== 'undefined') {
                 const response = AndroidRoot.getStoreConfigs();
@@ -2278,7 +2195,7 @@ class NextRAMController {
                 
                 if (!data.configs || data.configs.length === 0) {
                     storeLoading.style.display = 'none';
-                    storeEmpty.style.display = 'block';
+                    if (storeEmpty) storeEmpty.style.display = 'block';
                     return;
                 }
                 
@@ -2286,6 +2203,8 @@ class NextRAMController {
                 
                 if (storeCount) {
                     storeCount.textContent = data.count || data.configs.length;
+                }
+                if (storeConnectionInfo) {
                     storeConnectionInfo.style.display = 'block';
                 }
                 
@@ -2303,13 +2222,14 @@ class NextRAMController {
                 throw new Error('Android interface not available');
             }
         } catch (error) {
+            console.error('Load store configs failed:', error);
             const storeLoading = document.getElementById('store-loading');
             const storeError = document.getElementById('store-error');
             const errorMessage = document.getElementById('store-error-message');
             
-            storeLoading.style.display = 'none';
-            errorMessage.textContent = error.message;
-            storeError.style.display = 'block';
+            if (storeLoading) storeLoading.style.display = 'none';
+            if (errorMessage) errorMessage.textContent = error.message;
+            if (storeError) storeError.style.display = 'block';
         }
     }
 
@@ -2322,14 +2242,14 @@ class NextRAMController {
                 <div class="store-config-header">
                     <div style="display: flex; align-items: center;">
                         <h4>${name}</h4>
-                        <span class="config-badge" data-translate="New">New</span>
+                        <span class="config-badge">${this.uiManager.translate('New')}</span>
                     </div>
                     <span class="store-config-arrow">▼</span>
                 </div>
                 <div class="store-config-content">
                     <div class="store-config-loading">
                         <span class="loading-spinner"></span>
-                        <span data-translate="Loading from GitHub...">Loading from GitHub...</span>
+                        <span>${this.uiManager.translate('Loading from GitHub...')}</span>
                     </div>
                 </div>
             </div>
@@ -2379,7 +2299,7 @@ class NextRAMController {
                 
                 if (data.error) {
                     if (data.error === 'file_not_found' || data.error === 'invalid_file_format') {
-                        throw new Error(this.translate('Configuration file not found'));
+                        throw new Error(this.uiManager.translate('Configuration file not found'));
                     } else if (data.error === 'invalid_json') {
                         throw new Error('Invalid JSON format in file');
                     } else {
@@ -2402,7 +2322,7 @@ class NextRAMController {
                 const rawContent = data.rawContent || JSON.stringify(data, null, 2);
                 
                 if (Object.keys(config).length === 0) {
-                    throw new Error(this.translate('No valid configuration found in file'));
+                    throw new Error(this.uiManager.translate('No valid configuration found in file'));
                 }
                 
                 const configHtml = this.createStoreConfigDetailHTML(metadata, config, rawContent);
@@ -2411,7 +2331,9 @@ class NextRAMController {
                 const applyBtn = contentContainer.querySelector('.apply-store-config');
                 if (applyBtn) {
                     applyBtn.addEventListener('click', () => {
-                        this.applyStoreConfig(config);
+                        if (window.nextram) {
+                            window.nextram.applyStoreConfig(config);
+                        }
                     });
                 }
                 
@@ -2419,20 +2341,23 @@ class NextRAMController {
                 if (saveBtn && saveBtn.textContent.includes('Save to History')) {
                     saveBtn.addEventListener('click', () => {
                         const configName = metadata.name;
-                        this.saveStoreConfigToHistory(configName, config);
+                        if (window.nextram) {
+                            window.nextram.saveStoreConfigToHistory(configName, config);
+                        }
                     });
                 }
             }
         } catch (error) {
-            console.error('Error loading store config:', error);
             contentContainer.innerHTML = `
                 <div class="recommendation error">
                     <div class="recommendation-header">
                         <span>⚠️</span>
-                        <span data-translate="Error">Error</span>
+                        <span>${this.uiManager.translate('Error')}</span>
                     </div>
                     <div class="recommendation-message">${error.message}</div>
-                    <button class="btn btn-small" onclick="nextram.loadStoreConfigContent('${fileName}', this.parentElement.parentElement)" style="margin-top: 8px;" data-translate="Retry">Retry</button>
+                    <button class="btn btn-small" onclick="nextram.loadStoreConfigContent('${fileName}', this.parentElement.parentElement)" style="margin-top: 8px;">
+                        ${this.uiManager.translate('Retry')}
+                    </button>
                 </div>
             `;
         }
@@ -2451,115 +2376,539 @@ class NextRAMController {
         return `
             <div class="store-config-meta">
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Author">Author</span>
+                    <span class="meta-label">${this.uiManager.translate('Author')}</span>
                     <span class="meta-value">${author}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Version">Version</span>
+                    <span class="meta-label">${this.uiManager.translate('Version')}</span>
                     <span class="meta-value">${version}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Tested On">Tested On</span>
+                    <span class="meta-label">${this.uiManager.translate('Tested On')}</span>
                     <span class="meta-value">${testedOn}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Device">Device</span>
+                    <span class="meta-label">${this.uiManager.translate('Device')}</span>
                     <span class="meta-value">${device}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Created">Created</span>
+                    <span class="meta-label">${this.uiManager.translate('Created')}</span>
                     <span class="meta-value">${createdDate}</span>
                 </div>
                 <div class="meta-item">
-                    <span class="meta-label" data-translate="Created With">Created With</span>
+                    <span class="meta-label">${this.uiManager.translate('Created With')}</span>
                     <span class="meta-value">${createdWith}</span>
                 </div>
             </div>
             
             <div class="meta-item" style="grid-column: 1 / -1;">
-                <span class="meta-label" data-translate="Description">Description</span>
+                <span class="meta-label">${this.uiManager.translate('Description')}</span>
                 <span class="meta-value" style="font-weight: normal; margin-top: 4px;">${description}</span>
             </div>
             
             <div class="store-config-preview">
-                <div style="margin-bottom: 8px; font-size: 11px; color: var(--md-on-surface-variant);" data-translate="Configuration preview:">Configuration preview:</div>
+                <div style="margin-bottom: 8px; font-size: 11px; color: var(--md-on-surface-variant);">
+                    ${this.uiManager.translate('Configuration preview:')}
+                </div>
                 <code>${configPreview}</code>
             </div>
             
             <div class="store-config-actions">
-                <button class="btn btn-primary apply-store-config" data-translate="Apply Configuration">Apply Configuration</button>
-                <button class="btn btn-secondary" data-translate="Save to History">Save to History</button>
+                <button class="btn btn-primary apply-store-config">
+                    ${this.uiManager.translate('Apply Configuration')}
+                </button>
+                <button class="btn btn-secondary">
+                    ${this.uiManager.translate('Save to History')}
+                </button>
             </div>
             
             <div class="store-source-info">
-                <span data-translate="Loaded from GitHub repository">Loaded from GitHub repository</span>
+                <span>${this.uiManager.translate('Loaded from GitHub repository')}</span>
             </div>
         `;
     }
+}
 
-    applyStoreConfig(config) {
-        let appliedCount = 0;
+class NextRAMController {
+    constructor() {
+        this.state = new AppState();
+        this.systemCheck = new SystemCheckManager(this.state);
+        this.configManager = new ConfigManager(this.state, this.systemCheck);
+        this.uiManager = new UIManager(this.state, translations);
+        this.moduleManager = new ModuleManager(this.state, this.uiManager);
+        this.storeManager = new StoreManager(this.state, this.uiManager, this.configManager);
+        
+        this.configHistory = new ConfigurationHistory();
+        this.recommendationEngine = new RecommendationEngine(this.uiManager.currentLanguage);
+        
+        this.rootMonitorInterval = null;
+        
+        this.init = this.init.bind(this);
+        this.onFormChange = this.onFormChange.bind(this);
+        this.applyStoreConfig = this.applyStoreConfig.bind(this);
+    }
+
+    async init() {
+        if (this.state.initInProgress) {
+            return;
+        }
+
+        this.state.initInProgress = true;
+        this.uiManager.updateStatus('Initializing...', false);
+
+        try {
+            this.uiManager.initUIComponents();
+            
+            const androidCheck = await this.systemCheck.checkAndroidInterface();
+            if (!androidCheck.available) {
+                this.uiManager.showNotification(
+                    androidCheck.reason === 'AndroidRoot interface not found' ? 
+                    this.uiManager.translate('Android interface not available') : 
+                    androidCheck.reason, 
+                    'warning'
+                );
+            }
+            
+            const configResult = await this.configManager.loadConfiguration();
+            
+            if (configResult.success) {
+                this.populateForm(configResult.config);
+                
+                this.uiManager.updateStatus(this.uiManager.translate('Ready'), true);
+                
+                if (configResult.cached) {
+                    this.uiManager.showNotification(
+                        this.uiManager.translate('Configuration loaded from cache'), 
+                        'info'
+                    );
+                } else {
+                    this.uiManager.showNotification(
+                        this.uiManager.translate('Configuration loaded successfully'), 
+                        'success'
+                    );
+                }
+                
+                this.uiManager.updateRootStatus(this.state.hasRoot);
+                
+                this.updateHomeStatus();
+                
+                this.generateRecommendations();
+                
+                if (this.state.hasRoot) {
+                    await this.moduleManager.checkModuleStatus();
+                    this.startRootMonitor();
+                }
+                
+                this.state.appInitialized = true;
+            } else {
+                throw new Error('Failed to load configuration');
+            }
+            
+        } catch (error) {
+            console.error('Initialization failed:', error);
+            this.handleInitFailure(error);
+            throw error;
+        } finally {
+            this.state.initInProgress = false;
+        }
+    }
+
+    handleInitFailure(error) {
+        this.uiManager.updateStatus('Initialization failed', false);
+        this.uiManager.showNotification(`Init failed: ${error.message}`, 'error');
+        
+        this.configManager.loadFromLocalStorage().then(result => {
+            if (result.success) {
+                this.populateForm(result.config);
+                this.uiManager.updateStatus('Using cached config', true);
+            }
+        });
+    }
+
+    startRootMonitor() {
+        if (this.rootMonitorInterval) {
+            clearInterval(this.rootMonitorInterval);
+        }
+        
+        this.rootMonitorInterval = setInterval(async () => {
+            if (typeof AndroidRoot !== 'undefined') {
+                try {
+                    const currentRoot = AndroidRoot.hasRootAccess();
+                    
+                    if (currentRoot !== this.state.hasRoot) {
+                        this.state.hasRoot = currentRoot;
+                        this.uiManager.updateRootStatus(currentRoot);
+                        
+                        if (!currentRoot) {
+                            this.uiManager.showNotification('Root access lost', 'warning');
+                            setTimeout(() => {
+                                this.systemCheck.performRootCheckWithRetry();
+                            }, 5000);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Root monitor error:', error);
+                }
+            }
+        }, 30000);
+    }
+
+    onFormChange() {
+        this.state.isFormChanged = true;
+        this.showSaveButton();
+        this.generateRecommendations();
+    }
+
+    onLanguageChange() {
+        this.recommendationEngine.language = this.uiManager.currentLanguage;
+        this.generateRecommendations();
+        
+        if (window.faqManager) {
+            window.faqManager.renderFAQ();
+        }
+        
+        this.moduleManager.checkModuleStatus();
+    }
+
+    showSaveButton() {
+        const container = document.getElementById('saveButtonContainer');
+        if (container) {
+            container.style.display = 'block';
+        }
+    }
+
+    hideSaveButton() {
+        const container = document.getElementById('saveButtonContainer');
+        if (container) {
+            container.style.display = 'none';
+        }
+    }
+
+    populateForm(config) {
         Object.keys(config).forEach(key => {
             const element = document.getElementById(key);
             if (element) {
                 if (element.type === 'checkbox') {
-                    element.checked = Boolean(config[key]);
+                    element.checked = config[key];
                 } else {
                     element.value = config[key];
                 }
-                appliedCount++;
             }
         });
+        this.generateRecommendations();
+    }
+
+    gatherFormData() {
+        const config = {};
+        document.querySelectorAll('input, select').forEach(element => {
+            config[element.id] = element.type === 'checkbox' ? element.checked : element.value;
+        });
+        return config;
+    }
+
+    generateRecommendations() {
+        const currentConfig = this.gatherFormData();
+        const recommendations = this.recommendationEngine.getRecommendations(currentConfig);
+        const container = document.getElementById('recommendations-list');
         
-        this.onFormChange();
-        this.showNotification(
-            `${this.translate('Configuration applied to form.')} ${appliedCount} ${this.translate('settings updated. Click Save to apply.')}`,
-            'success'
-        );
-        switchTab('config');
+        if (!container) return;
+
+        if (recommendations.length === 0) {
+            container.innerHTML = `<div class="recommendation info">${this.uiManager.translate('Your configuration looks good!')}</div>`;
+            return;
+        }
+
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation ${rec.type}">
+                <div class="recommendation-header">
+                    <span>${rec.icon}</span>
+                    <span>${rec.title}</span>
+                </div>
+                <div class="recommendation-message">${rec.message}</div>
+                <div class="recommendation-action">${rec.action}</div>
+            </div>
+        `).join('');
+    }
+
+    updateHomeStatus() {
+        const rootStatus = document.getElementById('home-root-status');
+        const zramStatus = document.getElementById('home-zram-status');
+        const swapStatus = document.getElementById('home-swap-status');
+        
+        if (rootStatus) rootStatus.textContent = this.state.hasRoot ? 'Granted' : 'Required';
+        
+        const zramElement = document.getElementById('ZRAM_ENABLED');
+        if (zramStatus && zramElement) {
+            zramStatus.textContent = zramElement.checked ? 'Enabled' : 'Disabled';
+        }
+        
+        const swapElement = document.getElementById('SWAP_ENABLED');
+        if (swapStatus && swapElement) {
+            swapStatus.textContent = swapElement.checked ? 'Enabled' : 'Disabled';
+        }
+    }
+
+    async saveChanges() {
+        try {
+            if (this.state.isFormChanged) {
+                const newConfig = this.gatherFormData();
+                const result = await this.configManager.applyConfiguration(newConfig);
+                
+                if (result.success) {
+                    this.state.isFormChanged = false;
+                    this.hideSaveButton();
+                    this.uiManager.showNotification(
+                        this.uiManager.translate("Configuration saved. Please reboot your device."), 
+                        'success'
+                    );
+                    this.updateHomeStatus();
+                } else {
+                    throw new Error(result.error);
+                }
+            }
+        } catch (error) {
+            this.uiManager.showNotification(error.message, 'error');
+        }
+    }
+
+    async applyStoreConfig(config) {
+        try {
+            if (!this.state.hasRoot) {
+                const rootResult = await this.systemCheck.performRootCheckWithRetry();
+                if (!rootResult.success) {
+                    this.uiManager.showNotification(
+                        this.uiManager.translate('Root access required to apply configuration'), 
+                        'error'
+                    );
+                    return false;
+                }
+            }
+
+            const currentConfig = this.gatherFormData();
+            const mergedConfig = { ...currentConfig, ...config };
+            
+            const result = await this.configManager.applyConfiguration(mergedConfig, 'Store config');
+            
+            if (result.success) {
+                this.populateForm(mergedConfig);
+                
+                this.configHistory.saveSnapshot(
+                    mergedConfig, 
+                    `Store: ${config.name || 'config'} at ${new Date().toLocaleTimeString()}`
+                );
+                
+                this.uiManager.showNotification(
+                    `${this.uiManager.translate('Configuration applied to form.')} ` +
+                    `${Object.keys(config).length} ` +
+                    `${this.uiManager.translate('settings updated. Click Save to apply.')}`,
+                    'success'
+                );
+                
+                return true;
+            } else {
+                this.uiManager.showNotification(
+                    `${this.uiManager.translate('Operation failed')}: ${result.error}`, 
+                    'error'
+                );
+                return false;
+            }
+        } catch (error) {
+            this.uiManager.showNotification(
+                `${this.uiManager.translate('Operation failed')}: ${error.message}`, 
+                'error'
+            );
+            return false;
+        }
     }
 
     saveStoreConfigToHistory(name, config) {
         const currentConfig = this.gatherFormData();
         const mergedConfig = { ...currentConfig, ...config };
         this.configHistory.saveSnapshot(mergedConfig, `Store config: ${name}`);
-        this.showNotification(this.translate('Configuration saved to history'), 'success');
+        this.uiManager.showNotification(
+            this.uiManager.translate('Configuration saved to history'), 
+            'success'
+        );
     }
-}
 
-const nextram = new NextRAMController();
-
-document.getElementById('saveButton').addEventListener('click', () => {
-    nextram.saveChanges();
-    nextram.updateHomeStatus();
-});
-
-function checkRootAccess() {
-    nextram.reliableRootCheck();
-    nextram.updateHomeStatus();
-}
-
-async function enableDisableModule() {
-    if (typeof AndroidRoot !== 'undefined' && nextram.moduleStatus && nextram.moduleStatus.installed === 'true') {
-        const isEnabled = nextram.moduleStatus.enabled === 'true';
+    async forceRootRecheck() {
+        this.state.hasRoot = false;
+        this.state.rootChecked = false;
+        this.state.rootCheckAttempts = 0;
         
-        let success = false;
-        if (isEnabled) {
-            success = AndroidRoot.disableModule();
-        } else {
-            success = AndroidRoot.enableModule();
+        await this.systemCheck.performRootCheckWithRetry();
+        
+        if (this.state.hasRoot) {
+            await this.configManager.loadWithRoot();
         }
-        
-        if (success) {
-            nextram.showNotification(
-                isEnabled ? nextram.translate('Module disabled') : nextram.translate('Module enabled'), 
+    }
+
+    checkModuleStatus() {
+        return this.moduleManager.checkModuleStatus();
+    }
+
+    loadStoreConfigs() {
+        return this.storeManager.loadStoreConfigs();
+    }
+
+    translate(key) {
+        return this.uiManager.translate(key);
+    }
+
+    showNotification(message, type) {
+        this.uiManager.showNotification(message, type);
+    }
+
+    applyProfile(profileName) {
+        const profile = performanceProfiles[profileName];
+        if (!profile) return;
+
+        Object.keys(profile).forEach(key => {
+            const element = document.getElementById(key);
+            if (element) {
+                element.type === 'checkbox' ? element.checked = profile[key] : element.value = profile[key];
+            }
+        });
+
+        this.onFormChange();
+        this.uiManager.showNotification(
+            `${this.uiManager.translate('Applied')} ${this.uiManager.translate(profileName)} ${this.uiManager.translate('profile')}`, 
+            'success'
+        );
+    }
+
+    saveCurrentConfig() {
+        const config = this.gatherFormData();
+        const comment = prompt(
+            this.uiManager.translate('Enter a description for this configuration:'), 
+            this.uiManager.translate('Manual save')
+        );
+        if (comment) {
+            this.configHistory.saveSnapshot(config, comment);
+            this.uiManager.showNotification(
+                this.uiManager.translate('Configuration saved to history'), 
                 'success'
             );
-            setTimeout(() => {
-                nextram.checkModuleStatus();
-            }, 1000);
-        } else {
-            nextram.showNotification(nextram.translate('Operation failed'), 'error');
+        }
+    }
+
+    async applySavedConfig(snapshotId) {
+        try {
+            const config = this.configHistory.restoreSnapshot(snapshotId);
+            if (!config) {
+                this.uiManager.showNotification(
+                    this.uiManager.translate('Configuration not found'), 
+                    'error'
+                );
+                return;
+            }
+
+            if (!this.state.hasRoot) {
+                const rootResult = await this.systemCheck.performRootCheckWithRetry();
+                if (!rootResult.success) {
+                    this.uiManager.showNotification(
+                        this.uiManager.translate('Root access required to apply configuration'), 
+                        'error'
+                    );
+                    return;
+                }
+            }
+
+            const result = await this.configManager.applyConfiguration(
+                config, 
+                `History config ${snapshotId}`
+            );
+
+            if (result.success) {
+                this.populateForm(config);
+                this.configHistory.saveSnapshot(
+                    config, 
+                    `Applied from history at ${new Date().toLocaleTimeString()}`
+                );
+                this.uiManager.showNotification(
+                    this.uiManager.translate('Configuration applied and saved successfully'), 
+                    'success'
+                );
+                return true;
+            } else {
+                this.uiManager.showNotification(
+                    `${this.uiManager.translate('Operation failed')}: ${result.error}`, 
+                    'error'
+                );
+                return false;
+            }
+        } catch (error) {
+            this.uiManager.showNotification(
+                `${this.uiManager.translate('Operation failed')}: ${error.message}`, 
+                'error'
+            );
+            return false;
+        }
+    }
+
+    deleteConfig(snapshotId) {
+        if (confirm(this.uiManager.translate('Are you sure you want to delete this configuration?'))) {
+            if (this.configHistory.deleteSnapshot(snapshotId)) {
+                this.uiManager.showNotification(
+                    this.uiManager.translate('Configuration deleted'), 
+                    'success'
+                );
+            } else {
+                this.uiManager.showNotification(
+                    this.uiManager.translate('Failed to delete configuration'), 
+                    'error'
+                );
+            }
         }
     }
 }
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        window.nextram = new NextRAMController();
+        
+        await window.nextram.init();
+        
+        const saveButton = document.getElementById('saveButton');
+        if (saveButton) {
+            saveButton.addEventListener('click', async () => {
+                try {
+                    await window.nextram.saveChanges();
+                } catch (error) {
+                    window.nextram.showNotification(`Save failed: ${error.message}`, 'error');
+                }
+            });
+        }
+        
+        window.checkRootAccess = async () => {
+            try {
+                await window.nextram.forceRootRecheck();
+            } catch (error) {}
+        };
+        
+        window.enableDisableModule = async () => {
+            try {
+                await window.nextram.moduleManager.enableDisableModule();
+            } catch (error) {}
+        };
+        
+        window.switchTab = (tabName) => {
+            window.nextram.uiManager.onTabChange(tabName);
+        };
+        
+    } catch (error) {
+        const errorContainer = document.createElement('div');
+        errorContainer.className = 'error-container';
+        errorContainer.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <h3>Initialization Error</h3>
+                <p>${error.message}</p>
+                <button onclick="window.location.reload()" style="margin-top: 10px; padding: 8px 16px;">
+                    Reload Application
+                </button>
+            </div>
+        `;
+        document.body.appendChild(errorContainer);
+        console.error('Application initialization failed:', error);
+    }
+});

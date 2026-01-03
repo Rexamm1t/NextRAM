@@ -18,17 +18,23 @@
 
 <div align="center">
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_RU.md">
-      Русский
-    </a>
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/README_RU.md">Русский</a>
   </font>
+  <font size="2"> | </font>
   <font size="2">
-    |
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/README_EN.md">English</a>
   </font>
+  <font size="2"> | </font>
   <font size="2">
-    <a href="https://github.com/Rexamm1t/NextRAM/blob/official-public-nextram/README_EN.md">
-      English
-    </a>
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/README_UK.md">Українська</a>
+  </font>
+  <font size="2"> | </font>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/README_ZH.md">中文</a>
+  </font>
+  <font size="2"> | </font>
+  <font size="2">
+    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/README_DE.md">Deutsch</a>
   </font>
 </div>
 
@@ -92,4 +98,3 @@ Module is distributed under GPL v3 license. Source code is available in project 
 ---
 
 Note: Use the module with caution. Incorrect configuration may affect system stability.
-

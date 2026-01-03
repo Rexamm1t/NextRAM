@@ -13,12 +13,12 @@ ui_print() {
 }
 
 run_aicf_analysis() {
-    if [ ! -x "$MODPATH/tools/nextramaicf" ]; then
+    if [ ! -x "$MODPATH/main/tools/nextramaicf" ]; then
         aicf_print "ERROR: AICF driver not found"
         return 1
     fi
     
-    $MODPATH/tools/nextramaicf --generate
+    $MODPATH/main/tools/nextramaicf --generate
     
     if [ $? -eq 0 ] && [ -f "/data/adb/modules/NextRAM/config.conf" ]; then
         cp "/data/adb/modules/NextRAM/config.conf" "$MODPATH/config.conf"
@@ -56,6 +56,7 @@ on_install() {
   ui_print "____________________________________________"
   ui_print "NextRAM Version - $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
   ui_print "NextRAM Status  - $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
+  ui_print "NextRAM ModName  - $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
   ui_print "____________________________________________"
   ui_print "arch   : $(uname -m)"
   ui_print "android: $(getprop ro.build.version.release)"
