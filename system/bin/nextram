@@ -12,20 +12,76 @@ FILE_MISSING=4
 DEPENDENCY_MISSING=5
 OPERATION_FAILED=6
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;37m'
+NC='\033[0m'
+
+BOLD='\033[1m'
+UNDERLINE='\033[4m'
+
 log_message() {
     echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
 }
 
+print_header() {
+    echo -e "${CYAN}${BOLD}"
+    echo "    \  |               |     _ \      \      \  |  "
+    echo "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  "
+    echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  "
+    echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  "
+    echo -e "${NC}"
+}
+
+print_success() {
+    echo -e "${GREEN}${BOLD}[✓]${NC} ${GREEN}$1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}${BOLD}[✗]${NC} ${RED}$1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}${BOLD}[!]${NC} ${YELLOW}$1${NC}"
+}
+
+print_info() {
+    echo -e "${BLUE}${BOLD}[i]${NC} ${BLUE}$1${NC}"
+}
+
+print_section() {
+    echo -e "\n${MAGENTA}${BOLD}${UNDERLINE}$1${NC}"
+}
+
+print_status() {
+    local label="$1"
+    local value="$2"
+    local status="$3"
+    
+    case "$status" in
+        "enabled") echo -e "  ${GREEN}●${NC} ${WHITE}$label:${NC} ${GREEN}$value${NC}" ;;
+        "disabled") echo -e "  ${RED}●${NC} ${WHITE}$label:${NC} ${RED}$value${NC}" ;;
+        "warning") echo -e "  ${YELLOW}●${NC} ${WHITE}$label:${NC} ${YELLOW}$value${NC}" ;;
+        "info") echo -e "  ${BLUE}●${NC} ${WHITE}$label:${NC} ${CYAN}$value${NC}" ;;
+        *) echo -e "  ${GRAY}●${NC} ${WHITE}$label:${NC} ${GRAY}$value${NC}" ;;
+    esac
+}
+
 validate_number() {
     if ! echo "$1" | grep -qE '^[0-9]+(\.[0-9]+)?$'; then
-        echo "ERROR: '$1' is not a valid number."
+        print_error "Invalid number: '$1'"
         exit $INVALID_VALUE
     fi
 }
 
 validate_integer() {
     if ! echo "$1" | grep -qE '^[0-9]+$'; then
-        echo "ERROR: '$1' is not a valid integer."
+        print_error "Invalid integer: '$1'"
         exit $INVALID_VALUE
     fi
 }
@@ -33,7 +89,7 @@ validate_integer() {
 validate_range() {
     validate_number "$1"
     if [ "$(echo "$1 < $2" | bc -l)" -eq 1 ] || [ "$(echo "$1 > $3" | bc -l)" -eq 1 ]; then
-        echo "ERROR: Value must be between $2 and $3."
+        print_error "Value must be between $2 and $3"
         exit $INVALID_VALUE
     fi
 }
@@ -46,18 +102,18 @@ validate_algorithm() {
     if [ -b "/dev/block/zram0" ] && [ -f "/sys/block/zram0/comp_algorithm" ]; then
         AVAILABLE_ALGS=$(cat /sys/block/zram0/comp_algorithm | sed 's/\[//g;s/\]//g')
         if ! echo "$AVAILABLE_ALGS" | grep -qw "$1"; then
-            echo "ERROR: Algorithm '$1' is not available."
-            echo "Available algorithms: $AVAILABLE_ALGS"
+            print_error "Algorithm '$1' is not available"
+            print_info "Available algorithms: $AVAILABLE_ALGS"
             exit $INVALID_VALUE
         fi
     else
-        echo "WARNING: Cannot verify algorithm availability. ZRAM device not accessible."
+        print_warning "Cannot verify algorithm availability. ZRAM device not accessible"
     fi
 }
 
 validate_memory_limit() {
     if ! echo "$1" | grep -qE '^[0-9]+[MG]$'; then
-        echo "ERROR: Memory limit must be in format like '4G' or '512M'"
+        print_error "Memory limit must be in format like '4G' or '512M'"
         exit $INVALID_VALUE
     fi
 }
@@ -65,16 +121,84 @@ validate_memory_limit() {
 validate_priority() {
     validate_integer "$1"
     if [ "$1" -lt 0 ] || [ "$1" -gt 32767 ]; then
-        echo "ERROR: Priority must be between 0 and 32767"
+        print_error "Priority must be between 0 and 32767"
         exit $INVALID_VALUE
     fi
+}
+
+validate_bool() {
+    if [ "$1" != "true" ] && [ "$1" != "false" ]; then
+        print_error "Value must be 'true' or 'false'"
+        exit $INVALID_VALUE
+    fi
+}
+
+validate_play_profile() {
+    case "$1" in
+        "fps_competitive"|"open_world"|"casual"|"battery_saver"|"custom"|"auto")
+            return 0
+            ;;
+        *)
+            print_error "Invalid profile"
+            print_info "Available: fps_competitive, open_world, casual, battery_saver, custom, auto"
+            exit $INVALID_VALUE
+            ;;
+    esac
+}
+
+validate_vsync() {
+    case "$1" in
+        "off"|"on"|"adaptive")
+            return 0
+            ;;
+        *)
+            print_error "VSync must be 'off', 'on', or 'adaptive'"
+            exit $INVALID_VALUE
+            ;;
+    esac
+}
+
+validate_thermal() {
+    case "$1" in
+        "aggressive"|"balanced"|"conservative")
+            return 0
+            ;;
+        *)
+            print_error "Thermal profile must be 'aggressive', 'balanced', or 'conservative'"
+            exit $INVALID_VALUE
+            ;;
+    esac
+}
+
+validate_audio() {
+    case "$1" in
+        "low"|"normal"|"high_quality")
+            return 0
+            ;;
+        *)
+            print_error "Audio latency must be 'low', 'normal', or 'high_quality'"
+            exit $INVALID_VALUE
+            ;;
+    esac
+}
+
+validate_tcp() {
+    case "$1" in
+        "bbr"|"cubic"|"reno"|"westwood")
+            return 0
+            ;;
+        *)
+            print_error "TCP congestion must be 'bbr', 'cubic', 'reno', or 'westwood'"
+            exit $INVALID_VALUE
+            ;;
+    esac
 }
 
 check_dependencies() {
     local deps="grep sed cat bc"
     for dep in $deps; do
         if ! command -v "$dep" >/dev/null 2>&1; then
-            echo "ERROR: Dependency '$dep' not found."
+            print_error "Dependency '$dep' not found"
             exit $DEPENDENCY_MISSING
         fi
     done
@@ -83,26 +207,26 @@ check_dependencies() {
 set_config() {
     local key="$1"
     local value="$2"
-    
+
     if [ ! -f "$POST_FS_DATA" ]; then
-        echo "ERROR: Configuration file not found."
+        print_error "Configuration file not found"
         exit $FILE_MISSING
     fi
-    
+
     cp "$POST_FS_DATA" "$POST_FS_DATA.bak" 2>/dev/null
-    
+
     if grep -q "^$key=" "$POST_FS_DATA"; then
         sed -i "s/^$key=.*/$key=$value/" "$POST_FS_DATA"
     else
         echo "$key=$value" >> "$POST_FS_DATA"
     fi
-    
+
     if [ $? -ne 0 ]; then
-        echo "ERROR: Failed to update configuration."
+        print_error "Failed to update configuration"
         mv "$POST_FS_DATA.bak" "$POST_FS_DATA" 2>/dev/null
         exit $OPERATION_FAILED
     fi
-    
+
     log_message "Config changed: $key=$value"
 }
 
@@ -112,178 +236,464 @@ get_config() {
 
 confirm_action() {
     local action="$1"
-    echo "WARNING: $action"
-    printf "Are you sure you want to continue? (y/N): "
+    print_warning "$action"
+    echo -e -n "${YELLOW}Are you sure you want to continue? (y/N): ${NC}"
     read -r response
     case "$response" in
         [yY][eE][sS]|[yY])
             return 0
             ;;
         *)
-            echo "Operation cancelled."
+            print_info "Operation cancelled"
             exit $SUCCESS
             ;;
     esac
 }
 
 show_status() {
-    echo "    \  |               |     _ \      \      \  |  "
-    echo "     \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  "
-    echo "   |\  |   __/  \  <   |    __ <    ___ \   |   |  "
-    echo "  _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  "
-    echo " "
-    echo "=== BASIC SETTINGS ==="
-    echo "Swap: $( [ "$(get_config SWAP_ENABLED)" = "true" ] && echo "Enabled ($(get_config SWAP_SIZE_GB)GB)" || echo "Disabled" )"
-    echo "Swap Overhead: $(get_config OVERHEAD_GB)GB"
-    echo "Swap Priority: $(get_config SWAP_PRIORITY)"
-    echo "ZRAM: $( [ "$(get_config ZRAM_ENABLED)" = "true" ] && echo "Enabled (Ratio: $(get_config ZRAM_RATIO))" || echo "Disabled" )"
-    echo "ZRAM Priority: $(get_config ZRAM_PRIORITY)"
+    print_header
     
-    echo " "
-    echo "=== ZRAM SETTINGS ==="
-    echo "ZRAM Algorithm: $(get_config ZRAM_ALGORITHM)"
-    echo "Max Compression Streams: $(get_config MAX_COMP_STREAMS)"
-    echo "ZRAM Compression Level: $(get_config ZRAM_COMPRESSION_LEVEL)"
-    echo "ZRAM Memory Limit: $(get_config ZRAM_MEMORY_LIMIT)"
-    echo "ZRAM Auto Tune: $(get_config ZRAM_AUTO_TUNE)"
+    print_section "=== BASIC SETTINGS ==="
+    if [ "$(get_config SWAP_ENABLED)" = "true" ]; then
+        print_status "Swap" "$(get_config SWAP_SIZE_GB)GB" "enabled"
+    else
+        print_status "Swap" "Disabled" "disabled"
+    fi
+    print_status "Swap Overhead" "$(get_config OVERHEAD_GB)GB" "info"
+    print_status "Swap Priority" "$(get_config SWAP_PRIORITY)" "info"
     
-    echo " "
-    echo "=== MEMORY MANAGEMENT ==="
-    echo "Swappiness: $(get_config SWAPPINESS)"
-    echo "Cache Pressure: $(get_config CACHE_PRESSURE)"
-    echo "Dirty Ratio: $(get_config DIRTY_RATIO)"
-    echo "Dirty Background Ratio: $(get_config DIRTY_BACKGROUND_RATIO)"
-    echo "Dynamic Swappiness: $(get_config DYNAMIC_SWAPPINESS)"
+    if [ "$(get_config ZRAM_ENABLED)" = "true" ]; then
+        print_status "ZRAM" "Ratio: $(get_config ZRAM_RATIO)" "enabled"
+    else
+        print_status "ZRAM" "Disabled" "disabled"
+    fi
+    print_status "ZRAM Priority" "$(get_config ZRAM_PRIORITY)" "info"
+
+    print_section "=== ZRAM SETTINGS ==="
+    print_status "Algorithm" "$(get_config ZRAM_ALGORITHM)" "info"
+    print_status "Max Compression Streams" "$(get_config MAX_COMP_STREAMS)" "info"
+    print_status "Compression Level" "$(get_config ZRAM_COMPRESSION_LEVEL)" "info"
+    print_status "Memory Limit" "$(get_config ZRAM_MEMORY_LIMIT)" "info"
+    if [ "$(get_config ZRAM_AUTO_TUNE)" = "true" ]; then
+        print_status "Auto Tune" "Enabled" "enabled"
+    else
+        print_status "Auto Tune" "Disabled" "disabled"
+    fi
+
+    print_section "=== MEMORY MANAGEMENT ==="
+    print_status "Swappiness" "$(get_config SWAPPINESS)" "info"
+    print_status "Cache Pressure" "$(get_config CACHE_PRESSURE)" "info"
+    print_status "Dirty Ratio" "$(get_config DIRTY_RATIO)" "info"
+    print_status "Dirty Background Ratio" "$(get_config DIRTY_BACKGROUND_RATIO)" "info"
+    if [ "$(get_config DYNAMIC_SWAPPINESS)" = "true" ]; then
+        print_status "Dynamic Swappiness" "Enabled" "enabled"
+    else
+        print_status "Dynamic Swappiness" "Disabled" "disabled"
+    fi
+
+    print_section "=== ADVANCED VM SETTINGS ==="
+    print_status "Dirty Writeback Centisecs" "$(get_config VM_DIRTY_WRITEBACK_CENTISECS)" "info"
+    print_status "Dirty Expire Centisecs" "$(get_config VM_DIRTY_EXPIRE_CENTISECS)" "info"
+    print_status "Page Cluster" "$(get_config VM_PAGE_CLUSTER)" "info"
+    print_status "Laptop Mode" "$(get_config VM_LAPTOP_MODE)" "info"
+    print_status "OOM Kill Allocating Task" "$(get_config VM_OOM_KILL_ALLOCATING_TASK)" "info"
+    print_status "Panic on OOM" "$(get_config VM_PANIC_ON_OOM)" "info"
+    print_status "Overcommit Memory" "$(get_config VM_OVERCOMMIT_MEMORY)" "info"
+    print_status "Overcommit Ratio" "$(get_config VM_OVERCOMMIT_RATIO)" "info"
+    print_status "Watermark Scale Factor" "$(get_config VM_WATERMARK_SCALE_FACTOR)" "info"
+    print_status "Kernel Threads Max" "$(get_config KERNEL_THREADS_MAX)" "info"
+
+    print_section "=== PERFORMANCE MODES ==="
+    if [ "$(get_config EXTRA_TUNING)" = "true" ]; then
+        print_status "Extra Tuning" "Enabled" "enabled"
+    else
+        print_status "Extra Tuning" "Disabled" "disabled"
+    fi
+    if [ "$(get_config PERFORMANCE_MODE)" = "true" ]; then
+        print_status "Performance Mode" "Enabled" "enabled"
+    else
+        print_status "Performance Mode" "Disabled" "disabled"
+    fi
+    if [ "$(get_config IO_SCHEDULER_TUNE)" = "true" ]; then
+        print_status "I/O Scheduler Tune" "Enabled" "enabled"
+    else
+        print_status "I/O Scheduler Tune" "Disabled" "disabled"
+    fi
+    if [ "$(get_config CPU_BOOST)" = "true" ]; then
+        print_status "CPU Boost" "Enabled" "enabled"
+    else
+        print_status "CPU Boost" "Disabled" "disabled"
+    fi
+    if [ "$(get_config NETWORK_TUNE)" = "true" ]; then
+        print_status "Network Tune" "Enabled" "enabled"
+    else
+        print_status "Network Tune" "Disabled" "disabled"
+    fi
+
+    print_section "=== NEXTRAM PLAY (GAMING MODE) ==="
+    if [ "$(get_config PLAY_ENABLED)" = "true" ]; then
+        print_status "NextRAM Play" "Enabled" "enabled"
+        print_status "Game Profile" "$(get_config PLAY_GAME_PROFILE)" "info"
+        if [ "$(get_config PLAY_CPU_BOOST)" = "true" ]; then
+            print_status "CPU Boost" "Enabled" "enabled"
+        else
+            print_status "CPU Boost" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_GPU_BOOST)" = "true" ]; then
+            print_status "GPU Boost" "Enabled" "enabled"
+        else
+            print_status "GPU Boost" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_TOUCH_BOOST)" = "true" ]; then
+            print_status "Touch Boost" "Enabled" "enabled"
+        else
+            print_status "Touch Boost" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_NETWORK_TUNE)" = "true" ]; then
+            print_status "Network Tune" "Enabled" "enabled"
+        else
+            print_status "Network Tune" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_THERMAL_CONTROL)" = "true" ]; then
+            print_status "Thermal Control" "Enabled" "enabled"
+        else
+            print_status "Thermal Control" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_BG_CONTROL)" = "true" ]; then
+            print_status "Background Control" "Enabled" "enabled"
+        else
+            print_status "Background Control" "Disabled" "disabled"
+        fi
+        if [ "$(get_config PLAY_AUTO_DETECT)" = "true" ]; then
+            print_status "Auto Game Detect" "Enabled" "enabled"
+        else
+            print_status "Auto Game Detect" "Disabled" "disabled"
+        fi
+    else
+        print_status "NextRAM Play" "Disabled" "disabled"
+    fi
+
+    print_section "=== LOGGING ==="
+    print_status "Log Level" "$(get_config LOG_LEVEL)" "info"
     
-    echo " "
-    echo "=== ADVANCED VM SETTINGS ==="
-    echo "Dirty Writeback Centisecs: $(get_config VM_DIRTY_WRITEBACK_CENTISECS)"
-    echo "Dirty Expire Centisecs: $(get_config VM_DIRTY_EXPIRE_CENTISECS)"
-    echo "Page Cluster: $(get_config VM_PAGE_CLUSTER)"
-    echo "Laptop Mode: $(get_config VM_LAPTOP_MODE)"
-    echo "OOM Kill Allocating Task: $(get_config VM_OOM_KILL_ALLOCATING_TASK)"
-    echo "Panic on OOM: $(get_config VM_PANIC_ON_OOM)"
-    echo "Overcommit Memory: $(get_config VM_OVERCOMMIT_MEMORY)"
-    echo "Overcommit Ratio: $(get_config VM_OVERCOMMIT_RATIO)"
-    echo "Watermark Scale Factor: $(get_config VM_WATERMARK_SCALE_FACTOR)"
-    echo "Kernel Threads Max: $(get_config KERNEL_THREADS_MAX)"
-    
-    echo " "
-    echo "=== PERFORMANCE MODES ==="
-    echo "Extra Tuning: $(get_config EXTRA_TUNING)"
-    echo "Performance Mode: $(get_config PERFORMANCE_MODE)"
-    echo "I/O Scheduler Tune: $(get_config IO_SCHEDULER_TUNE)"
-    echo "CPU Boost: $(get_config CPU_BOOST)"
-    echo "Network Tune: $(get_config NETWORK_TUNE)"
-    
-    echo " "
-    echo "=== LOGGING ==="
-    echo "Log Level: $(get_config LOG_LEVEL)"
-    echo " "
-    echo "Config file: $POST_FS_DATA"
-    echo "Log file: $LOG_FILE"
+    echo -e "\n${GRAY}Config file: $POST_FS_DATA${NC}"
+    echo -e "${GRAY}Log file: $LOG_FILE${NC}"
+    echo -e "${GRAY}$(date)${NC}"
 }
 
 show_available_algorithms() {
     if [ -b "/dev/block/zram0" ] && [ -f "/sys/block/zram0/comp_algorithm" ]; then
-        echo "Available ZRAM compression algorithms:"
+        print_section "AVAILABLE ZRAM COMPRESSION ALGORITHMS"
         AVAILABLE_ALGS=$(cat /sys/block/zram0/comp_algorithm | sed 's/\[//g;s/\]//g')
         CURRENT_ALG=$(get_config ZRAM_ALGORITHM)
         for ALG in $AVAILABLE_ALGS; do
             if [ "$ALG" = "$CURRENT_ALG" ]; then
-                echo "  $ALG (current)"
+                echo -e "  ${GREEN}${BOLD}➤ $ALG (current)${NC}"
             else
-                echo "  $ALG"
+                echo -e "  ${GRAY}  $ALG${NC}"
             fi
         done
     else
-        echo "ERROR: ZRAM device not available. Cannot check algorithms."
+        print_error "ZRAM device not available. Cannot check algorithms"
         exit $OPERATION_FAILED
     fi
 }
 
 show_help() {
-    echo " "
-    echo "        \  |               |     _ \      \      \  |  "
-    echo "         \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |  "
-    echo "       |\  |   __/  \  <   |    __ <    ___ \   |   |  "
-    echo "      _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|  "
-    echo " "
-    echo "                    ===  Commands ==="
-    echo " "
-    echo "                      --Attention!--"
-    echo "The <value> may contain (for example): 1, 3.3, 4.1. or lz4, zstd..."
-    echo "All size values are in gigabytes."
-    echo "To select the compression algorithm, look at the available ones first)"
-    echo " "
-    echo "=== BASIC COMMANDS ==="
-    echo "nextram -status                          Show current status"
-    echo "nextram -swap -on                        Enable swap"
-    echo "nextram -swap -off                       Disable swap"
-    echo "nextram -swap -size <value>              Set swap size in GB"
-    echo "nextram -swap -over <value>              Set swap overhead in GB"
-    echo "nextram -swap -priority <value>          Set swap priority (0-32767)"
-    echo "nextram -zram -on                        Enable ZRAM"
-    echo "nextram -zram -off                       Disable ZRAM"
-    echo "nextram -zram -alg                       Show available compression algorithms"
-    echo "nextram -zram -ratio <value>             Set ZRAM ratio"
-    echo "nextram -zram -algo <value>              Set compression algorithm"
-    echo "nextram -zram -str <value>               Set compression streams"
-    echo "nextram -zram -priority <value>          Set ZRAM priority (0-32767)"
-    echo " "
-    echo "=== MEMORY MANAGEMENT ==="
-    echo "nextram -vm -swap <value>                Set swappiness (0-100)"
-    echo "nextram -vm -cache <value>               Set cache pressure"
-    echo "nextram -vm -dirty <value>               Set dirty ratio (0-100)"
-    echo "nextram -vm -dirtybg <value>             Set dirty background ratio (0-100)"
-    echo "nextram -dyn -on                         Enable dynamic swappiness"
-    echo "nextram -dyn -off                        Disable dynamic swappiness"
-    echo " "
-    echo "=== ADVANCED VM SETTINGS ==="
-    echo "nextram -vm -dirtywb <value>             Set dirty writeback centisecs"
-    echo "nextram -vm -dirtyexp <value>            Set dirty expire centisecs"
-    echo "nextram -vm -pagecluster <value>         Set page cluster"
-    echo "nextram -vm -laptopmode <value>          Set laptop mode (0-3)"
-    echo "nextram -vm -oomtask <0|1>               Set OOM kill allocating task"
-    echo "nextram -vm -panicoom <0|1|2>            Set panic on OOM"
-    echo "nextram -vm -overcommit <0|1|2>          Set overcommit memory"
-    echo "nextram -vm -overcommit_ratio <value>    Set overcommit ratio"
-    echo "nextram -vm -watermark <value>           Set watermark scale factor"
-    echo "nextram -vm -threadsmax <value>          Set kernel threads max"
-    echo " "
-    echo "=== ZRAM ADVANCED ==="
-    echo "nextram -zram -complevel <value>         Set compression level"
-    echo "nextram -zram -memlimit <value>          Set memory limit (e.g., 4G)"
-    echo " "
-    echo "=== PERFORMANCE MODES ==="
-    echo "nextram -tuning -on                      Enable extra tuning"
-    echo "nextram -tuning -off                     Disable extra tuning"
-    echo "nextram -perf -on                        Enable performance mode"
-    echo "nextram -perf -off                       Disable performance mode"
-    echo "nextram -zauto -on                       Enable ZRAM auto tuning"
-    echo "nextram -zauto -off                      Disable ZRAM auto tuning"
-    echo "nextram -iosched -on                     Enable I/O scheduler tuning"
-    echo "nextram -iosched -off                    Disable I/O scheduler tuning"
-    echo "nextram -cpuboost -on                    Enable CPU boost"
-    echo "nextram -cpuboost -off                   Disable CPU boost"
-    echo "nextram -network -on                     Enable network tuning"
-    echo "nextram -network -off                    Disable network tuning"
-    echo " "
-    echo "=== LOGGING ==="
-    echo "nextram -log                             Show log file"
-    echo "nextram -loglevel <level>                Set log level (DEBUG/INFO/WARN/ERROR)"
-    echo "nextram -help                            Show this help"
-    echo " "
-    echo "    --After each action, you need to restart the device--  "
-    echo " "
+    print_header
+    echo -e "${CYAN}${BOLD}                    === COMMANDS ===${NC}"
+    echo -e "\n${YELLOW}${BOLD}                    -- ATTENTION! --${NC}"
+    echo -e "${YELLOW}The <value> may contain (for example): 1, 3.3, 4.1 or lz4, zstd..."
+    echo -e "All size values are in gigabytes."
+    echo -e "To select the compression algorithm, look at the available ones first${NC}\n"
+
+    print_section "=== BASIC COMMANDS ==="
+    echo -e "${GREEN}nextram -status${NC}                          Show current status"
+    echo -e "${GREEN}nextram -swap -on${NC}                        Enable swap"
+    echo -e "${GREEN}nextram -swap -off${NC}                       Disable swap"
+    echo -e "${GREEN}nextram -swap -size <value>${NC}              Set swap size in GB"
+    echo -e "${GREEN}nextram -swap -over <value>${NC}              Set swap overhead in GB"
+    echo -e "${GREEN}nextram -swap -priority <value>${NC}          Set swap priority (0-32767)"
+    echo -e "${GREEN}nextram -zram -on${NC}                        Enable ZRAM"
+    echo -e "${GREEN}nextram -zram -off${NC}                       Disable ZRAM"
+    echo -e "${GREEN}nextram -zram -alg${NC}                       Show available compression algorithms"
+    echo -e "${GREEN}nextram -zram -ratio <value>${NC}             Set ZRAM ratio"
+    echo -e "${GREEN}nextram -zram -algo <value>${NC}              Set compression algorithm"
+    echo -e "${GREEN}nextram -zram -str <value>${NC}               Set compression streams"
+    echo -e "${GREEN}nextram -zram -priority <value>${NC}          Set ZRAM priority (0-32767)"
+    echo -e "${GREEN}nextram -zram -complevel <value>${NC}         Set compression level"
+    echo -e "${GREEN}nextram -zram -memlimit <value>${NC}          Set memory limit (e.g., 4G)"
+
+    print_section "=== MEMORY MANAGEMENT ==="
+    echo -e "${CYAN}nextram -vm -swap <value>${NC}                Set swappiness (0-100)"
+    echo -e "${CYAN}nextram -vm -cache <value>${NC}               Set cache pressure"
+    echo -e "${CYAN}nextram -vm -dirty <value>${NC}               Set dirty ratio (0-100)"
+    echo -e "${CYAN}nextram -vm -dirtybg <value>${NC}             Set dirty background ratio (0-100)"
+    echo -e "${CYAN}nextram -dyn -on${NC}                         Enable dynamic swappiness"
+    echo -e "${CYAN}nextram -dyn -off${NC}                        Disable dynamic swappiness"
+
+    print_section "=== ADVANCED VM SETTINGS ==="
+    echo -e "${BLUE}nextram -vm -dirtywb <value>${NC}             Set dirty writeback centisecs"
+    echo -e "${BLUE}nextram -vm -dirtyexp <value>${NC}            Set dirty expire centisecs"
+    echo -e "${BLUE}nextram -vm -pagecluster <value>${NC}         Set page cluster"
+    echo -e "${BLUE}nextram -vm -laptopmode <value>${NC}          Set laptop mode (0-3)"
+    echo -e "${BLUE}nextram -vm -oomtask <0|1>${NC}               Set OOM kill allocating task"
+    echo -e "${BLUE}nextram -vm -panicoom <0|1|2>${NC}            Set panic on OOM"
+    echo -e "${BLUE}nextram -vm -overcommit <0|1|2>${NC}          Set overcommit memory"
+    echo -e "${BLUE}nextram -vm -overcommit_ratio <value>${NC}    Set overcommit ratio"
+    echo -e "${BLUE}nextram -vm -watermark <value>${NC}           Set watermark scale factor"
+    echo -e "${BLUE}nextram -vm -threadsmax <value>${NC}          Set kernel threads max"
+
+    print_section "=== PERFORMANCE MODES ==="
+    echo -e "${YELLOW}nextram -tuning -on${NC}                      Enable extra tuning"
+    echo -e "${YELLOW}nextram -tuning -off${NC}                     Disable extra tuning"
+    echo -e "${YELLOW}nextram -perf -on${NC}                        Enable performance mode"
+    echo -e "${YELLOW}nextram -perf -off${NC}                       Disable performance mode"
+    echo -e "${YELLOW}nextram -zauto -on${NC}                       Enable ZRAM auto tuning"
+    echo -e "${YELLOW}nextram -zauto -off${NC}                      Disable ZRAM auto tuning"
+    echo -e "${YELLOW}nextram -iosched -on${NC}                     Enable I/O scheduler tuning"
+    echo -e "${YELLOW}nextram -iosched -off${NC}                    Disable I/O scheduler tuning"
+    echo -e "${YELLOW}nextram -cpuboost -on${NC}                    Enable CPU boost"
+    echo -e "${YELLOW}nextram -cpuboost -off${NC}                   Disable CPU boost"
+    echo -e "${YELLOW}nextram -network -on${NC}                     Enable network tuning"
+    echo -e "${YELLOW}nextram -network -off${NC}                    Disable network tuning"
+
+    print_section "=== NEXTRAM PLAY - GAMING OPTIMIZATIONS ==="
+    echo -e "${MAGENTA}nextram -play-enabled <true/false>${NC}       Enable/disable NextRAM Play"
+    echo -e "${MAGENTA}nextram -play-cpu-boost <true/false>${NC}     Enable/disable CPU boost for gaming"
+    echo -e "${MAGENTA}nextram -play-cpu-governor <gov>${NC}         Set CPU governor (performance/schedutil/interactive/powersave)"
+    echo -e "${MAGENTA}nextram -play-cpu-min-freq <mhz>${NC}         Set CPU minimum frequency (MHz)"
+    echo -e "${MAGENTA}nextram -play-cpu-max-freq <mhz>${NC}         Set CPU maximum frequency (MHz)"
+    echo -e "${MAGENTA}nextram -play-cpu-max-freq-percent <0-100>${NC} Set CPU max frequency percentage"
+    echo -e "${MAGENTA}nextram -play-cpu-boost-duration <ms>${NC}    Set CPU boost duration in ms"
+    echo -e "${MAGENTA}nextram -play-cpu-boost-level <0-100>${NC}    Set CPU boost level"
+    echo -e "${MAGENTA}nextram -play-gpu-boost <true/false>${NC}     Enable/disable GPU boost"
+    echo -e "${MAGENTA}nextram -play-gpu-governor <gov>${NC}         Set GPU governor"
+    echo -e "${MAGENTA}nextram -play-gpu-max-freq-percent <0-100>${NC} Set GPU max frequency percentage"
+    echo -e "${MAGENTA}nextram -play-gpu-touch-boost <true/false>${NC} Enable GPU touch boost"
+    echo -e "${MAGENTA}nextram -play-touch-boost <true/false>${NC}   Enable/disable touch boost"
+    echo -e "${MAGENTA}nextram -play-touch-polling <hz>${NC}         Set touch polling rate (Hz)"
+    echo -e "${MAGENTA}nextram -play-vsync <off/on/adaptive>${NC}    Set VSync mode"
+    echo -e "${MAGENTA}nextram -play-disable-hw-overlays <true/false>${NC} Disable hardware overlays"
+    echo -e "${MAGENTA}nextram -play-force-gpu-render <true/false>${NC} Force GPU rendering"
+    echo -e "${MAGENTA}nextram -play-network-tune <true/false>${NC}  Enable network tuning for gaming"
+    echo -e "${MAGENTA}nextram -play-net-rmem-default <bytes>${NC}   Set net read memory default"
+    echo -e "${MAGENTA}nextram -play-net-wmem-default <bytes>${NC}   Set net write memory default"
+    echo -e "${MAGENTA}nextram -play-net-rmem-max <bytes>${NC}       Set net read memory max"
+    echo -e "${MAGENTA}nextram -play-net-wmem-max <bytes>${NC}       Set net write memory max"
+    echo -e "${MAGENTA}nextram -play-tcp-congestion <algo>${NC}      Set TCP congestion (bbr/cubic/reno/westwood)"
+    echo -e "${MAGENTA}nextram -play-swappiness <0-100>${NC}         Set swappiness for gaming"
+    echo -e "${MAGENTA}nextram -play-cache-pressure <value>${NC}     Set cache pressure for gaming"
+    echo -e "${MAGENTA}nextram -play-dirty-ratio <0-100>${NC}        Set dirty ratio for gaming"
+    echo -e "${MAGENTA}nextram -play-dirty-bg-ratio <0-100>${NC}     Set dirty background ratio for gaming"
+    echo -e "${MAGENTA}nextram -play-zram-optimize <true/false>${NC} Optimize ZRAM for gaming"
+    echo -e "${MAGENTA}nextram -play-clear-caches <true/false>${NC}  Clear caches before gaming"
+    echo -e "${MAGENTA}nextram -play-thermal-control <true/false>${NC} Enable thermal control"
+    echo -e "${MAGENTA}nextram -play-thermal-profile <profile>${NC}  Set thermal profile (aggressive/balanced/conservative)"
+    echo -e "${MAGENTA}nextram -play-bg-control <true/false>${NC}    Control background processes"
+    echo -e "${MAGENTA}nextram -play-bg-whitelist <apps>${NC}        Set background whitelist (comma separated)"
+    echo -e "${MAGENTA}nextram -play-bg-kill-limit <number>${NC}     Set background kill limit"
+    echo -e "${MAGENTA}nextram -play-auto-detect <true/false>${NC}   Auto detect games"
+    echo -e "${MAGENTA}nextram -play-game-profile <profile>${NC}     Set game profile (fps_competitive/open_world/casual/battery_saver/custom/auto)"
+    echo -e "${MAGENTA}nextram -play-perf-monitor <true/false>${NC}  Enable performance monitor"
+    echo -e "${MAGENTA}nextram -play-perf-overlay <true/false>${NC}  Enable performance overlay"
+    echo -e "${MAGENTA}nextram -play-audio-latency <mode>${NC}       Set audio latency (low/normal/high_quality)"
+    echo -e "${MAGENTA}nextram -play-audio-buffer <samples>${NC}     Set audio buffer size"
+    echo -e "${MAGENTA}nextram -play-charging-boost <true/false>${NC} Enable charging boost"
+    echo -e "${MAGENTA}nextram -play-battery-saver <true/false>${NC} Enable battery saver"
+    echo -e "${MAGENTA}nextram -play-power-limit <mw>${NC}           Set power limit (mW)"
+    echo -e "${MAGENTA}nextram -play-realtime-priority <true/false>${NC} Set realtime priority"
+    echo -e "${MAGENTA}nextram -play-cpu-affinity <cores>${NC}       Set CPU affinity (e.g., 0-3)"
+    echo -e "${MAGENTA}nextram -play-memory-lock <true/false>${NC}   Lock game memory"
+    echo -e "${MAGENTA}nextram -play-iosched-tune <true/false>${NC}  Tune I/O scheduler for gaming"
+    echo -e "${MAGENTA}nextram -play-status${NC}                     Show NextRAM Play status"
+
+    print_section "=== LOGGING ==="
+    echo -e "${GRAY}nextram -log${NC}                             Show log file"
+    echo -e "${GRAY}nextram -loglevel <level>${NC}                Set log level (DEBUG/INFO/WARN/ERROR)"
+    echo -e "${GRAY}nextram -help${NC}                            Show this help"
+    
+    echo -e "\n${RED}${BOLD}    -- AFTER EACH ACTION, YOU NEED TO RESTART THE DEVICE --${NC}"
+    echo -e "\n${GRAY}$(date)${NC}"
 }
 
 show_log() {
     if [ -f "$LOG_FILE" ]; then
-        echo "=== Last 100 log entries ==="
-        tail -100 "$LOG_FILE"
+        print_section "=== LAST 100 LOG ENTRIES ==="
+        tail -100 "$LOG_FILE" | while IFS= read -r line; do
+            if echo "$line" | grep -q "ERROR"; then
+                echo -e "${RED}$line${NC}"
+            elif echo "$line" | grep -q "WARNING"; then
+                echo -e "${YELLOW}$line${NC}"
+            elif echo "$line" | grep -q "Config changed"; then
+                echo -e "${GREEN}$line${NC}"
+            else
+                echo -e "${GRAY}$line${NC}"
+            fi
+        done
     else
-        echo "Log file does not exist yet."
+        print_warning "Log file does not exist yet"
+    fi
+}
+
+show_play_status() {
+    print_section "=== NEXTRAM PLAY STATUS ==="
+    
+    if [ "$(get_config PLAY_ENABLED)" = "true" ]; then
+        print_status "Enabled" "true" "enabled"
+    else
+        print_status "Enabled" "false" "disabled"
+    fi
+    
+    print_status "Game Profile" "$(get_config PLAY_GAME_PROFILE)" "info"
+    
+    if [ "$(get_config PLAY_CPU_BOOST)" = "true" ]; then
+        print_status "CPU Boost" "true" "enabled"
+    else
+        print_status "CPU Boost" "false" "disabled"
+    fi
+    
+    print_status "CPU Governor" "$(get_config PLAY_CPU_GOVERNOR)" "info"
+    print_status "CPU Min Freq" "$(get_config PLAY_CPU_MIN_FREQ) MHz" "info"
+    print_status "CPU Max Freq" "$(get_config PLAY_CPU_MAX_FREQ) MHz" "info"
+    print_status "CPU Max Freq Percent" "$(get_config PLAY_CPU_MAX_FREQ_PERCENT)%" "info"
+    print_status "CPU Boost Duration" "$(get_config PLAY_CPU_BOOST_DURATION) ms" "info"
+    print_status "CPU Boost Level" "$(get_config PLAY_CPU_BOOST_LEVEL)" "info"
+    
+    if [ "$(get_config PLAY_GPU_BOOST)" = "true" ]; then
+        print_status "GPU Boost" "true" "enabled"
+    else
+        print_status "GPU Boost" "false" "disabled"
+    fi
+    
+    print_status "GPU Governor" "$(get_config PLAY_GPU_GOVERNOR)" "info"
+    print_status "GPU Max Freq Percent" "$(get_config PLAY_GPU_MAX_FREQ_PERCENT)%" "info"
+    
+    if [ "$(get_config PLAY_GPU_TOUCH_BOOST)" = "true" ]; then
+        print_status "GPU Touch Boost" "true" "enabled"
+    else
+        print_status "GPU Touch Boost" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_TOUCH_BOOST)" = "true" ]; then
+        print_status "Touch Boost" "true" "enabled"
+    else
+        print_status "Touch Boost" "false" "disabled"
+    fi
+    
+    print_status "Touch Polling" "$(get_config PLAY_TOUCH_POLLING_RATE) Hz" "info"
+    print_status "VSync" "$(get_config PLAY_VSYNC_MODE)" "info"
+    
+    if [ "$(get_config PLAY_DISABLE_HW_OVERLAYS)" = "true" ]; then
+        print_status "Disable HW Overlays" "true" "enabled"
+    else
+        print_status "Disable HW Overlays" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_FORCE_GPU_RENDER)" = "true" ]; then
+        print_status "Force GPU Render" "true" "enabled"
+    else
+        print_status "Force GPU Render" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_NETWORK_TUNE)" = "true" ]; then
+        print_status "Network Tune" "true" "enabled"
+    else
+        print_status "Network Tune" "false" "disabled"
+    fi
+    
+    print_status "Net Rmem Default" "$(get_config PLAY_NET_RMEM_DEFAULT)" "info"
+    print_status "Net Wmem Default" "$(get_config PLAY_NET_WMEM_DEFAULT)" "info"
+    print_status "Net Rmem Max" "$(get_config PLAY_NET_RMEM_MAX)" "info"
+    print_status "Net Wmem Max" "$(get_config PLAY_NET_WMEM_MAX)" "info"
+    print_status "TCP Congestion" "$(get_config PLAY_TCP_CONGESTION)" "info"
+    print_status "Swappiness" "$(get_config PLAY_SWAPPINESS)" "info"
+    print_status "Cache Pressure" "$(get_config PLAY_CACHE_PRESSURE)" "info"
+    print_status "Dirty Ratio" "$(get_config PLAY_DIRTY_RATIO)" "info"
+    print_status "Dirty BG Ratio" "$(get_config PLAY_DIRTY_BG_RATIO)" "info"
+    
+    if [ "$(get_config PLAY_ZRAM_OPTIMIZE)" = "true" ]; then
+        print_status "ZRAM Optimize" "true" "enabled"
+    else
+        print_status "ZRAM Optimize" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_CLEAR_CACHES)" = "true" ]; then
+        print_status "Clear Caches" "true" "enabled"
+    else
+        print_status "Clear Caches" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_THERMAL_CONTROL)" = "true" ]; then
+        print_status "Thermal Control" "true" "enabled"
+    else
+        print_status "Thermal Control" "false" "disabled"
+    fi
+    
+    print_status "Thermal Profile" "$(get_config PLAY_THERMAL_PROFILE)" "info"
+    
+    if [ "$(get_config PLAY_BG_CONTROL)" = "true" ]; then
+        print_status "BG Control" "true" "enabled"
+    else
+        print_status "BG Control" "false" "disabled"
+    fi
+    
+    print_status "BG Whitelist" "$(get_config PLAY_BG_WHITELIST)" "info"
+    print_status "BG Kill Limit" "$(get_config PLAY_BG_KILL_LIMIT)" "info"
+    
+    if [ "$(get_config PLAY_AUTO_DETECT)" = "true" ]; then
+        print_status "Auto Detect" "true" "enabled"
+    else
+        print_status "Auto Detect" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_PERF_MONITOR)" = "true" ]; then
+        print_status "Perf Monitor" "true" "enabled"
+    else
+        print_status "Perf Monitor" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_PERF_OVERLAY)" = "true" ]; then
+        print_status "Perf Overlay" "true" "enabled"
+    else
+        print_status "Perf Overlay" "false" "disabled"
+    fi
+    
+    print_status "Audio Latency" "$(get_config PLAY_AUDIO_LATENCY)" "info"
+    print_status "Audio Buffer" "$(get_config PLAY_AUDIO_BUFFER) samples" "info"
+    
+    if [ "$(get_config PLAY_CHARGING_BOOST)" = "true" ]; then
+        print_status "Charging Boost" "true" "enabled"
+    else
+        print_status "Charging Boost" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_BATTERY_SAVER)" = "true" ]; then
+        print_status "Battery Saver" "true" "enabled"
+    else
+        print_status "Battery Saver" "false" "disabled"
+    fi
+    
+    print_status "Power Limit" "$(get_config PLAY_POWER_LIMIT) mW" "info"
+    
+    if [ "$(get_config PLAY_REALTIME_PRIORITY)" = "true" ]; then
+        print_status "Realtime Priority" "true" "enabled"
+    else
+        print_status "Realtime Priority" "false" "disabled"
+    fi
+    
+    print_status "CPU Affinity" "$(get_config PLAY_CPU_AFFINITY)" "info"
+    
+    if [ "$(get_config PLAY_MEMORY_LOCK)" = "true" ]; then
+        print_status "Memory Lock" "true" "enabled"
+    else
+        print_status "Memory Lock" "false" "disabled"
+    fi
+    
+    if [ "$(get_config PLAY_IOSCHED_TUNE)" = "true" ]; then
+        print_status "I/O Sched Tune" "true" "enabled"
+    else
+        print_status "I/O Sched Tune" "false" "disabled"
     fi
 }
 
@@ -298,20 +708,20 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config SWAP_ENABLED "true"
-                echo "Swap enabled. Restart device to apply changes."
+                print_success "Swap enabled. Restart device to apply changes."
                 ;;
             "-off")
-                confirm_action "Disabling swap may affect system performance."
+                confirm_action "Disabling swap may affect system performance"
                 set_config SWAP_ENABLED "false"
-                echo "Swap disabled. Restart device to apply changes."
+                print_warning "Swap disabled. Restart device to apply changes."
                 ;;
             "-size")
                 if [ -n "$3" ]; then
                     validate_number "$3"
                     set_config SWAP_SIZE_GB "$3"
-                    echo "Swap size set to ${3}GB. Restart device to apply changes."
+                    print_success "Swap size set to ${3}GB. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -swap -size <size>"
+                    print_error "Usage: nextram -swap -size <size>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -319,9 +729,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_number "$3"
                     set_config OVERHEAD_GB "$3"
-                    echo "Swap overhead set to ${3}GB. Restart device to apply changes."
+                    print_success "Swap overhead set to ${3}GB. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -swap -over <size>"
+                    print_error "Usage: nextram -swap -over <size>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -329,14 +739,14 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_priority "$3"
                     set_config SWAP_PRIORITY "$3"
-                    echo "Swap priority set to $3. Restart device to apply changes."
+                    print_success "Swap priority set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -swap -priority <priority>"
+                    print_error "Usage: nextram -swap -priority <priority>"
                     exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "ERROR: Usage: nextram -swap [-on | -off | -size <size> | -over <size> | -priority <priority>]"
+                print_error "Usage: nextram -swap [-on | -off | -size <size> | -over <size> | -priority <priority>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -346,12 +756,12 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config ZRAM_ENABLED "true"
-                echo "ZRAM enabled. Restart device to apply changes."
+                print_success "ZRAM enabled. Restart device to apply changes."
                 ;;
             "-off")
-                confirm_action "Disabling ZRAM may affect system performance."
+                confirm_action "Disabling ZRAM may affect system performance"
                 set_config ZRAM_ENABLED "false"
-                echo "ZRAM disabled. Restart device to apply changes."
+                print_warning "ZRAM disabled. Restart device to apply changes."
                 ;;
             "-alg")
                 show_available_algorithms
@@ -360,9 +770,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_number "$3"
                     set_config ZRAM_RATIO "$3"
-                    echo "ZRAM ratio set to $3. Restart device to apply changes."
+                    print_success "ZRAM ratio set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -ratio <ratio>"
+                    print_error "Usage: nextram -zram -ratio <ratio>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -370,9 +780,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_algorithm "$3"
                     set_config ZRAM_ALGORITHM "$3"
-                    echo "ZRAM algorithm set to $3. Restart device to apply changes."
+                    print_success "ZRAM algorithm set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -algo <algorithm>"
+                    print_error "Usage: nextram -zram -algo <algorithm>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -380,9 +790,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config MAX_COMP_STREAMS "$3"
-                    echo "ZRAM compression streams set to $3. Restart device to apply changes."
+                    print_success "ZRAM compression streams set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -str <streams>"
+                    print_error "Usage: nextram -zram -str <streams>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -390,9 +800,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_priority "$3"
                     set_config ZRAM_PRIORITY "$3"
-                    echo "ZRAM priority set to $3. Restart device to apply changes."
+                    print_success "ZRAM priority set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -priority <priority>"
+                    print_error "Usage: nextram -zram -priority <priority>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -400,9 +810,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config ZRAM_COMPRESSION_LEVEL "$3"
-                    echo "ZRAM compression level set to $3. Restart device to apply changes."
+                    print_success "ZRAM compression level set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -complevel <level>"
+                    print_error "Usage: nextram -zram -complevel <level>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -410,14 +820,14 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_memory_limit "$3"
                     set_config ZRAM_MEMORY_LIMIT "$3"
-                    echo "ZRAM memory limit set to $3. Restart device to apply changes."
+                    print_success "ZRAM memory limit set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -zram -memlimit <limit>"
+                    print_error "Usage: nextram -zram -memlimit <limit>"
                     exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "ERROR: Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams> | -priority <priority> | -complevel <level> | -memlimit <limit>]"
+                print_error "Usage: nextram -zram [-on | -off | -alg | -ratio <ratio> | -algo <algo> | -str <streams> | -priority <priority> | -complevel <level> | -memlimit <limit>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -429,9 +839,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_swappiness "$3"
                     set_config SWAPPINESS "$3"
-                    echo "Swappiness set to $3. Restart device to apply changes."
+                    print_success "Swappiness set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -swap <value> (0-100)"
+                    print_error "Usage: nextram -vm -swap <value> (0-100)"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -439,9 +849,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_number "$3"
                     set_config CACHE_PRESSURE "$3"
-                    echo "Cache pressure set to $3. Restart device to apply changes."
+                    print_success "Cache pressure set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -cache <value>"
+                    print_error "Usage: nextram -vm -cache <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -449,9 +859,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_range "$3" 0 100
                     set_config DIRTY_RATIO "$3"
-                    echo "Dirty ratio set to $3. Restart device to apply changes."
+                    print_success "Dirty ratio set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -dirty <value> (0-100)"
+                    print_error "Usage: nextram -vm -dirty <value> (0-100)"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -459,9 +869,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_range "$3" 0 100
                     set_config DIRTY_BACKGROUND_RATIO "$3"
-                    echo "Dirty background ratio set to $3. Restart device to apply changes."
+                    print_success "Dirty background ratio set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -dirtybg <value> (0-100)"
+                    print_error "Usage: nextram -vm -dirtybg <value> (0-100)"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -469,9 +879,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config VM_DIRTY_WRITEBACK_CENTISECS "$3"
-                    echo "Dirty writeback centisecs set to $3. Restart device to apply changes."
+                    print_success "Dirty writeback centisecs set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -dirtywb <value>"
+                    print_error "Usage: nextram -vm -dirtywb <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -479,9 +889,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config VM_DIRTY_EXPIRE_CENTISECS "$3"
-                    echo "Dirty expire centisecs set to $3. Restart device to apply changes."
+                    print_success "Dirty expire centisecs set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -dirtyexp <value>"
+                    print_error "Usage: nextram -vm -dirtyexp <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -489,9 +899,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config VM_PAGE_CLUSTER "$3"
-                    echo "Page cluster set to $3. Restart device to apply changes."
+                    print_success "Page cluster set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -pagecluster <value>"
+                    print_error "Usage: nextram -vm -pagecluster <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -499,52 +909,52 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     if [ "$3" -lt 0 ] || [ "$3" -gt 3 ]; then
-                        echo "ERROR: Laptop mode must be between 0 and 3"
+                        print_error "Laptop mode must be between 0 and 3"
                         exit $INVALID_VALUE
                     fi
                     set_config VM_LAPTOP_MODE "$3"
-                    echo "Laptop mode set to $3. Restart device to apply changes."
+                    print_success "Laptop mode set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -laptopmode <value> (0-3)"
+                    print_error "Usage: nextram -vm -laptopmode <value> (0-3)"
                     exit $MISSING_ARG
                 fi
                 ;;
             "-oomtask")
                 if [ -n "$3" ]; then
                     if [ "$3" != "0" ] && [ "$3" != "1" ]; then
-                        echo "ERROR: OOM kill allocating task must be 0 or 1"
+                        print_error "OOM kill allocating task must be 0 or 1"
                         exit $INVALID_VALUE
                     fi
                     set_config VM_OOM_KILL_ALLOCATING_TASK "$3"
-                    echo "OOM kill allocating task set to $3. Restart device to apply changes."
+                    print_success "OOM kill allocating task set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -oomtask <0|1>"
+                    print_error "Usage: nextram -vm -oomtask <0|1>"
                     exit $MISSING_ARG
                 fi
                 ;;
             "-panicoom")
                 if [ -n "$3" ]; then
                     if [ "$3" != "0" ] && [ "$3" != "1" ] && [ "$3" != "2" ]; then
-                        echo "ERROR: Panic on OOM must be 0, 1, or 2"
+                        print_error "Panic on OOM must be 0, 1, or 2"
                         exit $INVALID_VALUE
                     fi
                     set_config VM_PANIC_ON_OOM "$3"
-                    echo "Panic on OOM set to $3. Restart device to apply changes."
+                    print_success "Panic on OOM set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -panicoom <0|1|2>"
+                    print_error "Usage: nextram -vm -panicoom <0|1|2>"
                     exit $MISSING_ARG
                 fi
                 ;;
             "-overcommit")
                 if [ -n "$3" ]; then
                     if [ "$3" != "0" ] && [ "$3" != "1" ] && [ "$3" != "2" ]; then
-                        echo "ERROR: Overcommit memory must be 0, 1, or 2"
+                        print_error "Overcommit memory must be 0, 1, or 2"
                         exit $INVALID_VALUE
                     fi
                     set_config VM_OVERCOMMIT_MEMORY "$3"
-                    echo "Overcommit memory set to $3. Restart device to apply changes."
+                    print_success "Overcommit memory set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -overcommit <0|1|2>"
+                    print_error "Usage: nextram -vm -overcommit <0|1|2>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -552,9 +962,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config VM_OVERCOMMIT_RATIO "$3"
-                    echo "Overcommit ratio set to $3. Restart device to apply changes."
+                    print_success "Overcommit ratio set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -overcommit_ratio <value>"
+                    print_error "Usage: nextram -vm -overcommit_ratio <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -562,9 +972,9 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config VM_WATERMARK_SCALE_FACTOR "$3"
-                    echo "Watermark scale factor set to $3. Restart device to apply changes."
+                    print_success "Watermark scale factor set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -watermark <value>"
+                    print_error "Usage: nextram -vm -watermark <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
@@ -572,14 +982,14 @@ case "$1" in
                 if [ -n "$3" ]; then
                     validate_integer "$3"
                     set_config KERNEL_THREADS_MAX "$3"
-                    echo "Kernel threads max set to $3. Restart device to apply changes."
+                    print_success "Kernel threads max set to $3. Restart device to apply changes."
                 else
-                    echo "ERROR: Usage: nextram -vm -threadsmax <value>"
+                    print_error "Usage: nextram -vm -threadsmax <value>"
                     exit $MISSING_ARG
                 fi
                 ;;
             *)
-                echo "ERROR: Usage: nextram -vm [-swap <value> | -cache <value> | -dirty <value> | -dirtybg <value> | -dirtywb <value> | -dirtyexp <value> | -pagecluster <value> | -laptopmode <value> | -oomtask <0|1> | -panicoom <0|1|2> | -overcommit <0|1|2> | -overcommit_ratio <value> | -watermark <value> | -threadsmax <value>]"
+                print_error "Usage: nextram -vm [-swap <value> | -cache <value> | -dirty <value> | -dirtybg <value> | -dirtywb <value> | -dirtyexp <value> | -pagecluster <value> | -laptopmode <value> | -oomtask <0|1> | -panicoom <0|1|2> | -overcommit <0|1|2> | -overcommit_ratio <value> | -watermark <value> | -threadsmax <value>]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -589,14 +999,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config EXTRA_TUNING "true"
-                echo "Extra tuning enabled. Restart device to apply changes."
+                print_success "Extra tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config EXTRA_TUNING "false"
-                echo "Extra tuning disabled. Restart device to apply changes."
+                print_warning "Extra tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -tuning [-on | -off]"
+                print_error "Usage: nextram -tuning [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -606,14 +1016,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config DYNAMIC_SWAPPINESS "true"
-                echo "Dynamic swappiness enabled. Restart device to apply changes."
+                print_success "Dynamic swappiness enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config DYNAMIC_SWAPPINESS "false"
-                echo "Dynamic swappiness disabled. Restart device to apply changes."
+                print_warning "Dynamic swappiness disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -dyn [-on | -off]"
+                print_error "Usage: nextram -dyn [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -623,14 +1033,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config PERFORMANCE_MODE "true"
-                echo "Performance mode enabled. Restart device to apply changes."
+                print_success "Performance mode enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config PERFORMANCE_MODE "false"
-                echo "Performance mode disabled. Restart device to apply changes."
+                print_warning "Performance mode disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -perf [-on | -off]"
+                print_error "Usage: nextram -perf [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -640,14 +1050,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config ZRAM_AUTO_TUNE "true"
-                echo "ZRAM auto tuning enabled. Restart device to apply changes."
+                print_success "ZRAM auto tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config ZRAM_AUTO_TUNE "false"
-                echo "ZRAM auto tuning disabled. Restart device to apply changes."
+                print_warning "ZRAM auto tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -zauto [-on | -off]"
+                print_error "Usage: nextram -zauto [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -657,14 +1067,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config IO_SCHEDULER_TUNE "true"
-                echo "I/O scheduler tuning enabled. Restart device to apply changes."
+                print_success "I/O scheduler tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config IO_SCHEDULER_TUNE "false"
-                echo "I/O scheduler tuning disabled. Restart device to apply changes."
+                print_warning "I/O scheduler tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -iosched [-on | -off]"
+                print_error "Usage: nextram -iosched [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -674,14 +1084,14 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config CPU_BOOST "true"
-                echo "CPU boost enabled. Restart device to apply changes."
+                print_success "CPU boost enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config CPU_BOOST "false"
-                echo "CPU boost disabled. Restart device to apply changes."
+                print_warning "CPU boost disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -cpuboost [-on | -off]"
+                print_error "Usage: nextram -cpuboost [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
@@ -691,17 +1101,614 @@ case "$1" in
         case "$2" in
             "-on")
                 set_config NETWORK_TUNE "true"
-                echo "Network tuning enabled. Restart device to apply changes."
+                print_success "Network tuning enabled. Restart device to apply changes."
                 ;;
             "-off")
                 set_config NETWORK_TUNE "false"
-                echo "Network tuning disabled. Restart device to apply changes."
+                print_warning "Network tuning disabled. Restart device to apply changes."
                 ;;
             *)
-                echo "ERROR: Usage: nextram -network [-on | -off]"
+                print_error "Usage: nextram -network [-on | -off]"
                 exit $INVALID_ARG
                 ;;
         esac
+        ;;
+
+    "-play-enabled")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_ENABLED "$2"
+            if [ "$2" = "true" ]; then
+                print_success "NextRAM Play enabled. Restart device to apply changes."
+            else
+                print_warning "NextRAM Play disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-enabled <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-boost")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_CPU_BOOST "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play CPU boost enabled. Restart device to apply changes."
+            else
+                print_warning "Play CPU boost disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-cpu-boost <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-governor")
+        if [ -n "$2" ]; then
+            set_config PLAY_CPU_GOVERNOR "$2"
+            print_success "Play CPU governor set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-governor <governor>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-min-freq")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_CPU_MIN_FREQ "$2"
+            print_success "Play CPU min freq set to ${2}MHz. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-min-freq <mhz>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-max-freq")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_CPU_MAX_FREQ "$2"
+            print_success "Play CPU max freq set to ${2}MHz. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-max-freq <mhz>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-max-freq-percent")
+        if [ -n "$2" ]; then
+            validate_range "$2" 0 100
+            set_config PLAY_CPU_MAX_FREQ_PERCENT "$2"
+            print_success "Play CPU max freq percent set to ${2}%. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-max-freq-percent <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-boost-duration")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_CPU_BOOST_DURATION "$2"
+            print_success "Play CPU boost duration set to ${2}ms. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-boost-duration <ms>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-boost-level")
+        if [ -n "$2" ]; then
+            validate_range "$2" 0 100
+            set_config PLAY_CPU_BOOST_LEVEL "$2"
+            print_success "Play CPU boost level set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-boost-level <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-gpu-boost")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_GPU_BOOST "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play GPU boost enabled. Restart device to apply changes."
+            else
+                print_warning "Play GPU boost disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-gpu-boost <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-gpu-governor")
+        if [ -n "$2" ]; then
+            set_config PLAY_GPU_GOVERNOR "$2"
+            print_success "Play GPU governor set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-gpu-governor <governor>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-gpu-max-freq-percent")
+        if [ -n "$2" ]; then
+            validate_range "$2" 0 100
+            set_config PLAY_GPU_MAX_FREQ_PERCENT "$2"
+            print_success "Play GPU max freq percent set to ${2}%. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-gpu-max-freq-percent <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-gpu-touch-boost")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_GPU_TOUCH_BOOST "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play GPU touch boost enabled. Restart device to apply changes."
+            else
+                print_warning "Play GPU touch boost disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-gpu-touch-boost <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-touch-boost")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_TOUCH_BOOST "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play touch boost enabled. Restart device to apply changes."
+            else
+                print_warning "Play touch boost disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-touch-boost <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-touch-polling")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_TOUCH_POLLING_RATE "$2"
+            print_success "Play touch polling rate set to ${2}Hz. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-touch-polling <hz>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-vsync")
+        if [ -n "$2" ]; then
+            validate_vsync "$2"
+            set_config PLAY_VSYNC_MODE "$2"
+            print_success "Play VSync set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-vsync <off/on/adaptive>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-disable-hw-overlays")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_DISABLE_HW_OVERLAYS "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play disable HW overlays enabled. Restart device to apply changes."
+            else
+                print_warning "Play disable HW overlays disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-disable-hw-overlays <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-force-gpu-render")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_FORCE_GPU_RENDER "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play force GPU render enabled. Restart device to apply changes."
+            else
+                print_warning "Play force GPU render disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-force-gpu-render <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-network-tune")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_NETWORK_TUNE "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play network tune enabled. Restart device to apply changes."
+            else
+                print_warning "Play network tune disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-network-tune <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-net-rmem-default")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_NET_RMEM_DEFAULT "$2"
+            print_success "Play net rmem default set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-net-rmem-default <bytes>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-net-wmem-default")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_NET_WMEM_DEFAULT "$2"
+            print_success "Play net wmem default set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-net-wmem-default <bytes>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-net-rmem-max")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_NET_RMEM_MAX "$2"
+            print_success "Play net rmem max set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-net-rmem-max <bytes>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-net-wmem-max")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_NET_WMEM_MAX "$2"
+            print_success "Play net wmem max set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-net-wmem-max <bytes>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-tcp-congestion")
+        if [ -n "$2" ]; then
+            validate_tcp "$2"
+            set_config PLAY_TCP_CONGESTION "$2"
+            print_success "Play TCP congestion set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-tcp-congestion <bbr/cubic/reno/westwood>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-swappiness")
+        if [ -n "$2" ]; then
+            validate_swappiness "$2"
+            set_config PLAY_SWAPPINESS "$2"
+            print_success "Play swappiness set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-swappiness <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cache-pressure")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_CACHE_PRESSURE "$2"
+            print_success "Play cache pressure set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cache-pressure <value>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-dirty-ratio")
+        if [ -n "$2" ]; then
+            validate_range "$2" 0 100
+            set_config PLAY_DIRTY_RATIO "$2"
+            print_success "Play dirty ratio set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-dirty-ratio <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-dirty-bg-ratio")
+        if [ -n "$2" ]; then
+            validate_range "$2" 0 100
+            set_config PLAY_DIRTY_BG_RATIO "$2"
+            print_success "Play dirty background ratio set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-dirty-bg-ratio <0-100>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-zram-optimize")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_ZRAM_OPTIMIZE "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play ZRAM optimize enabled. Restart device to apply changes."
+            else
+                print_warning "Play ZRAM optimize disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-zram-optimize <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-clear-caches")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_CLEAR_CACHES "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play clear caches enabled. Restart device to apply changes."
+            else
+                print_warning "Play clear caches disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-clear-caches <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-thermal-control")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_THERMAL_CONTROL "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play thermal control enabled. Restart device to apply changes."
+            else
+                print_warning "Play thermal control disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-thermal-control <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-thermal-profile")
+        if [ -n "$2" ]; then
+            validate_thermal "$2"
+            set_config PLAY_THERMAL_PROFILE "$2"
+            print_success "Play thermal profile set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-thermal-profile <aggressive/balanced/conservative>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-bg-control")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_BG_CONTROL "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play background control enabled. Restart device to apply changes."
+            else
+                print_warning "Play background control disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-bg-control <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-bg-whitelist")
+        if [ -n "$2" ]; then
+            set_config PLAY_BG_WHITELIST "$2"
+            print_success "Play background whitelist set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-bg-whitelist <apps>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-bg-kill-limit")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_BG_KILL_LIMIT "$2"
+            print_success "Play background kill limit set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-bg-kill-limit <number>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-auto-detect")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_AUTO_DETECT "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play auto detect enabled. Restart device to apply changes."
+            else
+                print_warning "Play auto detect disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-auto-detect <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-game-profile")
+        if [ -n "$2" ]; then
+            validate_play_profile "$2"
+            set_config PLAY_GAME_PROFILE "$2"
+            print_success "Play game profile set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-game-profile <profile>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-perf-monitor")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_PERF_MONITOR "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play performance monitor enabled. Restart device to apply changes."
+            else
+                print_warning "Play performance monitor disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-perf-monitor <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-perf-overlay")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_PERF_OVERLAY "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play performance overlay enabled. Restart device to apply changes."
+            else
+                print_warning "Play performance overlay disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-perf-overlay <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-audio-latency")
+        if [ -n "$2" ]; then
+            validate_audio "$2"
+            set_config PLAY_AUDIO_LATENCY "$2"
+            print_success "Play audio latency set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-audio-latency <low/normal/high_quality>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-audio-buffer")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_AUDIO_BUFFER "$2"
+            print_success "Play audio buffer set to $2 samples. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-audio-buffer <samples>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-charging-boost")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_CHARGING_BOOST "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play charging boost enabled. Restart device to apply changes."
+            else
+                print_warning "Play charging boost disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-charging-boost <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-battery-saver")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_BATTERY_SAVER "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play battery saver enabled. Restart device to apply changes."
+            else
+                print_warning "Play battery saver disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-battery-saver <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-power-limit")
+        if [ -n "$2" ]; then
+            validate_integer "$2"
+            set_config PLAY_POWER_LIMIT "$2"
+            print_success "Play power limit set to ${2}mW. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-power-limit <mw>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-realtime-priority")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_REALTIME_PRIORITY "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play realtime priority enabled. Restart device to apply changes."
+            else
+                print_warning "Play realtime priority disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-realtime-priority <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-cpu-affinity")
+        if [ -n "$2" ]; then
+            set_config PLAY_CPU_AFFINITY "$2"
+            print_success "Play CPU affinity set to $2. Restart device to apply changes."
+        else
+            print_error "Usage: nextram -play-cpu-affinity <cores>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-memory-lock")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_MEMORY_LOCK "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play memory lock enabled. Restart device to apply changes."
+            else
+                print_warning "Play memory lock disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-memory-lock <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-iosched-tune")
+        if [ -n "$2" ]; then
+            validate_bool "$2"
+            set_config PLAY_IOSCHED_TUNE "$2"
+            if [ "$2" = "true" ]; then
+                print_success "Play I/O scheduler tune enabled. Restart device to apply changes."
+            else
+                print_warning "Play I/O scheduler tune disabled. Restart device to apply changes."
+            fi
+        else
+            print_error "Usage: nextram -play-iosched-tune <true/false>"
+            exit $MISSING_ARG
+        fi
+        ;;
+
+    "-play-status")
+        show_play_status
         ;;
 
     "-log")
@@ -713,15 +1720,15 @@ case "$1" in
             case "$2" in
                 "DEBUG"|"INFO"|"WARN"|"ERROR")
                     set_config LOG_LEVEL "$2"
-                    echo "Log level set to $2. Restart device to apply changes."
+                    print_success "Log level set to $2. Restart device to apply changes."
                     ;;
                 *)
-                    echo "ERROR: Log level must be DEBUG, INFO, WARN, or ERROR"
+                    print_error "Log level must be DEBUG, INFO, WARN, or ERROR"
                     exit $INVALID_VALUE
                     ;;
             esac
         else
-            echo "ERROR: Usage: nextram -loglevel <DEBUG|INFO|WARN|ERROR>"
+            print_error "Usage: nextram -loglevel <DEBUG|INFO|WARN|ERROR>"
             exit $MISSING_ARG
         fi
         ;;
@@ -731,7 +1738,7 @@ case "$1" in
         ;;
 
     *)
-        echo "ERROR: Unknown command: $1"
+        print_error "Unknown command: $1"
         show_help
         exit $INVALID_ARG
         ;;

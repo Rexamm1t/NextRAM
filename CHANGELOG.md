@@ -1,3 +1,39 @@
+## NextRAM Play v9.3.978-(93978)
+
+[PLAY MODE]
+- Added NextRAM Play gaming mode for enhanced in-game performance
+- Added CPU optimization: governor control, min/max frequency management, boost mode
+- Added GPU optimization: governor tuning, frequency control, throttling disable
+- Enhanced touch responsiveness: increased polling rate, VSync configuration
+- Added network tuning for gaming: TCP optimization, buffer management, WiFi power save disable
+- Added memory optimization: swappiness tuning, cache pressure control, ZRAM management
+- Added thermal management: profile selection (aggressive, balanced, conservative)
+- Added background process control for resource optimization
+- Added game detector for automatic gaming mode activation
+- Added gaming profiles: FPS Competitive, Open World, Casual, Battery Saver, Custom
+- Added performance monitor
+
+[INSTALL]
+- Fixed Play Mode installation on some devices
+- Improved compatibility with various kernel manufacturers
+- Fixed timeouts during configuration application
+
+[CTL]
+- update NextRAM CTL Service
+---
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+---
+
+## NextRAM Whole Fix 9.2.822
+
+[APP]
+- bug fixes
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM Whole v9.2.371-(92371)
 
 **[APP]**

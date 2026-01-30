@@ -22,4 +22,6 @@ check_prerequisites() {
         log "WARN" "ZRAM device not found"
         ZRAM_ENABLED=false
     fi
+    
+    return 0
 }

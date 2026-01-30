@@ -12,9 +12,13 @@ ui_print() {
     echo "- $1"
 }
 
+ui_print_n() {
+    echo -n "- $1"
+}
+
 run_aicf_analysis() {
     if [ ! -x "$MODPATH/main/tools/nextramaicf" ]; then
-        aicf_print "ERROR: AICF driver not found"
+        ui_print "ERROR: AICF driver not found"
         return 1
     fi
     
@@ -39,7 +43,8 @@ print_modname() {
   ui_print " "
   ui_print "   \  |               |     _ \      \      \  |"
   ui_print "    \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |"
-  ui_print "  |\  |   __/  \  <   |    __ <    ___ \   |   |"
+  ui_print_n "  |\  |   __/  \  <   |    __ <    __ "
+  ui_print "$(awk -F= '/^version=/{print $2}' "$CONFIG_FILE")" 
   ui_print " _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|"
   ui_print " "
   ui_print "   by @rexamm1t • @matrix_5858 • @galaxyfier"
@@ -106,6 +111,53 @@ on_install() {
     IO_SCHEDULER_TUNE:false
     CPU_BOOST:false
     NETWORK_TUNE:false
+    PLAY_ENABLED:true
+    PLAY_CPU_BOOST:true
+    PLAY_CPU_GOVERNOR:performance
+    PLAY_CPU_MIN_FREQ:0
+    PLAY_CPU_MAX_FREQ:0
+    PLAY_CPU_MAX_FREQ_PERCENT:100
+    PLAY_CPU_BOOST_DURATION:2000
+    PLAY_CPU_BOOST_LEVEL:50
+    PLAY_GPU_BOOST:true
+    PLAY_GPU_GOVERNOR:performance
+    PLAY_GPU_MAX_FREQ_PERCENT:100
+    PLAY_GPU_TOUCH_BOOST:true
+    PLAY_TOUCH_BOOST:true
+    PLAY_TOUCH_POLLING_RATE:250
+    PLAY_VSYNC_MODE:adaptive
+    PLAY_DISABLE_HW_OVERLAYS:false
+    PLAY_FORCE_GPU_RENDER:true
+    PLAY_NETWORK_TUNE:true
+    PLAY_NET_RMEM_DEFAULT:262144
+    PLAY_NET_WMEM_DEFAULT:262144
+    PLAY_NET_RMEM_MAX:67108864
+    PLAY_NET_WMEM_MAX:67108864
+    PLAY_TCP_CONGESTION:bbr
+    PLAY_SWAPPINESS:20
+    PLAY_CACHE_PRESSURE:50
+    PLAY_DIRTY_RATIO:10
+    PLAY_DIRTY_BG_RATIO:5
+    PLAY_ZRAM_OPTIMIZE:true
+    PLAY_CLEAR_CACHES:true
+    PLAY_THERMAL_CONTROL:true
+    PLAY_THERMAL_PROFILE:balanced
+    PLAY_BG_CONTROL:true
+    PLAY_BG_WHITELIST:com.discord,com.spotify.music,com.chrome
+    PLAY_BG_KILL_LIMIT:10
+    PLAY_AUTO_DETECT:true
+    PLAY_GAME_PROFILE:auto
+    PLAY_PERF_MONITOR:true
+    PLAY_PERF_OVERLAY:false
+    PLAY_AUDIO_LATENCY:low
+    PLAY_AUDIO_BUFFER:128
+    PLAY_CHARGING_BOOST:true
+    PLAY_BATTERY_SAVER:false
+    PLAY_POWER_LIMIT:0
+    PLAY_REALTIME_PRIORITY:true
+    PLAY_CPU_AFFINITY:0-3
+    PLAY_MEMORY_LOCK:false
+    PLAY_IOSCHED_TUNE:true
     '
 
     if [ -f "/data/adb/modules/NextRAM/common/post-fs-data.sh" ] || [ -f "/data/adb/modules/NextRAM/post-fs-data.sh" ] && [ ! -f "$conf" ]; then
@@ -137,17 +189,22 @@ on_install() {
   fi
 
   ui_print "extracting files..."
+  unzip -o "$ZIPFILE" 'main/*' -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
-  unzip -o "$ZIPFILE" '*.sh' -x "install.sh build_tools.sh" -d $MODPATH >&2
+  unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
-  unzip -o "$ZIPFILE" 'tools/*' -d $MODPATH >&2
-  unzip -o "$ZIPFILE" 'status_gt' -d $MODPATH >&2
   
-  chmod 0755 $MODPATH/tools/* 2>/dev/null
+  find $MODPATH -type f -name "*.sh" -exec chmod 755 {} \;
+  find $MODPATH/main/tools -type f -exec chmod 755 {} \;
+  chmod 755 $MODPATH/system/bin/nextram 2>/dev/null
 
   if [ ! -f "$MODPATH/system/bin/nextram" ]; then
     ui_print "ERROR: nextram binary not found"
     exit 1
+  fi
+
+  if [ ! -f "$MODPATH/main/tools/nextramaicf" ]; then
+    ui_print "WARNING: nextramaicf not found - AICF features will be unavailable"
   fi
 
   if [ ! -f "$MODPATH/apk/nextram.apk" ]; then
@@ -194,9 +251,8 @@ on_install() {
 
 set_permissions() {
   set_perm_recursive $MODPATH 0 0 0755 0755
-  set_perm $MODPATH/tools/* 0 0 0755 0755
+  set_perm $MODPATH/main/tools/* 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755 0755
-  set_perm $MODPATH/status_gt 0 0 0755 0755
   ui_print "installation completed successfully <3"
   open_browser
 }
