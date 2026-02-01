@@ -5,15 +5,15 @@ PROPFILE=false
 POSTFSDATA=false
 LATESTARTSERVICE=false
 APKDIR="/data/local/tmp/apk"
-unzip -o "$ZIPFILE" 'module.prop' -d $MODPATH >&2
 CONFIG_FILE="$MODPATH/module.prop"
+unzip -o "$ZIPFILE" 'module.prop' -d $MODPATH >&2
 
 ui_print() {
-    echo "- $1"
+    echo "$1"
 }
 
 ui_print_n() {
-    echo -n "- $1"
+    echo -n "$1"
 }
 
 run_aicf_analysis() {
@@ -39,41 +39,39 @@ open_browser() {
     am start -a android.intent.action.VIEW -d "https://nextram.cocal.ru" --user 0 >/dev/null 2>&1 &
 }
 
-print_modname() {
-  ui_print " "
-  ui_print "   \  |               |     _ \      \      \  |"
-  ui_print "    \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |"
-  ui_print_n "  |\  |   __/  \  <   |    __ <    __ "
-  ui_print "$(awk -F= '/^version=/{print $2}' "$CONFIG_FILE")" 
-  ui_print " _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|"
-  ui_print " "
-  ui_print "   by @rexamm1t • @matrix_5858 • @galaxyfier"
-  ui_print "             @Alloyd031 • @wefol1x "
-  ui_print "            @Egor164rus • @w3b_0s1nt"
-  ui_print "                  with love <3"
-  ui_print "         tg channel: @nextram_official"
-  ui_print "   official web site: https://nextram.cocal.ru/ "
-}
+ui_print " "
+ui_print "   \  |               |     _ \      \      \  |"
+ui_print "    \ |   _ \ \ \  /  __|  |   |    _ \    |\/ |"
+ui_print_n "  |\  |   __/  \  <   |    __ <    __ "
+ui_print "$(awk -F= '/^version=/{print $2}' "$CONFIG_FILE")"
+ui_print " _| \_| \___|  _/\_\ \__| _| \_\ _/    _\ _|  _|"
+ui_print " "
+ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
+ui_print "•  by @rexamm1t • @matrix_5858 • @galaxyfier   •"
+ui_print "•            @Alloyd031 • @wefol1x             •"
+ui_print "•           @Egor164rus • @w3b_0s1nt           •"
+ui_print "•                 with love <3                 •"
+ui_print "•        tg channel: @nextram_official         •"
+ui_print "•  official web site: https://nextram.cocal.ru/•"
+ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
 
 on_install() {
-  ui_print "____________________________________________"
-  ui_print "starting installation"
-  ui_print "____________________________________________"
-  ui_print "NextRAM Version - $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
-  ui_print "NextRAM Status  - $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
-  ui_print "NextRAM ModName  - $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
-  ui_print "____________________________________________"
-  ui_print "arch   : $(uname -m)"
-  ui_print "android: $(getprop ro.build.version.release)"
-  ui_print "linux  : $(uname -r)"
-  ui_print "API    : $(getprop ro.build.version.sdk)"
-  ui_print "model  : $(getprop ro.product.model)"
-  ui_print "____________________________________________"
+  ui_print "NextRAM Version  • $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
+  ui_print "NextRAM Status   • $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
+  ui_print "NextRAM ModName  • $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
+  ui_print "+•[ 1 / 5 ]•••••••••••••••••••••[INFORMATION]••+"
+  ui_print " • arch    • $(uname -m)"
+  ui_print " • android • $(getprop ro.build.version.release)"
+  ui_print " • linux   • $(uname -r)"
+  ui_print " • API     • $(getprop ro.build.version.sdk)"
+  ui_print " • model   • $(getprop ro.product.model)"
+  ui_print "+•[ 2 / 5 ]•••••••••••••••••••••••[NR CONFIG]••+"
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
   if [ -f "$conf" ]; then
-   ui_print "config.conf detected, backuping..."
+   ui_print "• config.conf detected, backuping...           •"
+   ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
    cp -r $conf $MODPATH
   else
    if [ -f "/data/adb/modules/NextRAM/module.prop" ]; then
@@ -161,9 +159,11 @@ on_install() {
     '
 
     if [ -f "/data/adb/modules/NextRAM/common/post-fs-data.sh" ] || [ -f "/data/adb/modules/NextRAM/post-fs-data.sh" ] && [ ! -f "$conf" ]; then
-               ui_print "NextRAM 3.0+ config detected, migrating to config.conf..."
+               ui_print "• NextRAM 3.0+ config detected, census...      •"
+               ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
     elif [ -f "/data/adb/modules/NextRAM/service.sh" ] && [ ! -f "$conf" ]; then
-                ui_print "NextRAM 6.0+ config detected, migrating to config.conf..."
+                ui_print "• NextRAM 6.0+ config detected, census...      •"
+                ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
     fi
 
     for var in $LIST_VAR; do
@@ -187,12 +187,21 @@ on_install() {
     done
    fi
   fi
-
-  ui_print "extracting files..."
+  ui_print "+•[ 3 / 5 ]•••••••••••••••••••••••••[Extract]••+"
+  ui_print "•              extracting files...             •"
+  ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   unzip -o "$ZIPFILE" 'main/*' -d $MODPATH >&2
+  ui_print "•   [1/4] • main* has been copied              •"
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
+  ui_print "•   [2/4] • system* has been copied            •"
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
+  ui_print "•   [3/4] •  the scripts were copied           •"
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
+  ui_print "•   [4/4] • apk* has been copied               •"
+  ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
+  ui_print "•                   * - dir                    •"
+  ui_print "•           file copying is complete           •"
+  ui_print "+•[ 4 / 5 ]•••••••••••••••••••••••••••••[APK]••+"
   
   find $MODPATH -type f -name "*.sh" -exec chmod 755 {} \;
   find $MODPATH/main/tools -type f -exec chmod 755 {} \;
@@ -216,36 +225,40 @@ on_install() {
    chmod 775 $APKDIR/apk/bin/aapt/aapt-$(uname -m)
 
    if [ -z "$(pm list packages | grep "com.nextram.manager")" ]; then  
-     ui_print "installing nextram.apk..."
+     ui_print "•          installing nextram.apk...           •"
+     ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
      pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
    else
-     ui_print "nextram.apk already exists, updating..."
+     ui_print "•     nextram.apk already exists, updating...  •"
+     ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
      
      pm install -r $APKDIR/nextram.apk >&2 || su -c pm install -r $APKDIR/nextram.apk >&2
      
      if [ $? -ne 0 ]; then
-         ui_print "update failed, uninstalling old version..."
+         ui_print "•   update failed, uninstalling old version... •"
+         ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
          pm uninstall com.nextram.manager >&2 || su -c pm uninstall com.nextram.manager >&2
-         ui_print "installing new version..."
+         ui_print "•           installing new version...          •"
+         ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
          pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
      fi
    fi
    rm -rf $APKDIR
   fi
-
-  ui_print "Generate a configuration file for your device?"
-  ui_print "Vol (+) - Yes (beta, not beautiful) "
-  ui_print "Vol (-) - No (standard cfg, existing)"
-  ui_print "waiting for 15 seconds..."
+  ui_print "+•[ 5 / 5 ]••••••••••••••••••••••••••••[AICF]••+"
+  ui_print "• generate a configuration file for your device?"
+  ui_print "• Vol (+) - Yes (beta, not beautiful)          •"
+  ui_print "• Vol (-) - No (standard cfg, existing)        •"
+  ui_print "• waiting for 15 seconds...                    •"
+  ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
 
   timeout_seconds=15
   line="$(timeout $timeout_seconds getevent -ql 2>/dev/null | grep -m1 -E "KEY_VOLUME(UP|DOWN)")"
     
   case "$line" in
         *KEY_VOLUMEUP*)   run_aicf_analysis ;;
-        *KEY_VOLUMEDOWN*) ui_print "Completion with the standard config" ;;
-        *) ui_print " "
-           ui_print "timeout - using default configuration..." ;;
+        *KEY_VOLUMEDOWN*) ui_print "•     Completion with the standard config      •" ;;
+        *) ui_print "•   timeout - using default configuration...   •" ;;
     esac
 }
 
@@ -253,6 +266,8 @@ set_permissions() {
   set_perm_recursive $MODPATH 0 0 0755 0755
   set_perm $MODPATH/main/tools/* 0 0 0755 0755
   set_perm $MODPATH/system/bin/nextram 0 0 0755 0755
-  ui_print "installation completed successfully <3"
+  ui_print "+•[  ;)   ]••••••••••••••••••••••••••••••••••••+"
+  ui_print "•    installation completed successfully <3    •"
+  ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   open_browser
 }
