@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextRAM - News & Updates</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="news-data.js"></script>
+    <style>
+        :root {
+            --primary: #e91e63;
+            --secondary: #ff5722;
+            --accent: #ff9800;
+            --amoled-bg: #000000;
+            --amoled-card: #111111;
+            --amoled-border: #222222;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --telegram-blue: #0088cc;
+            --telegram-light: #1e96d2;
+            --transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Google Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--amoled-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .telegram-island {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--telegram-blue), var(--telegram-light));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1001;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transform: translateY(0);
+            transition: var(--transition);
+            cursor: pointer;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .telegram-island.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-100px);
+            pointer-events: none;
+        }
+
+        .telegram-island.with-nav {
+            top: 80px;
+        }
+
+        .island-icon {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .island-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .close-island {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .close-island:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-nav {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--amoled-border);
+            border-radius: 50px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 600px;
+            z-index: 1000;
+            transition: var(--transition);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .floating-nav.visible {
+            transform: translateX(-50%) translateY(20px);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .nav-logo .next {
+            filter: blur(0.5px);
+            color: var(--text-primary);
+        }
+
+        .nav-logo .ram {
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-left: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background: rgba(233, 30, 99, 0.1);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(233, 30, 99, 0.15);
+        }
+
+        .nav-lang-switcher {
+            position: relative;
+        }
+
+        .lang-trigger {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .lang-trigger:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .lang-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 8px;
+            min-width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .lang-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .lang-option {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .lang-option:hover, .lang-option.active {
+            background: rgba(233, 30, 99, 0.1);
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            padding: 140px 0 60px;
+            text-align: center;
+            position: relative;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 100%);
+            border-bottom: 1px solid var(--amoled-border);
+            overflow: hidden;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-container {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transform: translateY(0);
+            transition: var(--transition);
+            animation: logoFloat 6s ease-in-out infinite;
+        }
+
+        .logo-container:hover {
+            transform: translateY(-10px);
+        }
+
+        .logo {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 30px;
+            filter: drop-shadow(0 0 20px rgba(233, 30, 99, 0.3));
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+            color: var(--text-primary);
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.5s forwards;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.7s forwards;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.9s forwards;
+        }
+
+        .badge {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transition);
+            color: var(--text-secondary);
+        }
+
+        .badge:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: var(--amoled-card);
+            color: var(--text-primary);
+            padding: 12px 28px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: var(--transition);
+            margin-top: 20px;
+            border: 1px solid var(--amoled-border);
+        }
+
+        .back-btn:hover {
+            background: rgba(233, 30, 99, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        section {
+            padding: 80px 0;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .section-title h2 {
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            display: inline-block;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            border-radius: 3px;
+        }
+
+        .news-filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .filter-btn.active {
+            background: rgba(233, 30, 99, 0.15);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .filter-btn:hover {
+            background: rgba(233, 30, 99, 0.1);
+            color: var(--text-primary);
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .news-card {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .news-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .news-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .news-header {
+            padding: 25px 25px 15px;
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .news-date {
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-date i {
+            font-size: 0.8rem;
+        }
+
+        .news-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .news-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .news-tag {
+            background: rgba(233, 30, 99, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(233, 30, 99, 0.2);
+        }
+
+        .news-preview {
+            padding: 20px 25px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .news-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to bottom, transparent, var(--amoled-card));
+        }
+
+        .news-actions {
+            padding: 15px 25px;
+            border-top: 1px solid var(--amoled-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .read-more {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .read-more:hover {
+            background: rgba(233, 30, 99, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .news-author {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            padding: 20px;
+        }
+
+        .news-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(50px);
+            transition: var(--transition);
+        }
+
+        .news-modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 25px 30px 20px;
+            border-bottom: 1px solid var(--amoled-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: sticky;
+            top: 0;
+            background: var(--amoled-card);
+            z-index: 2;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-right: 20px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+            background: rgba(233, 30, 99, 0.1);
+        }
+
+        .modal-body {
+            padding: 30px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .modal-body h3 {
+            color: var(--text-primary);
+            margin: 25px 0 15px;
+            font-size: 1.2rem;
+        }
+
+        .modal-body p {
+            margin-bottom: 15px;
+        }
+
+        .modal-body ul, .modal-body ol {
+            margin: 15px 0 15px 20px;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid var(--amoled-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--amoled-card);
+            position: sticky;
+            bottom: 0;
+        }
+
+        .modal-date-author {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .no-news {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            grid-column: 1 / -1;
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 50px 0 30px;
+            text-align: center;
+            border-top: 1px solid var(--amoled-border);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .copyright {
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes logoFloat {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .logo-container {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .floating-nav {
+                width: 95%;
+                padding: 10px 15px;
+            }
+            
+            .nav-links {
+                gap: 10px;
+            }
+            
+            .nav-link {
+                font-size: 0.8rem;
+                padding: 5px 10px;
+            }
+            
+            .section-title h2 {
+                font-size: 1.8rem;
+            }
+            
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .telegram-island {
+                top: 15px;
+                right: 15px;
+                padding: 10px 15px;
+            }
+            
+            .telegram-island.with-nav {
+                top: 75px;
+            }
+            
+            .island-text {
+                font-size: 0.8rem;
+            }
+            
+            .modal-content {
+                max-height: 85vh;
+            }
+            
+            .modal-header {
+                padding: 20px;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
+            .modal-footer {
+                padding: 15px 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .telegram-island {
+                padding: 8px 12px;
+            }
+            
+            .island-text {
+                display: none;
+            }
+            
+            .news-filters {
+                gap: 10px;
+            }
+            
+            .filter-btn {
+                padding: 8px 15px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="telegram-island" id="telegramIsland">
+        <i class="fab fa-telegram island-icon"></i>
+        <span class="island-text">Присоединяйтесь к нашему Telegram</span>
+        <button class="close-island" id="closeIsland">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="floating-nav" id="floatingNav">
+        <div class="nav-logo">
+            <span class="next">Next</span><span class="ram">RAM</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="news.html" class="nav-link active">News</a>
+        </div>
+        <div class="nav-lang-switcher">
+            <button class="lang-trigger" id="langTrigger">
+                <i class="fas fa-globe"></i>
+                <span class="current-lang">English</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="lang-dropdown" id="langDropdown">
+                <button class="lang-option active" data-lang="en">English</button>
+                <button class="lang-option" data-lang="ru">Русский</button>
+                <button class="lang-option" data-lang="uk">Українська</button>
+                <button class="lang-option" data-lang="zh">中文</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="logo/logo.jpg" alt="NextRAM Logo" class="logo">
+                </div>
+                
+                <h1 class="news-page-title">News & Updates</h1>
+                <p class="tagline news-page-tagline">Stay updated with the latest NextRAM developments</p>
+                
+                <div class="badges">
+                    <div class="badge">
+                        <i class="fas fa-newspaper"></i>
+                        <span>Latest Updates</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fas fa-code-branch"></i>
+                        <span>Development News</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fab fa-telegram"></i>
+                        <span>Telegram Channel</span>
+                    </div>
+                </div>
+                
+                <a href="index.html" class="back-btn">
+                    <i class="fas fa-arrow-left"></i> <span class="back-text">Back to Home</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <section id="news">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="news-title">Latest News</h2>
+            </div>
+            
+            <div class="news-filters">
+                <button class="filter-btn active" data-filter="all">All News</button>
+                <button class="filter-btn" data-filter="release">Releases</button>
+                <button class="filter-btn" data-filter="update">Updates</button>
+                <button class="filter-btn" data-filter="announcement">Announcements</button>
+                <button class="filter-btn" data-filter="development">Development</button>
+            </div>
+            
+            <div class="news-grid" id="newsGrid">
+            </div>
+        </div>
+    </section>
+
+    <div class="news-modal" id="newsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <button class="close-modal" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+            <div class="modal-footer">
+                <div class="modal-date-author" id="modalFooter">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p class="footer-text">NextRAM - News & Updates</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="news.html">News</a>
+                <a href="config.html">Configuration</a>
+                <a href="https://github.com/Rexamm1t/NextRAM">GitHub</a>
+                <a href="https://t.me/nextram_official">Telegram</a>
+                <a href="mailto:nextram.official@gmail.com">Email Support</a>
+            </div>
+            <p class="license-text">Module is distributed under GPL v3 license. Source code is available in project repository.</p>
+            <div class="copyright">
+                All rights reserved © 2026 NextRAM - NextRAM Team.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const telegramIsland = document.getElementById('telegramIsland');
+            const closeIsland = document.getElementById('closeIsland');
+            
+            const islandClosed = localStorage.getItem('telegramIslandClosed');
+            
+            if (islandClosed) {
+                telegramIsland.classList.add('hidden');
+            }
+            
+            closeIsland.addEventListener('click', function(e) {
+                e.stopPropagation();
+                telegramIsland.classList.add('hidden');
+                localStorage.setItem('telegramIslandClosed', 'true');
+            });
+            
+            telegramIsland.addEventListener('click', function() {
+                window.open('https://t.me/nextram_official', '_blank');
+            });
+            
+            const floatingNav = document.getElementById('floatingNav');
+            const logoContainer = document.querySelector('.logo-container');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) {
+                        floatingNav.classList.add('visible');
+                        telegramIsland.classList.add('with-nav');
+                    } else {
+                        floatingNav.classList.remove('visible');
+                        telegramIsland.classList.remove('with-nav');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(logoContainer);
+            
+            const langTrigger = document.getElementById('langTrigger');
+            const langDropdown = document.getElementById('langDropdown');
+            const currentLang = document.querySelector('.current-lang');
+            const langOptions = document.querySelectorAll('.lang-option');
+            
+            langTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                langDropdown.classList.toggle('active');
+            });
+            
+            document.addEventListener('click', function() {
+                langDropdown.classList.remove('active');
+            });
+            
+            const pageTranslations = {
+                en: {
+                    'news-page-title': 'News & Updates',
+                    'news-page-tagline': 'Stay updated with the latest NextRAM developments',
+                    'back-text': 'Back to Home',
+                    'news-title': 'Latest News',
+                    'all-news': 'All News',
+                    'release': 'Releases',
+                    'update': 'Updates',
+                    'announcement': 'Announcements',
+                    'development': 'Development',
+                    'footer-text': 'NextRAM - News & Updates',
+                    'license-text': 'Module is distributed under GPL v3 license. Source code is available in project repository.',
+                    'no-news': 'No news found in this category'
+                },
+                ru: {
+                    'news-page-title': 'Новости и обновления',
+                    'news-page-tagline': 'Будьте в курсе последних разработок NextRAM',
+                    'back-text': 'Назад на главную',
+                    'news-title': 'Последние новости',
+                    'all-news': 'Все новости',
+                    'release': 'Выпуски',
+                    'update': 'Обновления',
+                    'announcement': 'Объявления',
+                    'development': 'Разработка',
+                    'footer-text': 'NextRAM - Новости и обновления',
+                    'license-text': 'Модуль распространяется по лицензии GPL v3. Исходный код доступен в репозитории проекта.',
+                    'no-news': 'Новости в этой категории не найдены'
+                },
+                uk: {
+                    'news-page-title': 'Новини та оновлення',
+                    'news-page-tagline': 'Будьте в курсі останніх розробок NextRAM',
+                    'back-text': 'Назад на головну',
+                    'news-title': 'Останні новини',
+                    'all-news': 'Всі новини',
+                    'release': 'Випуски',
+                    'update': 'Оновлення',
+                    'announcement': 'Оголошення',
+                    'development': 'Розробка',
+                    'footer-text': 'NextRAM - Новини та оновлення',
+                    'license-text': 'Модуль поширюється за ліцензією GPL v3. Вихідний код доступний у репозиторії проекту.',
+                    'no-news': 'Новини в цій категорії не знайдено'
+                },
+                zh: {
+                    'news-page-title': '新闻与更新',
+                    'news-page-tagline': '随时了解最新的 NextRAM 开发进展',
+                    'back-text': '返回首页',
+                    'news-title': '最新新闻',
+                    'all-news': '所有新闻',
+                    'release': '发布',
+                    'update': '更新',
+                    'announcement': '公告',
+                    'development': '开发',
+                    'footer-text': 'NextRAM - 新闻与更新',
+                    'license-text': '该模块根据 GPL v3 许可证分发。源代码可在项目存储库中找到。',
+                    'no-news': '此类别中未找到新闻'
+                }
+            };
+
+            let currentLanguage = 'en';
+            let currentFilter = 'all';
+
+            function renderNews() {
+                const newsGrid = document.getElementById('newsGrid');
+                newsGrid.innerHTML = '';
+                
+                const filteredNews = currentFilter === 'all' 
+                    ? newsData 
+                    : newsData.filter(news => news.category === currentFilter);
+                
+                if (filteredNews.length === 0) {
+                    const noNewsElement = document.createElement('div');
+                    noNewsElement.className = 'no-news';
+                    noNewsElement.textContent = pageTranslations[currentLanguage]['no-news'];
+                    newsGrid.appendChild(noNewsElement);
+                    return;
+                }
+                
+                filteredNews.sort((a, b) => b.id - a.id);
+                
+                filteredNews.forEach((news, index) => {
+                    const newsCard = document.createElement('div');
+                    newsCard.className = 'news-card';
+                    newsCard.setAttribute('data-category', news.category);
+                    newsCard.setAttribute('data-id', news.id);
+                    
+                    const formattedDate = new Date(news.date).toLocaleDateString(currentLanguage === 'zh' ? 'zh-CN' : currentLanguage, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const tagTranslations = {
+                        'release': pageTranslations[currentLanguage]['release'],
+                        'update': pageTranslations[currentLanguage]['update'],
+                        'announcement': pageTranslations[currentLanguage]['announcement'],
+                        'development': pageTranslations[currentLanguage]['development']
+                    };
+                    
+                    const displayTags = news.tags.filter(tag => tagTranslations[tag]);
+                    
+                    newsCard.innerHTML = `
+                        <div class="news-header">
+                            <div>
+                                <div class="news-date">
+                                    <i class="far fa-calendar"></i>
+                                    <span>${formattedDate}</span>
+                                </div>
+                                <h3 class="news-title">${news[currentLanguage].title}</h3>
+                                <div class="news-tags">
+                                    ${displayTags.map(tag => `
+                                        <span class="news-tag">${tagTranslations[tag] || tag}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="news-preview">
+                            <p>${news[currentLanguage].preview}</p>
+                        </div>
+                        <div class="news-actions">
+                            <button class="read-more" data-id="${news.id}">
+                                <i class="fas fa-book-open"></i>
+                                <span class="read-more-text">Read More</span>
+                            </button>
+                            <div class="news-author">
+                                <i class="fas fa-user"></i>
+                                <span>${news.author}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    newsGrid.appendChild(newsCard);
+                    
+                    const readMoreBtn = newsCard.querySelector('.read-more');
+                    readMoreBtn.addEventListener('click', () => openNewsModal(news.id));
+                    
+                    setTimeout(() => {
+                        newsCard.classList.add('visible');
+                    }, index * 150);
+                });
+            }
+
+            function openNewsModal(newsId) {
+                const news = newsData.find(n => n.id === newsId);
+                if (!news) return;
+                
+                const modal = document.getElementById('newsModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalBody = document.getElementById('modalBody');
+                const modalFooter = document.getElementById('modalFooter');
+                
+                const formattedDate = new Date(news.date).toLocaleDateString(currentLanguage === 'zh' ? 'zh-CN' : currentLanguage, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                modalTitle.textContent = news[currentLanguage].title;
+                modalBody.innerHTML = news[currentLanguage].content;
+                modalFooter.innerHTML = `
+                    <span><i class="far fa-calendar"></i> ${formattedDate}</span>
+                    <span style="margin-left: 20px;"><i class="fas fa-user"></i> ${news.author}</span>
+                `;
+                
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeNewsModal() {
+                const modal = document.getElementById('newsModal');
+                modal.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+
+            function switchLanguage(lang) {
+                currentLanguage = lang;
+                
+                langOptions.forEach(option => {
+                    if (option.dataset.lang === lang) {
+                        option.classList.add('active');
+                        currentLang.textContent = option.textContent;
+                    } else {
+                        option.classList.remove('active');
+                    }
+                });
+                
+                for (const key in pageTranslations[lang]) {
+                    const elements = document.querySelectorAll(`.${key}`);
+                    elements.forEach(element => {
+                        element.textContent = pageTranslations[lang][key];
+                    });
+                }
+                
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    const filter = btn.dataset.filter;
+                    if (filter in pageTranslations[lang]) {
+                        btn.textContent = pageTranslations[lang][filter];
+                    }
+                });
+                
+                document.querySelectorAll('.read-more-text').forEach(btn => {
+                    btn.textContent = lang === 'ru' ? 'Читать далее' : 
+                                     lang === 'uk' ? 'Читати далі' : 
+                                     lang === 'zh' ? '阅读更多' : 'Read More';
+                });
+                
+                renderNews();
+            }
+
+            langOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    switchLanguage(this.dataset.lang);
+                    langDropdown.classList.remove('active');
+                });
+            });
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentFilter = this.dataset.filter;
+                    renderNews();
+                });
+            });
+
+            document.getElementById('closeModal').addEventListener('click', closeNewsModal);
+            
+            document.getElementById('newsModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeNewsModal();
+                }
+            });
+
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('section').forEach(section => {
+                sectionObserver.observe(section);
+            });
+
+            renderNews();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,2073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextRAM - Advanced Memory Management Module</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #e91e63;
+            --secondary: #ff5722;
+            --accent: #ff9800;
+            --amoled-bg: #000000;
+            --amoled-card: #111111;
+            --amoled-border: #222222;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --telegram-blue: #0088cc;
+            --telegram-light: #1e96d2;
+            --transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Google Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--amoled-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .telegram-island {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--telegram-blue), var(--telegram-light));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1001;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transform: translateY(0);
+            transition: var(--transition);
+            cursor: pointer;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .telegram-island.hidden {
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-100px);
+            pointer-events: none;
+        }
+
+        .telegram-island.with-nav {
+            top: 80px;
+        }
+
+        .island-icon {
+            font-size: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .island-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .close-island {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+
+        .close-island:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .floating-nav {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--amoled-border);
+            border-radius: 50px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 500px;
+            z-index: 1000;
+            transition: var(--transition);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .floating-nav.visible {
+            transform: translateX(-50%) translateY(20px);
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .nav-logo .next {
+            filter: blur(0.5px);
+            color: var(--text-primary);
+        }
+
+        .nav-logo .ram {
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-left: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background: rgba(233, 30, 99, 0.1);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(233, 30, 99, 0.15);
+        }
+
+        .nav-lang-switcher {
+            position: relative;
+        }
+
+        .lang-trigger {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .lang-trigger:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .lang-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 12px;
+            padding: 8px;
+            margin-top: 8px;
+            min-width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: var(--transition);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .lang-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .lang-option {
+            display: block;
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .lang-option:hover, .lang-option.active {
+            background: rgba(233, 30, 99, 0.1);
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            padding: 140px 0 80px;
+            text-align: center;
+            position: relative;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 100%);
+            border-bottom: 1px solid var(--amoled-border);
+            overflow: hidden;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .logo-container {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transform: translateY(0);
+            transition: var(--transition);
+            animation: logoFloat 6s ease-in-out infinite;
+        }
+
+        .logo-container:hover {
+            transform: translateY(-10px);
+        }
+
+        .logo {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 30px;
+            filter: drop-shadow(0 0 20px rgba(233, 30, 99, 0.3));
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.5s forwards;
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.7s forwards;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeInUp 1s ease 0.9s forwards;
+        }
+
+        .badge {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: var(--transition);
+            color: var(--text-secondary);
+        }
+
+        .badge:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+
+        .header-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 14px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeInUp 1s ease 1.1s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .download-btn:hover::before {
+            left: 100%;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(233, 30, 99, 0.4);
+        }
+
+        .config-btn {
+            display: inline-block;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            color: var(--text-primary);
+            padding: 14px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeInUp 1s ease 1.1s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .config-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .config-btn:hover::before {
+            left: 100%;
+        }
+
+        .config-btn:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 25px rgba(233, 30, 99, 0.4);
+        }
+
+        .latest-release {
+            margin-top: 20px;
+            opacity: 0;
+            animation: fadeInUp 1s ease 1.3s forwards;
+        }
+
+        .release-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            padding: 8px 16px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .release-badge:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        .release-version {
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .release-date {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .loading-release {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .section-title h2 {
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            display: inline-block;
+            font-weight: 700;
+            position: relative;
+        }
+
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            border-radius: 3px;
+        }
+
+        section {
+            padding: 100px 0;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .latest-news {
+            background: rgba(17, 17, 17, 0.5);
+            border-top: 1px solid var(--amoled-border);
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .news-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .news-preview-card {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .news-preview-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .news-preview-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .news-preview-header {
+            padding: 25px 25px 15px;
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .news-preview-date {
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-preview-title {
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .news-preview-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .news-preview-tag {
+            background: rgba(233, 30, 99, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid rgba(233, 30, 99, 0.2);
+        }
+
+        .news-preview-content {
+            padding: 20px 25px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .news-preview-footer {
+            padding: 15px 25px;
+            border-top: 1px solid var(--amoled-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .news-preview-author {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-all-news {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .view-all-btn {
+            display: inline-block;
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 30px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-all-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(233, 30, 99, 0.1), transparent);
+            transition: 0.5s;
+        }
+
+        .view-all-btn:hover::before {
+            left: 100%;
+        }
+
+        .view-all-btn:hover {
+            background: rgba(233, 30, 99, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(233, 30, 99, 0.2);
+        }
+
+        .stats-section {
+            background: rgba(17, 17, 17, 0.7);
+            border-top: 1px solid var(--amoled-border);
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 30px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .stat-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .stat-item:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+        }
+
+        .stat-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .stat-item:hover .stat-icon {
+            transform: scale(1.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            padding: 30px;
+            transition: var(--transition);
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--amoled-card);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 28px;
+            color: var(--primary);
+            border: 1px solid var(--amoled-border);
+            transition: var(--transition);
+        }
+
+        .feature-card:hover .feature-icon {
+            background: rgba(233, 30, 99, 0.1);
+            transform: scale(1.1);
+        }
+
+        .feature-card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .installation {
+            background: rgba(17, 17, 17, 0.7);
+            border-top: 1px solid var(--amoled-border);
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 30px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            padding: 25px;
+            border-radius: 20px;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .step:hover {
+            transform: translateX(10px);
+            border-color: var(--primary);
+        }
+
+        .step-number {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 20px;
+            flex-shrink: 0;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+
+        .step:hover .step-number {
+            transform: scale(1.1);
+        }
+
+        .step-content h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+        }
+
+        .compatibility-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .compat-item {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .compat-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .compat-item:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+        }
+
+        .compat-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            color: var(--primary);
+            transition: var(--transition);
+        }
+
+        .compat-item:hover .compat-icon {
+            transform: scale(1.2);
+        }
+
+        .compat-item h3 {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .faq-section {
+            background: rgba(17, 17, 17, 0.5);
+            border-top: 1px solid var(--amoled-border);
+            border-bottom: 1px solid var(--amoled-border);
+        }
+
+        .faq-grid {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: var(--transition);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .faq-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .faq-item:hover {
+            border-color: var(--primary);
+        }
+
+        .faq-question {
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .faq-question:hover {
+            background: rgba(233, 30, 99, 0.05);
+        }
+
+        .faq-question h3 {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        .faq-toggle {
+            color: var(--primary);
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            padding: 0 30px;
+            max-height: 0;
+            overflow: hidden;
+            transition: var(--transition);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 30px 25px;
+            max-height: 500px;
+        }
+
+        .donate-section {
+            text-align: center;
+            background: rgba(17, 17, 17, 0.7);
+            border-top: 1px solid var(--amoled-border);
+        }
+
+        .donate-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .donate-text {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .donate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            color: var(--text-primary);
+            padding: 14px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1rem;
+            transition: var(--transition);
+            margin-top: 20px;
+        }
+
+        .donate-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary);
+            background: rgba(233, 30, 99, 0.1);
+            box-shadow: 0 10px 20px rgba(233, 30, 99, 0.2);
+        }
+
+        .donate-details {
+            margin-top: 25px;
+            padding: 20px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 15px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .donate-details strong {
+            color: var(--text-primary);
+        }
+
+        .support {
+            background: rgba(17, 17, 17, 0.7);
+            border-top: 1px solid var(--amoled-border);
+        }
+
+        .support-content {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .support-icons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .support-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--amoled-card);
+            border: 1px solid var(--amoled-border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--text-secondary);
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .support-icon:hover {
+            transform: scale(1.2);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        footer {
+            background: rgba(0, 0, 0, 0.9);
+            padding: 50px 0 30px;
+            text-align: center;
+            border-top: 1px solid var(--amoled-border);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            text-align: left;
+            margin-bottom: 40px;
+        }
+
+        .footer-column h3 {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+            transform: translateX(5px);
+        }
+
+        .copyright {
+            margin-top: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--amoled-border);
+            padding-top: 20px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes logoFloat {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .logo-container {
+                width: 160px;
+                height: 160px;
+            }
+            
+            .badges {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .header-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .download-btn, .config-btn {
+                width: 100%;
+                max-width: 300px;
+                text-align: center;
+            }
+            
+            .features-grid, .stats-grid, .compatibility-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .step {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .step-number {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+            
+            .section-title h2 {
+                font-size: 1.8rem;
+            }
+            
+            .news-preview-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .floating-nav {
+                width: 95%;
+                padding: 10px 20px;
+            }
+            
+            .nav-links {
+                gap: 10px;
+            }
+            
+            .nav-link {
+                font-size: 0.8rem;
+                padding: 5px 10px;
+            }
+            
+            .lang-trigger {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .telegram-island {
+                top: 15px;
+                right: 15px;
+                padding: 10px 15px;
+            }
+            
+            .telegram-island.with-nav {
+                top: 75px;
+            }
+            
+            .island-text {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .telegram-island {
+                padding: 8px 12px;
+            }
+            
+            .island-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="telegram-island" id="telegramIsland">
+        <i class="fab fa-telegram island-icon"></i>
+        <span class="island-text">Присоединяйтесь к нашему Telegram</span>
+        <button class="close-island" id="closeIsland">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="floating-nav" id="floatingNav">
+        <div class="nav-logo">
+            <span class="next">Next</span><span class="ram">RAM</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-link active">Home</a>
+            <a href="news.html" class="nav-link">News</a>
+        </div>
+        <div class="nav-lang-switcher">
+            <button class="lang-trigger" id="langTrigger">
+                <i class="fas fa-globe"></i>
+                <span class="current-lang">English</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="lang-dropdown" id="langDropdown">
+                <button class="lang-option active" data-lang="en">English</button>
+                <button class="lang-option" data-lang="ru">Русский</button>
+                <button class="lang-option" data-lang="uk">Українська</button>
+                <button class="lang-option" data-lang="zh">中文</button>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="logo/logo.jpg" alt="NextRAM Logo" class="logo">
+                </div>
+                
+                <h1>NextRAM</h1>
+                <p class="tagline">Advanced Memory Management Module</p>
+                
+                <div class="badges">
+                    <div class="badge">
+                        <i class="fab fa-android"></i>
+                        <span>Android 8.1+</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fab fa-linux"></i>
+                        <span>Linux 3.1+</span>
+                    </div>
+                    <div class="badge">
+                        <i class="fab fa-telegram"></i>
+                        <span>Telegram</span>
+                    </div>
+                </div>
+                
+                <div class="header-buttons">
+                    <a href="https://github.com/Rexamm1t/NextRAM/releases" class="download-btn">
+                        <i class="fas fa-download"></i> <span class="download-text">Download Now</span>
+                    </a>
+                    <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/wiki.md" class="config-btn">
+                        <i class="fas fa-cog"></i> <span class="config-text">Configuration</span>
+                    </a>
+                </div>
+
+                <div class="latest-release">
+                    <div id="releaseInfo" class="loading-release">
+                        <div class="spinner"></div>
+                        <span>Checking latest release...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="latest-news" class="latest-news">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="latest-news-title">Latest News</h2>
+            </div>
+            <div class="news-preview-grid" id="newsPreviewGrid">
+            </div>
+            <div class="view-all-news">
+                <a href="news.html" class="view-all-btn">
+                    <i class="fas fa-newspaper"></i> <span class="view-all-text">View All News</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="stats" class="stats-section">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="stats-title">Project Statistics</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="stat-number">20000+</div>
+                    <div class="stat-label">Total Downloads</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-number">4.9</div>
+                    <div class="stat-label">User Rating</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="description">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="description-title">Description</h2>
+            </div>
+            <div class="description-content">
+                <p class="description-text" style="text-align: center; font-size: 1.2rem; max-width: 900px; margin: 0 auto; color: var(--text-secondary);">
+                    NextRAM is a powerful Magisk module for advanced memory management on Android devices. The module provides enhanced zram and swap file capabilities along with fine-tuned memory parameters for performance optimization.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="features-title">Key Features</h2>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-memory"></i>
+                    </div>
+                    <h3 class="feature-title-1">Memory Management</h3>
+                    <p class="feature-text-1">Enhanced ZRAM configuration with algorithm selection and swap file management with auto-tuning capabilities.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="feature-title-2">System Monitoring</h3>
+                    <p class="feature-text-2">Detailed statistics for memory, CPU, battery, and EMMC health monitoring with comprehensive logging.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <h3 class="feature-title-3">Performance Optimization</h3>
+                    <p class="feature-text-3">Kernel settings optimization including vm.swappiness, cache_pressure, and dirty_ratio for improved responsiveness.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="installation" class="installation">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="installation-title">Installation</h2>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3 class="step-title-1">Install via Magisk Manager</h3>
+                        <p class="step-text-1">Install the module via Magisk Manager or other Root Manager application.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3 class="step-title-2">Reboot Your Device</h3>
+                        <p class="step-text-2">After installation, reboot your device to activate the module.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3 class="step-title-3">Configure Parameters</h3>
+                        <p class="step-text-3">Use the NextRAM Manager app or edit the config.conf file to customize settings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="compatibility">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="compatibility-title">Compatibility</h2>
+            </div>
+            <div class="compatibility-grid">
+                <div class="compat-item">
+                    <div class="compat-icon">
+                        <i class="fab fa-android"></i>
+                    </div>
+                    <h3 class="compat-text-1">Android 8.1+</h3>
+                </div>
+                <div class="compat-item">
+                    <div class="compat-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3 class="compat-text-2">Magisk & KernelSU</h3>
+                </div>
+                <div class="compat-item">
+                    <div class="compat-icon">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <h3 class="compat-text-3">ARM, ARM64, x86</h3>
+                </div>
+                <div class="compat-item">
+                    <div class="compat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="compat-text-4">Root Access Required</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="faq" class="faq-section">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="faq-title">Frequently Asked Questions</h2>
+            </div>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3 class="faq-q-1">Is NextRAM safe to use?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="faq-a-1">Yes, NextRAM includes multiple safety checks and has been tested on various devices. However, as with any system modification, always backup your data before installation.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3 class="faq-q-2">Will NextRAM work on my device?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="faq-a-2">NextRAM is compatible with Android 8.1+ devices with root access. It works with both Magisk and KernelSU. Check the compatibility section for more details.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <h3 class="faq-q-3">How do I update NextRAM?</h3>
+                        <span class="faq-toggle">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        <p class="faq-a-3">Updates can be installed through Magisk Manager or by downloading the latest version from our GitHub releases page. Your settings will be preserved during updates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="donate" class="donate-section">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="donate-title">Support Development</h2>
+            </div>
+            <div class="donate-content">
+                <p class="donate-text">
+                    NextRAM has always been and will remain completely free. However, if you'd like to support the development and help us improve the module, you can make a donation.
+                </p>
+                <a href="https://t.me/nextram_official" class="donate-btn" target="_blank">
+                    <i class="fab fa-telegram"></i>
+                    <span class="donate-btn-text">Support Development</span>
+                </a>
+                <div class="donate-details">
+                    <p><strong>Available payment methods:</strong> Cryptocurrency (Ton) and Russian Rubles</p>
+                    <p><strong>For donation details:</strong> Please visit our Telegram channel and contact the developers</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="support" class="support">
+        <div class="container">
+            <div class="section-title">
+                <h2 class="support-title">Support</h2>
+            </div>
+            <div class="support-content">
+                <p class="support-text" style="color: var(--text-secondary);">For support and updates, join our Telegram channel or contact the developers directly.</p>
+                <div class="support-icons">
+                    <a href="https://t.me/nextram_official" class="support-icon">
+                        <i class="fab fa-telegram"></i>
+                    </a>
+                    <a href="https://github.com/Rexamm1t/NextRAM" class="support-icon">
+                        <i class="fab fa-github"></i>
+                    </a>
+                    <a href="mailto:nextram.official@gmail.com" class="support-icon">
+                        <i class="fas fa-envelope"></i>
+                    </a>
+                </div>
+                <p class="developers-text" style="margin-top: 30px; color: var(--text-secondary);">
+                    <strong class="developers-label" style="color: var(--text-primary);">Developers (NextRAM Team):</strong> <span class="developers-list">@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @galaxyfier, @egor164rus</span>
+                </p>
+                <p class="email-text" style="margin-top: 20px; color: var(--text-secondary);">
+                    <strong style="color: var(--text-primary);">Email Support:</strong> nextram.official@gmail.com
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3 class="footer-title-1">NextRAM</h3>
+                    <div class="footer-links">
+                        <a href="index.html">Home</a>
+                        <a href="news.html">News & Updates</a>
+                        <a href="#features">Features</a>
+                        <a href="#installation">Installation Guide</a>
+                        <a href="#compatibility">Compatibility</a>
+                        <a href="config.html">Configuration</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3 class="footer-title-2">Resources</h3>
+                    <div class="footer-links">
+                        <a href="https://github.com/Rexamm1t/NextRAM">GitHub Repository</a>
+                        <a href="https://github.com/Rexamm1t/NextRAM/wiki">Documentation</a>
+                        <a href="https://github.com/Rexamm1t/NextRAM/issues">Report Issues</a>
+                        <a href="#faq">FAQ</a>
+                        <a href="#donate">Support Development</a>
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3 class="footer-title-3">Community</h3>
+                    <div class="footer-links">
+                        <a href="https://t.me/nextram_official">Telegram Channel</a>
+                        <a href="mailto:nextram.official@gmail.com">Email Support</a>
+                    </div>
+                </div>
+            </div>
+            <div class="copyright">
+                <p class="license-text" style="margin-bottom: 10px;">Module is distributed under GPL v3 license. Source code is available in project repository.</p>
+                <p class="warning-text" style="margin-bottom: 10px; font-size: 0.9rem;">
+                    Note: Use the module with caution. Incorrect configuration may affect system stability.
+                </p>
+                <p>All rights reserved © 2026 NextRAM - NextRAM Team.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const telegramIsland = document.getElementById('telegramIsland');
+            const closeIsland = document.getElementById('closeIsland');
+            
+            const islandClosed = localStorage.getItem('telegramIslandClosed');
+            
+            if (islandClosed) {
+                telegramIsland.classList.add('hidden');
+            }
+            
+            closeIsland.addEventListener('click', function(e) {
+                e.stopPropagation();
+                telegramIsland.classList.add('hidden');
+                localStorage.setItem('telegramIslandClosed', 'true');
+            });
+            
+            telegramIsland.addEventListener('click', function() {
+                window.open('https://t.me/nextram_official', '_blank');
+            });
+            
+            const floatingNav = document.getElementById('floatingNav');
+            const logoContainer = document.querySelector('.logo-container');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) {
+                        floatingNav.classList.add('visible');
+                        telegramIsland.classList.add('with-nav');
+                    } else {
+                        floatingNav.classList.remove('visible');
+                        telegramIsland.classList.remove('with-nav');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            observer.observe(logoContainer);
+            
+            const langTrigger = document.getElementById('langTrigger');
+            const langDropdown = document.getElementById('langDropdown');
+            const currentLang = document.querySelector('.current-lang');
+            const langOptions = document.querySelectorAll('.lang-option');
+            
+            langTrigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                langDropdown.classList.toggle('active');
+            });
+            
+            document.addEventListener('click', function() {
+                langDropdown.classList.remove('active');
+            });
+            
+            async function fetchLatestRelease() {
+                try {
+                    const response = await fetch('https://api.github.com/repos/Rexamm1t/NextRAM/releases/latest');
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch release data');
+                    }
+                    const releaseData = await response.json();
+                    return releaseData;
+                } catch (error) {
+                    console.error('Error fetching release data:', error);
+                    return null;
+                }
+            }
+
+            function updateReleaseInfo(releaseData) {
+                const releaseInfo = document.getElementById('releaseInfo');
+                
+                if (!releaseData) {
+                    releaseInfo.innerHTML = '<span>Failed to load release info</span>';
+                    return;
+                }
+
+                const version = releaseData.tag_name;
+                const releaseDate = new Date(releaseData.published_at).toLocaleDateString();
+                
+                releaseInfo.innerHTML = `
+                    <a href="${releaseData.html_url}" target="_blank" class="release-badge">
+                        <i class="fas fa-tag"></i>
+                        <span class="release-version">${version}</span>
+                        <span class="release-date">${releaseDate}</span>
+                        <i class="fas fa-external-link-alt" style="font-size: 0.8rem;"></i>
+                    </a>
+                `;
+            }
+
+            fetchLatestRelease().then(updateReleaseInfo);
+
+            const translations = {
+                en: {
+                    'latest-news-title': 'Latest News',
+                    'view-all-text': 'View All News',
+                    'stats-title': 'Project Statistics',
+                    'description-title': 'Description',
+                    'description-text': 'NextRAM is a powerful Magisk module for advanced memory management on Android devices. The module provides enhanced zram and swap file capabilities along with fine-tuned memory parameters for performance optimization.',
+                    'features-title': 'Key Features',
+                    'feature-title-1': 'Memory Management',
+                    'feature-text-1': 'Enhanced ZRAM configuration with algorithm selection and swap file management with auto-tuning capabilities.',
+                    'feature-title-2': 'System Monitoring',
+                    'feature-text-2': 'Detailed statistics for memory, CPU, battery, and EMMC health monitoring with comprehensive logging.',
+                    'feature-title-3': 'Performance Optimization',
+                    'feature-text-3': 'Kernel settings optimization including vm.swappiness, cache_pressure, and dirty_ratio for improved responsiveness.',
+                    'installation-title': 'Installation',
+                    'step-title-1': 'Install via Magisk Manager',
+                    'step-text-1': 'Install the module via Magisk Manager or other Root Manager application.',
+                    'step-title-2': 'Reboot Your Device',
+                    'step-text-2': 'After installation, reboot your device to activate the module.',
+                    'step-title-3': 'Configure Parameters',
+                    'step-text-3': 'Use the NextRAM Manager app or edit the config.conf file to customize settings.',
+                    'compatibility-title': 'Compatibility',
+                    'compat-text-1': 'Android 8.1+',
+                    'compat-text-2': 'Magisk & KernelSU',
+                    'compat-text-3': 'ARM, ARM64, x86',
+                    'compat-text-4': 'Root Access Required',
+                    'faq-title': 'Frequently Asked Questions',
+                    'faq-q-1': 'Is NextRAM safe to use?',
+                    'faq-a-1': 'Yes, NextRAM includes multiple safety checks and has been tested on various devices. However, as with any system modification, always backup your data before installation.',
+                    'faq-q-2': 'Will NextRAM work on my device?',
+                    'faq-a-2': 'NextRAM is compatible with Android 8.1+ devices with root access. It works with both Magisk and KernelSU. Check the compatibility section for more details.',
+                    'faq-q-3': 'How do I update NextRAM?',
+                    'faq-a-3': 'Updates can be installed through Magisk Manager or by downloading the latest version from our GitHub releases page. Your settings will be preserved during updates.',
+                    'donate-title': 'Support Development',
+                    'donate-text': 'NextRAM has always been and will remain completely free. However, if you\'d like to support the development and help us improve the module, you can make a donation.',
+                    'donate-btn-text': 'Support Development',
+                    'support-title': 'Support',
+                    'support-text': 'For support and updates, join our Telegram channel or contact the developers directly.',
+                    'developers-label': 'Developers:',
+                    'developers-list': '@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt',
+                    'footer-title-1': 'NextRAM',
+                    'footer-title-2': 'Resources',
+                    'footer-title-3': 'Community',
+                    'license-text': 'Module is distributed under GPL v3 license. Source code is available in project repository.',
+                    'warning-text': 'Note: Use the module with caution. Incorrect configuration may affect system stability.',
+                    'download-text': 'Download Now',
+                    'config-text': 'Configuration'
+                },
+                ru: {
+                    'latest-news-title': 'Последние новости',
+                    'view-all-text': 'Все новости',
+                    'stats-title': 'Статистика проекта',
+                    'description-title': 'Описание',
+                    'description-text': 'NextRAM - это мощный модуль Magisk для расширенного управления памятью на устройствах Android. Модуль предоставляет улучшенные возможности zram и файлов подкачки вместе с тонко настроенными параметрами памяти для оптимизации производительности.',
+                    'features-title': 'Ключевые возможности',
+                    'feature-title-1': 'Управление памятью',
+                    'feature-text-1': 'Улучшенная конфигурация ZRAM с выбором алгоритма и управление файлами подкачки с возможностями автонастройки.',
+                    'feature-title-2': 'Мониторинг системы',
+                    'feature-text-2': 'Подробная статистика памяти, процессора, батареи и мониторинг здоровья EMMC с комплексным ведением журналов.',
+                    'feature-title-3': 'Оптимизация производительности',
+                    'feature-text-3': 'Оптимизация настроек ядра, включая vm.swappiness, cache_pressure и dirty_ratio для улучшенной отзывчивости.',
+                    'installation-title': 'Установка',
+                    'step-title-1': 'Установите через Magisk Manager',
+                    'step-text-1': 'Установите модуль через Magisk Manager или другое приложение Root Manager.',
+                    'step-title-2': 'Перезагрузите устройство',
+                    'step-text-2': 'После установки перезагрузите устройство для активации модуля.',
+                    'step-title-3': 'Настройте параметры',
+                    'step-text-3': 'Используйте приложение NextRAM Manager или отредактируйте файл config.conf для настройки параметров.',
+                    'compatibility-title': 'Совместимость',
+                    'compat-text-1': 'Android 8.1+',
+                    'compat-text-2': 'Magisk & KernelSU',
+                    'compat-text-3': 'ARM, ARM64, x86',
+                    'compat-text-4': 'Требуется root-доступ',
+                    'faq-title': 'Часто задаваемые вопросы',
+                    'faq-q-1': 'Безопасно ли использовать NextRAM?',
+                    'faq-a-1': 'Да, NextRAM включает множественные проверки безопасности и был протестирован на различных устройствах. Однако, как и при любой модификации системы, всегда делайте резервную копию данных перед установкой.',
+                    'faq-q-2': 'Будет ли NextRAM работать на моем устройстве?',
+                    'faq-a-2': 'NextRAM совместим с устройствами Android 8.1+ с root-доступом. Он работает как с Magisk, так и с KernelSU. Проверьте раздел совместимости для получения более подробной информации.',
+                    'faq-q-3': 'Как обновить NextRAM?',
+                    'faq-a-3': 'Обновления могут быть установлены через Magisk Manager или путем загрузки последней версии со страницы выпусков на GitHub. Ваши настройки будут сохранены во время обновлений.',
+                    'donate-title': 'Поддержка разработки',
+                    'donate-text': 'NextRAM всегда был и будет полностью бесплатным. Однако, если вы хотите поддержать разработку и помочь нам улучшить модуль, вы можете сделать пожертвование.',
+                    'donate-btn-text': 'Поддержать разработку',
+                    'support-title': 'Поддержка',
+                    'support-text': 'Для получения поддержки и обновлений присоединяйтесь к нашему Telegram-каналу или свяжитесь с разработчиками напрямую.',
+                    'developers-label': 'Разработчики:',
+                    'developers-list': '@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt',
+                    'footer-title-1': 'NextRAM',
+                    'footer-title-2': 'Ресурсы',
+                    'footer-title-3': 'Сообщество',
+                    'license-text': 'Модуль распространяется по лицензии GPL v3. Исходный код доступен в репозитории проекта.',
+                    'warning-text': 'Примечание: Используйте модуль с осторожностью. Неправильная конфигурация может повлиять на стабильность системы.',
+                    'download-text': 'Скачать сейчас',
+                    'config-text': 'Настройка'
+                },
+                uk: {
+                    'latest-news-title': 'Останні новини',
+                    'view-all-text': 'Всі новини',
+                    'stats-title': 'Статистика проекту',
+                    'description-title': 'Опис',
+                    'description-text': 'NextRAM - це потужний модуль Magisk для розширеного керування пам\'яттю на пристроях Android. Модуль надає покращені можливості zram та файлів підкачки разом із тонко налаштованими параметрами пам\'яті для оптимізації продуктивності.',
+                    'features-title': 'Ключові функції',
+                    'feature-title-1': 'Керування пам\'яттю',
+                    'feature-text-1': 'Покращена конфігурація ZRAM з вибором алгоритму та керування файлами підкачки з можливостями автоналаштування.',
+                    'feature-title-2': 'Моніторинг системи',
+                    'feature-text-2': 'Детальна статистика пам\'яті, процесора, акумулятора та моніторинг стану EMMC з комплексним веденням журналів.',
+                    'feature-title-3': 'Оптимізація продуктивності',
+                    'feature-text-3': 'Оптимізація налаштувань ядра, включаючи vm.swappiness, cache_pressure та dirty_ratio для покращеної відповіді.',
+                    'installation-title': 'Встановлення',
+                    'step-title-1': 'Встановіть через Magisk Manager',
+                    'step-text-1': 'Встановіть модуль через Magisk Manager або інший додаток Root Manager.',
+                    'step-title-2': 'Перезавантажте пристрій',
+                    'step-text-2': 'Після встановлення перезавантажте пристрій для активації модуля.',
+                    'step-title-3': 'Налаштуйте параметри',
+                    'step-text-3': 'Використовуйте додаток NextRAM Manager або відредагуйте файл config.conf для налаштування параметрів.',
+                    'compatibility-title': 'Сумісність',
+                    'compat-text-1': 'Android 8.1+',
+                    'compat-text-2': 'Magisk & KernelSU',
+                    'compat-text-3': 'ARM, ARM64, x86',
+                    'compat-text-4': 'Потрібен root-доступ',
+                    'faq-title': 'Часті питання',
+                    'faq-q-1': 'Чи безпечно використовувати NextRAM?',
+                    'faq-a-1': 'Так, NextRAM включає множинні перевірки безпеки і був протестований на різних пристроях. Однак, як і при будь-якій модифікації системи, завжди робіть резервну копію даних перед встановленням.',
+                    'faq-q-2': 'Чи працюватиме NextRAM на моєму пристрої?',
+                    'faq-a-2': 'NextRAM сумісний з пристроями Android 8.1+ з root-доступом. Він працює як з Magisk, так і з KernelSU. Перевірте розділ сумісності для отримання більш детальної інформації.',
+                    'faq-q-3': 'Як оновити NextRAM?',
+                    'faq-a-3': 'Оновлення можуть бути встановлені через Magisk Manager або шляхом завантаження останньої версії зі сторінки випусків на GitHub. Ваші налаштування будуть збережені під час оновлень.',
+                    'donate-title': 'Підтримка розробки',
+                    'donate-text': 'NextRAM завжди був і залишиться повністю безкоштовним. Однак, якщо ви хочете підтримати розробку та допомогти нам покращити модуль, ви можете зробити пожертву.',
+                    'donate-btn-text': 'Підтримати розробку',
+                    'support-title': 'Підтримка',
+                    'support-text': 'Для отримання підтримки та оновлень приєднуйтесь до нашого Telegram-каналу або зв\'яжіться з розробниками безпосередньо.',
+                    'developers-label': 'Розробники:',
+                    'developers-list': '@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt',
+                    'footer-title-1': 'NextRAM',
+                    'footer-title-2': 'Ресурси',
+                    'footer-title-3': 'Спільнота',
+                    'license-text': 'Модуль поширюється за ліцензією GPL v3. Вихідний код доступний у репозиторії проекту.',
+                    'warning-text': 'Примітка: Використовуйте модуль обережно. Неправильна конфігурація може вплинути на стабільність системи.',
+                    'download-text': 'Завантажити зараз',
+                    'config-text': 'Налаштування'
+                },
+                zh: {
+                    'latest-news-title': '最新新闻',
+                    'view-all-text': '查看所有新闻',
+                    'stats-title': '项目统计',
+                    'description-title': '描述',
+                    'description-text': 'NextRAM 是一个强大的 Magisk 模块，用于在 Android 设备上进行高级内存管理。该模块提供增强的 zram 和交换文件功能，以及经过微调的内存参数以优化性能。',
+                    'features-title': '主要功能',
+                    'feature-title-1': '内存管理',
+                    'feature-text-1': '增强的 ZRAM 配置，具有算法选择和具有自动调优功能的交换文件管理。',
+                    'feature-title-2': '系统监控',
+                    'feature-text-2': '详细的内存、CPU、电池和 EMMC 健康监控统计信息，并提供全面的日志记录。',
+                    'feature-title-3': '性能优化',
+                    'feature-text-3': '内核设置优化，包括 vm.swappiness、cache_pressure 和 dirty_ratio，以提高响应能力。',
+                    'installation-title': '安装',
+                    'step-title-1': '通过 Magisk Manager 安装',
+                    'step-text-1': '通过 Magisk Manager 或其他 Root Manager 应用程序安装模块。',
+                    'step-title-2': '重启您的设备',
+                    'step-text-2': '安装后，重新启动设备以激活模块。',
+                    'step-title-3': '配置参数',
+                    'step-text-3': '使用 NextRAM Manager 应用程序或编辑 config.conf 文件来自定义设置。',
+                    'compatibility-title': '兼容性',
+                    'compat-text-1': 'Android 8.1+',
+                    'compat-text-2': 'Magisk & KernelSU',
+                    'compat-text-3': 'ARM, ARM64, x86',
+                    'compat-text-4': '需要 Root 权限',
+                    'faq-title': '常见问题',
+                    'faq-q-1': '使用 NextRAM 安全吗？',
+                    'faq-a-1': '是的，NextRAM 包含多重安全检查，并已在各种设备上进行测试。但是，与任何系统修改一样，安装前请务必备份数据。',
+                    'faq-q-2': 'NextRAM 能在我的设备上运行吗？',
+                    'faq-a-2': 'NextRAM 与具有 root 权限的 Android 8.1+ 设备兼容。它适用于 Magisk 和 KernelSU。请查看兼容性部分了解更多详情。',
+                    'faq-q-3': '如何更新 NextRAM？',
+                    'faq-a-3': '可以通过 Magisk Manager 或从我们的 GitHub 发布页面下载最新版本来安装更新。您的设置将在更新期间保留。',
+                    'donate-title': '支持开发',
+                    'donate-text': 'NextRAM 一直是并将始终保持完全免费。但是，如果您想支持开发并帮助我们改进模块，可以进行捐赠。',
+                    'donate-btn-text': '支持开发',
+                    'support-title': '支持',
+                    'support-text': '如需支持和更新，请加入我们的 Telegram 频道或直接联系开发人员。',
+                    'developers-label': '开发人员：',
+                    'developers-list': '@rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt',
+                    'footer-title-1': 'NextRAM',
+                    'footer-title-2': '资源',
+                    'footer-title-3': '社区',
+                    'license-text': '该模块根据 GPL v3 许可证分发。源代码可在项目存储库中找到。',
+                    'warning-text': '注意：请谨慎使用该模块。不正确的配置可能会影响系统稳定性。',
+                    'download-text': '立即下载',
+                    'config-text': '配置'
+                }
+            };
+
+            const latestNewsData = [
+                {
+                    id: 1,
+                    date: "2025-03-20",
+                    category: "release",
+                    tags: ["release", "update"],
+                    author: "@rexamm1t",
+                    en: {
+                        title: "NextRAM v9.0.127 (90127) Released",
+                        content: "Added time-out when selecting the configuration method. Fixed various bugs and improved stability."
+                    },
+                    ru: {
+                        title: "Выпущен NextRAM v9.0.127 (90127)",
+                        content: "Добавлен тайм-аут при выборе метода конфигурации. Исправлены различные ошибки и улучшена стабильность."
+                    },
+                    uk: {
+                        title: "Випущено NextRAM v9.0.127 (90127)",
+                        content: "Додано тайм-аут при виборі методу конфігурації. Виправлені різні помилки та покращено стабільність."
+                    },
+                    zh: {
+                        title: "NextRAM v9.0.127 (90127) 已发布",
+                        content: "添加了选择配置方法时的超时设置。修复了各种错误并提高了稳定性。"
+                    }
+                },
+                {
+                    id: 2,
+                    date: "2025-03-15",
+                    category: "release",
+                    tags: ["release", "major", "beta"],
+                    author: "@rexamm1t",
+                    en: {
+                        title: "NextRAM v9.0.000 (90000) Major Update",
+                        content: "Major release with first C++ tool, complete APK redesign with Material 3, and kernel improvements."
+                    },
+                    ru: {
+                        title: "Крупное обновление NextRAM v9.0.000 (90000)",
+                        content: "Крупный релиз с первым C++ инструментом, полным редизайном APK в Material 3 и улучшениями ядра."
+                    },
+                    uk: {
+                        title: "Крупне оновлення NextRAM v9.0.000 (90000)",
+                        content: "Крупний реліз з першим інструментом C++, повним редизайном APK у Material 3 та покращеннями ядра."
+                    },
+                    zh: {
+                        title: "NextRAM v9.0.000 (90000) 主要更新",
+                        content: "主要版本包含首个 C++ 工具，APK 完全重新设计为 Material 3，以及内核改进。"
+                    }
+                }
+            ];
+
+            let currentLanguage = 'en';
+
+            function renderLatestNews() {
+                const newsPreviewGrid = document.getElementById('newsPreviewGrid');
+                newsPreviewGrid.innerHTML = '';
+                
+                latestNewsData.forEach((news, index) => {
+                    const newsCard = document.createElement('div');
+                    newsCard.className = 'news-preview-card';
+                    newsCard.setAttribute('data-category', news.category);
+                    
+                    const formattedDate = new Date(news.date).toLocaleDateString(currentLanguage === 'zh' ? 'zh-CN' : currentLanguage, {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const tagTranslations = {
+                        'release': translations[currentLanguage]['release'] || 'Release',
+                        'update': translations[currentLanguage]['update'] || 'Update',
+                        'beta': 'Beta',
+                        'major': 'Major'
+                    };
+                    
+                    const displayTags = news.tags.filter(tag => tagTranslations[tag]);
+                    
+                    newsCard.innerHTML = `
+                        <div class="news-preview-header">
+                            <div>
+                                <div class="news-preview-date">
+                                    <i class="far fa-calendar"></i>
+                                    <span>${formattedDate}</span>
+                                </div>
+                                <h3 class="news-preview-title">${news[currentLanguage].title}</h3>
+                                <div class="news-preview-tags">
+                                    ${displayTags.map(tag => `
+                                        <span class="news-preview-tag">${tagTranslations[tag] || tag}</span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="news-preview-content">
+                            <p>${news[currentLanguage].content}</p>
+                        </div>
+                        <div class="news-preview-footer">
+                            <div class="news-preview-author">
+                                <i class="fas fa-user"></i>
+                                <span>${news.author}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    newsPreviewGrid.appendChild(newsCard);
+                    
+                    setTimeout(() => {
+                        newsCard.classList.add('visible');
+                    }, index * 200);
+                });
+            }
+
+            function switchLanguage(lang) {
+                currentLanguage = lang;
+                
+                langOptions.forEach(option => {
+                    if (option.dataset.lang === lang) {
+                        option.classList.add('active');
+                        currentLang.textContent = option.textContent;
+                    } else {
+                        option.classList.remove('active');
+                    }
+                });
+
+                for (const key in translations[lang]) {
+                    const elements = document.querySelectorAll(`.${key}`);
+                    elements.forEach(element => {
+                        element.textContent = translations[lang][key];
+                    });
+                }
+
+                renderLatestNews();
+            }
+
+            langOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    switchLanguage(this.dataset.lang);
+                    langDropdown.classList.remove('active');
+                });
+            });
+
+            const faqItems = document.querySelectorAll('.faq-item');
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question');
+                question.addEventListener('click', () => {
+                    item.classList.toggle('active');
+                });
+            });
+
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        
+                        if (entry.target.classList.contains('features-grid')) {
+                            const cards = entry.target.querySelectorAll('.feature-card');
+                            cards.forEach((card, index) => {
+                                setTimeout(() => {
+                                    card.classList.add('visible');
+                                }, index * 200);
+                            });
+                        }
+                        
+                        if (entry.target.classList.contains('steps')) {
+                            const steps = entry.target.querySelectorAll('.step');
+                            steps.forEach((step, index) => {
+                                setTimeout(() => {
+                                    step.classList.add('visible');
+                                }, index * 200);
+                            });
+                        }
+                        
+                        if (entry.target.classList.contains('compatibility-grid')) {
+                            const items = entry.target.querySelectorAll('.compat-item');
+                            items.forEach((item, index) => {
+                                setTimeout(() => {
+                                    item.classList.add('visible');
+                                }, index * 150);
+                            });
+                        }
+                        
+                        if (entry.target.classList.contains('news-preview-grid')) {
+                            const cards = entry.target.querySelectorAll('.news-preview-card');
+                            cards.forEach((card, index) => {
+                                setTimeout(() => {
+                                    card.classList.add('visible');
+                                }, index * 200);
+                            });
+                        }
+                        
+                        if (entry.target.classList.contains('stats-grid')) {
+                            const items = entry.target.querySelectorAll('.stat-item');
+                            items.forEach((item, index) => {
+                                setTimeout(() => {
+                                    item.classList.add('visible');
+                                }, index * 150);
+                            });
+                        }
+                        
+                        if (entry.target.classList.contains('faq-grid')) {
+                            const items = entry.target.querySelectorAll('.faq-item');
+                            items.forEach((item, index) => {
+                                setTimeout(() => {
+                                    item.classList.add('visible');
+                                }, index * 150);
+                            });
+                        }
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('section').forEach(section => {
+                sectionObserver.observe(section);
+            });
+            
+            document.querySelectorAll('.feature-card, .step, .compat-item, .news-preview-card, .stat-item, .faq-item').forEach(el => {
+                sectionObserver.observe(el);
+            });
+
+            renderLatestNews();
+        });
+    </script>
+</body>
+</html>
