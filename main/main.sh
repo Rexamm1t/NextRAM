@@ -1,18 +1,64 @@
 #!/system/bin/sh
 MODDIR=${0%/*}/..
 
-. "$MODDIR/main/config.sh"
-. "$MODDIR/main/log.sh"
-. "$MODDIR/main/system_info.sh"
-. "$MODDIR/main/prerequisites.sh"
-. "$MODDIR/main/zram.sh"
-. "$MODDIR/main/swap.sh"
-. "$MODDIR/main/kernel_tuning.sh"
-. "$MODDIR/main/api_functions.sh"
-. "$MODDIR/main/advanced_tuning.sh"
-. "$MODDIR/main/monitoring.sh"
+safe_source() {
+    local module="$1"
+    local module_path="$MODDIR/main/$module"
+    
+    if [ ! -f "$module_path" ]; then
+        echo "[NextRAM] ERROR: Module $module not found" >&2
+        return 1
+    fi
+    
+    if ! sh -n "$module_path" 2>/dev/null; then
+        echo "[NextRAM] WARN: Syntax error in $module" >&2
+    fi
+    
+    . "$module_path" 2>&1 || {
+        echo "[NextRAM] ERROR: Failed to load $module" >&2
+        return 1
+    }
+    
+    return 0
+}
 
-init_config || { log "ERROR" "Failed to initialize configuration"; exit 1; }
+MODULES=(
+    "log.sh"
+    "config.sh"
+    "system_info.sh"
+    "prerequisites.sh"
+    "zram.sh"
+    "swap.sh"
+    "kernel_tuning.sh"
+    "api_functions.sh"
+    "advanced_tuning.sh"
+    "monitoring.sh"
+)
+
+for module in "${MODULES[@]}"; do
+    if ! safe_source "$module"; then
+        echo "[NextRAM] CRITICAL: Cannot continue without $module"
+        exit 1
+    fi
+done
+
+CONFIG_LOADED=false
+for i in 1 2 3; do
+    if init_config; then
+        CONFIG_LOADED=true
+        break
+    fi
+    log "WARN" "Config load attempt $i failed, retrying..."
+    sleep 1
+done
+
+if [ "$CONFIG_LOADED" != "true" ]; then
+    log "ERROR" "Failed to load configuration after 3 attempts"
+    export SWAP_ENABLED=false
+    export ZRAM_ENABLED=false
+    export LOG_LEVEL=ERROR
+    log "INFO" "Running in emergency mode"
+fi
 
 . "$MODDIR/main/play.sh"
 
@@ -21,49 +67,75 @@ case "${1:-}" in
         cleanup_old_logs
         start_monitoring
         start_api_server
-        while true; do sleep 60; done
+        while true; do
+            sleep 60
+        done
         ;;
     "api")
         case "$2" in
-            "get-config") get_config ;;
-            "set-config") 
+            "get-config")
+                get_config
+                ;;
+            "set-config")
                 shift 2
                 set_config "$@"
                 apply_configuration
                 ;;
-            "apply") apply_configuration ;;
-            "restart") 
+            "apply")
+                apply_configuration
+                ;;
+            "restart")
                 log "INFO" "Restarting service"
                 exec "$0" "$@"
                 ;;
-            "status") get_status ;;
-            "stats") get_system_stats ;;
-            *) echo "Unknown API command: $2" ;;
+            "status")
+                get_status
+                ;;
+            "stats")
+                get_system_stats
+                ;;
+            *)
+                echo "Unknown API command: $2"
+                ;;
         esac
         exit 0
         ;;
     "monitor")
         case "$2" in
-            "start") start_monitoring ;;
-            "stop") stop_monitoring ;;
-            "stats") get_system_stats ;;
-            *) echo "Usage: $0 monitor {start|stop|stats}" ;;
+            "start")
+                start_monitoring
+                ;;
+            "stop")
+                stop_monitoring
+                ;;
+            "stats")
+                get_system_stats
+                ;;
+            *)
+                echo "Usage: $0 monitor {start|stop|stats}"
+                ;;
         esac
         exit 0
         ;;
     "play")
-        init_play_mode
+        if ! init_play_mode; then
+            log "ERROR" "Failed to initialize play mode"
+            exit 1
+        fi
         
-        [ "$PLAY_ENABLED" != "true" ] && {
+        if [ "$PLAY_ENABLED" != "true" ]; then
             log "ERROR" "NextRAM Play is disabled. Set PLAY_ENABLED=true in config"
             echo "NextRAM Play is disabled. Set PLAY_ENABLED=true in config"
             exit 1
-        }
+        fi
+        
         case "$2" in
             "start")
                 log "INFO" "Starting NextRAM Play gaming mode"
                 apply_game_mode
-                [ "$PLAY_AUTO_DETECT" = "true" ] && setup_game_detector
+                if [ "$PLAY_AUTO_DETECT" = "true" ]; then
+                    setup_game_detector
+                fi
                 echo "NextRAM Play activated"
                 log "INFO" "NextRAM Play activated via command"
                 ;;
@@ -89,9 +161,15 @@ case "${1:-}" in
             "status")
                 if [ -f "$MODDIR/cache/game_mode_active" ]; then
                     echo "NextRAM Play: ACTIVE"
-                    echo "Game detected: $(test -f "$MODDIR/cache/game_active" && echo "Yes" || echo "No")"
-                    echo "CPU Governor: $(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "N/A")"
-                    echo "GPU Governor: $(cat /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null || echo "N/A")"
+                    if [ -f "$MODDIR/cache/game_active" ]; then
+                        echo "Game detected: Yes"
+                    else
+                        echo "Game detected: No"
+                    fi
+                    local cpu_gov=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo "N/A")
+                    echo "CPU Governor: $cpu_gov"
+                    local gpu_gov=$(cat /sys/class/kgsl/kgsl-3d0/devfreq/governor 2>/dev/null || echo "N/A")
+                    echo "GPU Governor: $cpu_gov"
                     echo "Touch Polling: ${PLAY_TOUCH_POLLING_RATE}Hz"
                     echo "VSync: $PLAY_VSYNC_MODE"
                     log "DEBUG" "Play status check: ACTIVE"
@@ -134,14 +212,19 @@ case "${1:-}" in
     *)
         cleanup_old_logs
         system_info
-        check_prerequisites || { log "ERROR" "Prerequisites check failed"; exit 1; }
+        if ! check_prerequisites; then
+            log "ERROR" "Prerequisites check failed"
+            exit 1
+        fi
         
         log "INFO" "Disabling swap devices..."
         swapoff -a 2>/dev/null
         
         if [ -b "/dev/block/zram0" ] || [ -d "/sys/block/zram0" ]; then
             swapoff "/dev/block/zram0" 2>/dev/null
-            [ -f "/sys/block/zram0/reset" ] && echo 1 > "/sys/block/zram0/reset" 2>/dev/null
+            if [ -f "/sys/block/zram0/reset" ]; then
+                echo 1 > "/sys/block/zram0/reset" 2>/dev/null
+            fi
             sleep 1
         fi
         
@@ -158,11 +241,15 @@ case "${1:-}" in
         apply_advanced_tuning
         
         if [ "$SWAP_ENABLED" = "true" ]; then
-            setup_swap || log "ERROR" "Failed to setup swap"
+            if ! setup_swap; then
+                log "ERROR" "Failed to setup swap"
+            fi
         fi
         
         if [ "$ZRAM_ENABLED" = "true" ]; then
-            setup_zram || log "ERROR" "Failed to setup ZRAM"
+            if ! setup_zram; then
+                log "ERROR" "Failed to setup ZRAM"
+            fi
             monitor_zram_usage
         fi
         

@@ -2,10 +2,11 @@
 MODDIR=${0%/*}/..
 
 check_prerequisites() {
-    [ "$(id -u)" -ne 0 ] && { 
+    local id_output=$(id -u 2>/dev/null)
+    if [ -z "$id_output" ] || [ "$id_output" -ne 0 ]; then
         log "ERROR" "Must run as root"
         exit 1
-    }
+    fi
 
     local missing_tools=""
     for tool in swapon swapoff mkswap mount umount awk grep; do

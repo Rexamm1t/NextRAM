@@ -1,3 +1,40 @@
+## NextRAM Play Fix 9.3.981
+
+[CODE OPTIMIZATION]
+- Added pre-write verification for all file operations
+- Replaced all backticks (`) with $() for POSIX shell compatibility
+- Added fallback mechanisms for unavailable functions
+- Enhanced logging for better troubleshooting
+- Added path availability checks before usage
+- Expanded support for various GPU/CPU paths across different chipsets
+- Replaced all &>/dev/null with 2>/dev/null for compatibility
+- Added file and directory permission checks
+- Optimized loops and conditional operators
+- Fixed potential compatibility issues with Magisk Alpha
+- Improved error handling for swap mounting operations
+- Added safe ZRAM reset operations
+- Enhanced root permission checking for different Android versions
+- Fixed potential deadlocks in configuration handling
+- Added timeouts for critical operations
+- Improved compatibility with different firmwares and kernels
+
+[PLAY MODE IMPROVEMENTS]
+- Added alternative GPU control paths (Adreno, Mali, Generic)
+- Enhanced CPU/GPU path availability checking system
+- Added safe CPU frequency modification operations
+- Improved error handling in game detector
+- Optimized thermal zone management
+
+[MEMORY MANAGEMENT]
+- Enhanced ZRAM operation safety
+- Added additional checks before ZRAM reset
+- Optimized ZRAM size calculation
+- Improved compression stream handling
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM Play v9.3.978-(93978)
 
 [PLAY MODE]

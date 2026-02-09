@@ -54,8 +54,13 @@ adjust_swappiness() {
     [ "$swap_usage" -gt 80 ] && SWAPPINESS=$((SWAPPINESS + 20))
     [ "$swap_usage" -lt 20 ] && SWAPPINESS=$((SWAPPINESS - 15))
     
-    SWAPPINESS=$((SWAPPINESS > 200 ? 200 : SWAPPINESS))
-    SWAPPINESS=$((SWAPPINESS < 20 ? 20 : SWAPPINESS))
+    if [ "$SWAPPINESS" -gt 200 ]; then
+        SWAPPINESS=200
+    fi
+    
+    if [ "$SWAPPINESS" -lt 20 ]; then
+        SWAPPINESS=20
+    fi
     
     log "INFO" "Dynamic swappiness: $SWAPPINESS (Memory: ${mem_total}KB, ZRAM: ${zram_size}KB, Swap usage: ${swap_usage}%)"
 }
@@ -64,7 +69,9 @@ apply_kernel_tuning() {
     local applied_settings=0
     
     set_param() {
-        local file="$1" value="$2" desc="${3:-}"
+        local file="$1" 
+        local value="$2" 
+        local desc="${3:-}"
         [ -z "$desc" ] && desc="$(basename "$file")"
         
         if [ -f "$file" ] && [ -w "$file" ]; then
@@ -92,11 +99,13 @@ apply_kernel_tuning() {
             if [ -n "$mem_total_kb" ]; then
                 local min_free_kbytes=$((mem_total_kb / 100))
                 local max_min_free=524288
-                [ "$min_free_kbytes" -gt "$max_min_free" ] && min_free_kbytes=$max_min_free
-                echo $min_free_kbytes > /proc/sys/vm/min_free_kbytes 2>/dev/null && {
+                if [ "$min_free_kbytes" -gt "$max_min_free" ]; then
+                    min_free_kbytes=$max_min_free
+                fi
+                if echo "$min_free_kbytes" > "/proc/sys/vm/min_free_kbytes" 2>/dev/null; then
                     log "DEBUG" "Set min_free_kbytes to $min_free_kbytes"
                     applied_settings=$((applied_settings + 1))
-                }
+                fi
             fi
         fi
         
@@ -107,7 +116,7 @@ apply_kernel_tuning() {
         set_param "/proc/sys/vm/overcommit_ratio" "50"
         
         if [ -f "/proc/sys/vm/compact_memory" ] && [ -w "/proc/sys/vm/compact_memory" ]; then
-            echo 1 > /proc/sys/vm/compact_memory 2>/dev/null
+            echo 1 > "/proc/sys/vm/compact_memory" 2>/dev/null
         fi
     fi
     
@@ -125,10 +134,10 @@ apply_kernel_tuning() {
         local mem_total_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null)
         if [ -n "$mem_total_kb" ]; then
             local threads_max=$((mem_total_kb * 2))
-            echo "$threads_max" > /proc/sys/kernel/threads-max 2>/dev/null && {
+            if echo "$threads_max" > "/proc/sys/kernel/threads-max" 2>/dev/null; then
                 log "DEBUG" "Set threads-max to $threads_max"
                 applied_settings=$((applied_settings + 1))
-            }
+            fi
         fi
     fi
     
@@ -140,22 +149,31 @@ verify_tuning() {
     local total_checks=0
 
     verify_param() {
-        local file="$1" expected="$2"
-        [ -r "$file" ] && {
+        local file="$1" 
+        local expected="$2"
+        if [ -r "$file" ]; then
             local current=$(cat "$file" 2>/dev/null)
             [ "$current" = "$expected" ] && verification_passed=$((verification_passed + 1))
             total_checks=$((total_checks + 1))
-        }
+        fi
     }
     
     verify_param "/proc/sys/vm/swappiness" "$SWAPPINESS"
     verify_param "/proc/sys/vm/vfs_cache_pressure" "$CACHE_PRESSURE"
     
-    if [ $total_checks -gt 0 ]; then
+    if [ "$total_checks" -gt 0 ]; then
         local success_rate=$((verification_passed * 100 / total_checks))
         log "INFO" "Tuning verification: $success_rate% ($verification_passed/$total_checks)"
-        [ $success_rate -lt 50 ] && log "WARN" "Low tuning success rate"
+        if [ "$success_rate" -lt 50 ]; then
+            log "WARN" "Low tuning success rate"
+        fi
     fi
 }
 
-export -f adjust_swappiness apply_kernel_tuning verify_tuning
+export_functions() {
+    export -f adjust_swappiness 
+    export -f apply_kernel_tuning 
+    export -f verify_tuning
+}
+
+export_functions

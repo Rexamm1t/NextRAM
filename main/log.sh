@@ -10,36 +10,19 @@ MAX_LOG_SIZE=1048576
 log() {
     local level="$1"
     local message="$2"
-    local timestamp=$(date "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
-    timestamp=${timestamp:-"1970-01-01 00:00:00"}
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "0000-00-00 00:00:00")
     
-    : ${LOG_FILE:="$LOG_DIR/nextram_$(date +%Y%m%d_%H%M%S 2>/dev/null).log"}
-    LOG_FILE=${LOG_FILE:-"$LOG_DIR/nextram.log"}
-
-    if [ -f "$LOG_FILE" ] && [ $(stat -c %s "$LOG_FILE" 2>/dev/null || echo 0) -gt $MAX_LOG_SIZE ]; then
-        mv "$LOG_FILE" "$LOG_FILE.old" 2>/dev/null
+    if [ -z "${LOG_FILE}" ] || [ ! -f "${LOG_FILE}" ]; then
+        LOG_FILE="$LOG_DIR/nextram_$(date +%Y%m%d).log"
+        mkdir -p "$LOG_DIR" 2>/dev/null
+        touch "$LOG_FILE" 2>/dev/null
+        chmod 644 "$LOG_FILE" 2>/dev/null
     fi
-
-    case "$LOG_LEVEL" in
-        "DEBUG") 
-            echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null
-            ;;
-        "INFO") 
-            [[ "$level" == "DEBUG" ]] || echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null
-            ;;
-        "WARN") 
-            [[ "$level" == "DEBUG" || "$level" == "INFO" ]] || echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null
-            ;;
-        "ERROR") 
-            [[ "$level" == "ERROR" ]] && echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null
-            ;;
-        *) 
-            echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null
-            ;;
-    esac
     
-    if [ "$level" = "ERROR" ]; then
-        echo "[NextRAM] $level: $message"
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null &
+    
+    if [ "$level" = "ERROR" ] && command -v logcat >/dev/null 2>&1; then
+        logcat -t 100 -s "NextRAM:E $message" 2>/dev/null &
     fi
 }
 

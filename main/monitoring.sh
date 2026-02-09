@@ -16,9 +16,9 @@ start_monitoring() {
     
     nohup sh -c "
     while true; do
-        [ -b '/dev/block/zram0' ] && {
+        if [ -b '/dev/block/zram0' ]; then
             local stats=\$(cat /sys/block/zram0/mm_stat 2>/dev/null)
-            [ -n \"\$stats\" ] && {
+            if [ -n \"\$stats\" ]; then
                 local compr_size=\$(echo \"\$stats\" | awk '{print \$2}')
                 local orig_size=\$(echo \"\$stats\" | awk '{print \$3}')
                 local ratio=0
@@ -26,8 +26,8 @@ start_monitoring() {
                     ratio=\$(awk -v c=\"\$compr_size\" -v o=\"\$orig_size\" 'BEGIN {printf \"%.2f\", o/c}')
                 fi
                 echo \"\$(date '+%Y-%m-%d %H:%M:%S'),ZRAM,\$compr_size,\$orig_size,\$ratio\" >> \"$MODDIR/logs/zram_monitor.csv\" 2>/dev/null
-            }
-        }
+            fi
+        fi
         
         local swap_total=\$(awk '/SwapTotal/ {print \$2}' /proc/meminfo 2>/dev/null)
         local swap_free=\$(awk '/SwapFree/ {print \$2}' /proc/meminfo 2>/dev/null)
@@ -47,7 +47,7 @@ start_monitoring() {
     " > /dev/null 2>&1 &
     
     MONITOR_PID=$!
-    echo $MONITOR_PID > "$MODDIR/monitor.pid" 2>/dev/null
+    echo "$MONITOR_PID" > "$MODDIR/monitor.pid" 2>/dev/null
     log "INFO" "System monitoring started (PID: $MONITOR_PID)"
 }
 
@@ -94,4 +94,10 @@ get_system_stats() {
     grep -v "0 0 0" /proc/diskstats 2>/dev/null | head -10 || echo "Cannot get disk stats"
 }
 
-export -f start_monitoring stop_monitoring get_system_stats
+export_functions() {
+    export -f start_monitoring 
+    export -f stop_monitoring 
+    export -f get_system_stats
+}
+
+export_functions

@@ -6,25 +6,31 @@ ZRAM_STREAMS_CACHE=""
 ZRAM_OPTIMAL_RATIO=2.5
 
 zram_init() {
-    [ -b "/dev/block/zram0" ] && return 0
+    if [ -b "/dev/block/zram0" ]; then
+        return 0
+    fi
     
-    [ -d "/sys/block/zram0" ] || {
+    if [ ! -d "/sys/block/zram0" ]; then
         insmod /system/lib/modules/zram.ko 2>/dev/null
         insmod /vendor/lib/modules/zram.ko 2>/dev/null
         sleep 2
-    }
+    fi
     
-    [ -d "/sys/class/zram-control" ] && [ ! -b "/dev/block/zram0" ] && {
+    if [ -d "/sys/class/zram-control" ] && [ ! -b "/dev/block/zram0" ]; then
         cat /sys/class/zram-control/hot_add 2>/dev/null >/dev/null
         sleep 1
-    }
+    fi
     
-    [ -b "/dev/block/zram0" ] && return 0
+    if [ -b "/dev/block/zram0" ]; then
+        return 0
+    fi
     return 1
 }
 
 test_zram_algorithms() {
-    [ ! -b "/dev/block/zram0" ] && return 1
+    if [ ! -b "/dev/block/zram0" ]; then
+        return 1
+    fi
     
     log "INFO" "Testing ZRAM compression algorithms"
     local available_algs=$(cat /sys/block/zram0/comp_algorithm 2>/dev/null | sed 's/\[//g;s/\]//g' | tr ' ' '\n' | grep -v none)
@@ -45,19 +51,24 @@ test_zram_algorithms() {
     fi
     
     for alg in $test_algorithms; do
-        echo "$available_algs" | grep -qw "$alg" || continue
+        if ! echo "$available_algs" | grep -qw "$alg"; then
+            continue
+        fi
+        
         local total_score=0
         local test_count=0
         local avg_ratio=0
         
         for test_file in "$test_data_dir"/*; do
-            [ -f "$test_file" ] || continue
+            if [ ! -f "$test_file" ]; then
+                continue
+            fi
             
             echo 1 > /sys/block/zram0/reset 2>/dev/null
             echo "$alg" > /sys/block/zram0/comp_algorithm 2>/dev/null
             echo "50M" > /sys/block/zram0/disksize 2>/dev/null
             
-            mkswap "/dev/block/zram0" >/dev/null 2>&1 && swapon "/dev/block/zram0" >/dev/null 2>&1 && {
+            if mkswap "/dev/block/zram0" >/dev/null 2>&1 && swapon "/dev/block/zram0" >/dev/null 2>&1; then
                 local file_size=$(stat -c %s "$test_file" 2>/dev/null)
                 file_size=${file_size:-0}
                 local start_time=$(date +%s%N)
@@ -79,18 +90,18 @@ test_zram_algorithms() {
                 avg_ratio=$(awk -v ar="$avg_ratio" -v r="$ratio" -v tc="$test_count" 'BEGIN {printf "%.2f", (ar * tc + r) / (tc + 1)}')
                 test_count=$((test_count + 1))
                 swapoff "/dev/block/zram0" >/dev/null 2>&1
-            }
+            fi
             echo 1 > /sys/block/zram0/reset 2>/dev/null
         done
         
-        [ "$test_count" -gt 0 ] && {
+        if [ "$test_count" -gt 0 ]; then
             local ml_score=$((total_score / test_count))
-            [ "$ml_score" -gt "$best_ml_score" ] && {
+            if [ "$ml_score" -gt "$best_ml_score" ]; then
                 best_ml_score=$ml_score
                 best_alg=$alg
                 best_ratio=$avg_ratio
-            }
-        }
+            fi
+        fi
     done
     
     rm -rf "$test_data_dir" 2>/dev/null
@@ -103,40 +114,60 @@ test_zram_algorithms() {
 
 optimize_algorithm_params() {
     local alg="$1"
-    [ ! -f "/proc/sys/vm/page-cluster" ] && return
+    if [ ! -f "/proc/sys/vm/page-cluster" ]; then
+        return
+    fi
     
     case "$alg" in
-        "zstd") echo 3 > /proc/sys/vm/page-cluster 2>/dev/null ;;
-        "lz4"|"lz4hc") echo 2 > /proc/sys/vm/page-cluster 2>/dev/null ;;
-        "deflate") echo 1 > /proc/sys/vm/page-cluster 2>/dev/null ;;
-        *) echo 0 > /proc/sys/vm/page-cluster 2>/dev/null ;;
+        "zstd") 
+            echo 3 > /proc/sys/vm/page-cluster 2>/dev/null 
+            ;;
+        "lz4"|"lz4hc") 
+            echo 2 > /proc/sys/vm/page-cluster 2>/dev/null 
+            ;;
+        "deflate") 
+            echo 1 > /proc/sys/vm/page-cluster 2>/dev/null 
+            ;;
+        *) 
+            echo 0 > /proc/sys/vm/page-cluster 2>/dev/null 
+            ;;
     esac
 }
 
 get_optimal_streams() {
     local algorithm="$1"
-    local cpu_cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null)
+    local cpu_cores=$(grep -c "^processor" /proc/cpuinfo 2>/dev/null)
     cpu_cores=${cpu_cores:-4}
     
-    [ -d "/sys/devices/system/cpu/cpu0/cpufreq" ] && {
+    if [ -d "/sys/devices/system/cpu/cpu0/cpufreq" ]; then
         local big_cores=$(cat /sys/devices/system/cpu/cpu*/cpufreq/cpuinfo_max_freq 2>/dev/null | awk '$1 > 1500000' | wc -l)
-        [ "$big_cores" -gt 0 ] && cpu_cores=$big_cores
-    }
+        if [ "$big_cores" -gt 0 ]; then
+            cpu_cores=$big_cores
+        fi
+    fi
     
     local calculated_streams=$cpu_cores
     case "$algorithm" in
-        "zstd") calculated_streams=$cpu_cores ;;
-        "lz4"|"lz4hc") calculated_streams=$((cpu_cores > 4 ? cpu_cores - 1 : cpu_cores)) ;;
-        *) calculated_streams=1 ;;
+        "zstd") 
+            calculated_streams=$cpu_cores 
+            ;;
+        "lz4"|"lz4hc") 
+            calculated_streams=$((cpu_cores > 4 ? cpu_cores - 1 : cpu_cores)) 
+            ;;
+        *) 
+            calculated_streams=1 
+            ;;
     esac
     
-    [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ] && [ "$calculated_streams" -gt "$MAX_COMP_STREAMS" ] && {
+    if [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ] && [ "$calculated_streams" -gt "$MAX_COMP_STREAMS" ]; then
         log "INFO" "Limiting streams from $calculated_streams to $MAX_COMP_STREAMS"
         calculated_streams="$MAX_COMP_STREAMS"
-    }
+    fi
     
     case "$algorithm" in
-        "lzo"|"lzo-rle") calculated_streams=$((calculated_streams > 2 ? 2 : calculated_streams)) ;;
+        "lzo"|"lzo-rle") 
+            calculated_streams=$((calculated_streams > 2 ? 2 : calculated_streams)) 
+            ;;
     esac
     
     echo $calculated_streams
@@ -161,22 +192,37 @@ calculate_optimal_zram_size() {
     
     local base_size=$(awk -v ram="$total_ram" -v ratio="${ZRAM_RATIO:-1.5}" 'BEGIN {printf "%.0f", ram * ratio}')
     
-    [ "$available_ram" -lt $((total_ram / 4)) ] && base_size=$((base_size * 120 / 100))
-    [ "$swap_usage" -gt 70 ] && base_size=$((base_size * 130 / 100))
+    if [ "$available_ram" -lt $((total_ram / 4)) ]; then
+        base_size=$((base_size * 120 / 100))
+    fi
+    
+    if [ "$swap_usage" -gt 70 ]; then
+        base_size=$((base_size * 130 / 100))
+    fi
     
     local max_zram_kb=$((total_ram * 4))
     local min_zram_kb=524288
-    [ "$base_size" -gt "$max_zram_kb" ] && base_size=$max_zram_kb
-    [ "$base_size" -lt "$min_zram_kb" ] && base_size=$min_zram_kb
+    if [ "$base_size" -gt "$max_zram_kb" ]; then
+        base_size=$max_zram_kb
+    fi
+    
+    if [ "$base_size" -lt "$min_zram_kb" ]; then
+        base_size=$min_zram_kb
+    fi
     
     log "DEBUG" "ZRAM calculation: RAM=${total_ram}KB, Ratio=${ZRAM_RATIO:-1.5}, Base=${base_size}KB"
     echo $base_size
 }
 
 monitor_zram_efficiency() {
-    [ ! -b "/dev/block/zram0" ] && return 1
+    if [ ! -b "/dev/block/zram0" ]; then
+        return 1
+    fi
+    
     local stats=$(cat /sys/block/zram0/mm_stat 2>/dev/null)
-    [ -z "$stats" ] && return 1
+    if [ -z "$stats" ]; then
+        return 1
+    fi
     
     local compr_data_size=$(echo "$stats" | awk '{print $2}')
     local orig_data_size=$(echo "$stats" | awk '{print $3}')
@@ -191,12 +237,16 @@ monitor_zram_efficiency() {
         fi
         echo "$(date +%s),$ratio,$compr_data_size,$orig_data_size" >> "$MODDIR/cache/zram_history.txt" 2>/dev/null
         
-        [ ! -f "$MODDIR/cache/ratio_checked.flag" ] && {
-            [ "$(echo "$ratio < $ZRAM_OPTIMAL_RATIO" | bc -l 2>/dev/null)" = "1" ] && log "WARN" "Suboptimal compression ratio: ${ratio}:1"
+        if [ ! -f "$MODDIR/cache/ratio_checked.flag" ]; then
+            if [ "$(echo "$ratio < $ZRAM_OPTIMAL_RATIO" | bc -l 2>/dev/null)" = "1" ]; then
+                log "WARN" "Suboptimal compression ratio: ${ratio}:1"
+            fi
             touch "$MODDIR/cache/ratio_checked.flag" 2>/dev/null
-        }
+        fi
         
-        [ "$(echo "$ratio < 1.5" | bc -l 2>/dev/null)" = "1" ] && touch "$MODDIR/cache/optimize_algorithm" 2>/dev/null
+        if [ "$(echo "$ratio < 1.5" | bc -l 2>/dev/null)" = "1" ]; then
+            touch "$MODDIR/cache/optimize_algorithm" 2>/dev/null
+        fi
     fi
 }
 
@@ -204,18 +254,24 @@ verify_stream_limits() {
     local requested_streams="$1"
     local actual_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null || echo "$requested_streams")
     
-    [ "$actual_streams" != "$requested_streams" ] && {
+    if [ "$actual_streams" != "$requested_streams" ]; then
         log "WARN" "Stream mismatch: requested $requested_streams, got $actual_streams"
         echo "$requested_streams" > /sys/block/zram0/max_comp_streams 2>/dev/null
         sleep 1
         
         local verified_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null)
-        [ "$verified_streams" = "$requested_streams" ] && log "INFO" "Enforced stream limit: $requested_streams" || log "WARN" "Using: $verified_streams"
-    }
+        if [ "$verified_streams" = "$requested_streams" ]; then
+            log "INFO" "Enforced stream limit: $requested_streams"
+        else
+            log "WARN" "Using: $verified_streams"
+        fi
+    fi
 }
 
 monitor_zram_usage() {
-    [ ! -b "/dev/block/zram0" ] && return 1
+    if [ ! -b "/dev/block/zram0" ]; then
+        return 1
+    fi
     
     local current_streams=$(cat /sys/block/zram0/max_comp_streams 2>/dev/null || echo "N/A")
     local compr_data_size=$(awk '{print $2}' /sys/block/zram0/mm_stat 2>/dev/null || echo "0")
@@ -223,17 +279,19 @@ monitor_zram_usage() {
     
     log "DEBUG" "ZRAM streams: $current_streams, compressed: ${compr_data_size}KB, original: ${orig_data_size}KB"
     
-    [ "$current_streams" != "N/A" ] && [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ] && [ "$current_streams" -gt "$MAX_COMP_STREAMS" ] && log "WARN" "ZRAM using $current_streams streams (limit: $MAX_COMP_STREAMS)"
+    if [ "$current_streams" != "N/A" ] && [ -n "$MAX_COMP_STREAMS" ] && [ "$MAX_COMP_STREAMS" -gt 0 ] && [ "$current_streams" -gt "$MAX_COMP_STREAMS" ]; then
+        log "WARN" "ZRAM using $current_streams streams (limit: $MAX_COMP_STREAMS)"
+    fi
 }
 
 setup_zram() {
-    zram_init || {
+    if ! zram_init; then
         log "INFO" "ZRAM device not available"
         ZRAM_ENABLED=false
         return 0
-    }
+    fi
     
-    [ "$ZRAM_AUTO_TUNE" = "true" ] || [ -f "$MODDIR/cache/retest_algorithms" ] || [ -f "$MODDIR/cache/optimize_algorithm" ] && {
+    if [ "$ZRAM_AUTO_TUNE" = "true" ] || [ -f "$MODDIR/cache/retest_algorithms" ] || [ -f "$MODDIR/cache/optimize_algorithm" ]; then
         local system_uptime=$(awk '{print $1}' /proc/uptime 2>/dev/null | cut -d. -f1)
         local load_avg=$(awk '{print $1}' /proc/loadavg 2>/dev/null)
         
@@ -247,17 +305,17 @@ setup_zram() {
             ZRAM_ALGORITHM_CACHE="lz4"
         fi
         rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" 2>/dev/null
-    }
+    fi
     
     local algorithm="${ZRAM_ALGORITHM_CACHE:-$ZRAM_ALGORITHM}"
     log "INFO" "Configuring ZRAM with algorithm: $algorithm"
     
     local available_algs=$(cat /sys/block/zram0/comp_algorithm 2>/dev/null | sed 's/\[//g;s/\]//g')
-    echo "$available_algs" | grep -qw "$algorithm" || {
+    if ! echo "$available_algs" | grep -qw "$algorithm"; then
         algorithm=$(echo "$available_algs" | awk '{print $1}')
         ZRAM_ALGORITHM="$algorithm"
         log "WARN" "Algorithm not available, using: $algorithm"
-    }
+    fi
     
     echo 1 > /sys/block/zram0/reset 2>/dev/null
     sleep 1
@@ -276,21 +334,23 @@ setup_zram() {
     local verify_size=$(cat /sys/block/zram0/disksize 2>/dev/null)
     log "DEBUG" "ZRAM size: requested ${zram_size_kb}K, got ${verify_size}"
     
-    [ "$verify_size" != "$zram_size_kb" ] && {
+    if [ "$verify_size" != "$zram_size_kb" ]; then
         log "WARN" "ZRAM size mismatch, retrying..."
         echo 1 > /sys/block/zram0/reset 2>/dev/null
         sleep 1
         echo "${zram_size_kb}K" > /sys/block/zram0/disksize 2>/dev/null
-    }
+    fi
     
-    [ -f "/sys/block/zram0/memory_limit" ] && [ -n "$ZRAM_MEMORY_LIMIT" ] && echo "$ZRAM_MEMORY_LIMIT" > /sys/block/zram0/memory_limit 2>/dev/null
+    if [ -f "/sys/block/zram0/memory_limit" ] && [ -n "$ZRAM_MEMORY_LIMIT" ]; then
+        echo "$ZRAM_MEMORY_LIMIT" > /sys/block/zram0/memory_limit 2>/dev/null
+    fi
     
-    mkswap "/dev/block/zram0" >/dev/null 2>&1 && swapon "/dev/block/zram0" -p "${ZRAM_PRIORITY:-100}" 2>/dev/null && {
+    if mkswap "/dev/block/zram0" >/dev/null 2>&1 && swapon "/dev/block/zram0" -p "${ZRAM_PRIORITY:-100}" 2>/dev/null; then
         log "INFO" "ZRAM activated: ${zram_size_kb}KB with $algorithm, priority: ${ZRAM_PRIORITY:-100}"
         rm -f "$MODDIR/cache/ratio_checked.flag" 2>/dev/null
         monitor_zram_efficiency
         return 0
-    }
+    fi
     
     log "INFO" "ZRAM setup completed"
     return 0
@@ -299,8 +359,19 @@ setup_zram() {
 zram_cleanup() {
     log "INFO" "Performing ZRAM cleanup"
     swapoff "/dev/block/zram0" 2>/dev/null
-    [ -f "/sys/block/zram0/reset" ] && echo 1 > "/sys/block/zram0/reset" 2>/dev/null
+    if [ -f "/sys/block/zram0/reset" ]; then
+        echo 1 > "/sys/block/zram0/reset" 2>/dev/null
+    fi
     rm -f "$MODDIR/cache/retest_algorithms" "$MODDIR/cache/optimize_algorithm" "$MODDIR/cache/ratio_checked.flag" 2>/dev/null
 }
 
-export -f zram_init test_zram_algorithms setup_zram zram_cleanup verify_stream_limits monitor_zram_usage
+export_functions() {
+    export -f zram_init 
+    export -f test_zram_algorithms 
+    export -f setup_zram 
+    export -f zram_cleanup 
+    export -f verify_stream_limits 
+    export -f monitor_zram_usage
+}
+
+export_functions

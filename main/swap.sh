@@ -6,13 +6,20 @@ setup_swap() {
     SWAP_MOUNT_DIR="$MODDIR/swap_mount"
     SWAP_FILE="$SWAP_MOUNT_DIR/swapfile"
     
-    [ -z "$SWAP_SIZE_GB" ] && { log "ERROR" "SWAP_SIZE_GB not set"; return 1; }
-    [ -z "$OVERHEAD_GB" ] && { log "ERROR" "OVERHEAD_GB not set"; return 1; }
+    if [ -z "$SWAP_SIZE_GB" ]; then
+        log "ERROR" "SWAP_SIZE_GB not set"
+        return 1
+    fi
+    
+    if [ -z "$OVERHEAD_GB" ]; then
+        log "ERROR" "OVERHEAD_GB not set"
+        return 1
+    fi
     
     PRECISE_BYTES=$(awk -v s="$SWAP_SIZE_GB" 'BEGIN {printf "%.0f", s * 1073741824}')
     
     if [ -f "$SWAP_IMG" ] && [ -f "$SWAP_FILE" ]; then
-        ACTUAL_SIZE=$(stat -c %s "$SWAP_FILE" 2>/dev/null || du -b "$SWAP_FILE" 2>/dev/null | awk '{print $1}')
+        local ACTUAL_SIZE=$(stat -c %s "$SWAP_FILE" 2>/dev/null || du -b "$SWAP_FILE" 2>/dev/null | awk '{print $1}')
         ACTUAL_SIZE=${ACTUAL_SIZE:-0}
         
         if [ "$ACTUAL_SIZE" -eq "$PRECISE_BYTES" ]; then
@@ -31,9 +38,9 @@ setup_swap() {
     rm -f "$SWAP_IMG" 2>/dev/null
     rm -rf "$SWAP_MOUNT_DIR" 2>/dev/null
     
-    TOTAL_IMG_SIZE_GB=$(awk -v s="$SWAP_SIZE_GB" -v o="$OVERHEAD_GB" 'BEGIN {print s + o + 0.1}')
-    TOTAL_IMG_SIZE_BYTES=$(awk -v t="$TOTAL_IMG_SIZE_GB" 'BEGIN {printf "%.0f", t * 1073741824}')
-    REQUIRED_KB=$(awk -v t="$TOTAL_IMG_SIZE_GB" 'BEGIN {printf "%.0f", t * 1048576 * 1.1}')
+    local TOTAL_IMG_SIZE_GB=$(awk -v s="$SWAP_SIZE_GB" -v o="$OVERHEAD_GB" 'BEGIN {print s + o + 0.1}')
+    local TOTAL_IMG_SIZE_BYTES=$(awk -v t="$TOTAL_IMG_SIZE_GB" 'BEGIN {printf "%.0f", t * 1073741824}')
+    local REQUIRED_KB=$(awk -v t="$TOTAL_IMG_SIZE_GB" 'BEGIN {printf "%.0f", t * 1048576 * 1.1}')
     
     local DATA_FREE_KB=0
     if df -k /data >/dev/null 2>&1; then

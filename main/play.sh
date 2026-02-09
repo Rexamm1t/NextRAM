@@ -2,36 +2,62 @@
 MODDIR=${0%/*}/..
 
 init_play_mode() {
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set in config"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled in config"; return 0; }
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set in config"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled in config"
+        return 0
+    fi
     
     log "INFO" "Initializing NextRAM Play gaming mode"
-    [ ! -d "$MODDIR/cache" ] && mkdir -p "$MODDIR/cache" 2>/dev/null
+    if [ ! -d "$MODDIR/cache" ]; then
+        mkdir -p "$MODDIR/cache" 2>/dev/null
+    fi
     log "INFO" "Play mode initialized successfully"
     return 0
 }
 
 validate_path() {
-    [ -z "$1" ] && { log "DEBUG" "validate_path: empty path provided"; return 1; }
-    [ ! -e "$1" ] && { log "DEBUG" "validate_path: path does not exist: $1"; return 1; }
-    [ ! -r "$1" ] && { log "DEBUG" "validate_path: path not readable: $1"; return 1; }
+    local path="$1"
+    if [ -z "$path" ]; then
+        log "DEBUG" "validate_path: empty path provided"
+        return 1
+    fi
+    
+    if [ ! -e "$path" ]; then
+        log "DEBUG" "validate_path: path does not exist: $path"
+        return 1
+    fi
+    
+    if [ ! -r "$path" ]; then
+        log "DEBUG" "validate_path: path not readable: $path"
+        return 1
+    fi
+    
     return 0
 }
 
 write_with_check() {
-    local file="$1" value="$2" description="$3"
+    local file="$1" 
+    local value="$2" 
+    local description="$3"
     
-    [ -z "$description" ] && description="parameter"
+    if [ -z "$description" ]; then
+        description="parameter"
+    fi
     
-    validate_path "$file" || { 
+    if ! validate_path "$file"; then
         log "WARN" "Cannot write $description: $file not valid"
         return 1
-    }
+    fi
     
-    [ ! -w "$file" ] && { 
+    if [ ! -w "$file" ]; then
         log "WARN" "Cannot write $description: $file not writable"
         return 1
-    }
+    fi
     
     if echo "$value" > "$file" 2>/dev/null; then
         log "DEBUG" "Set $description to $value in $(basename "$file")"
@@ -46,45 +72,42 @@ safe_cpu_operation() {
     local cpu_path="$1"
     log "DEBUG" "Performing safe CPU operation on $cpu_path"
     
-    validate_path "$cpu_path/scaling_governor" || { 
+    if ! validate_path "$cpu_path/scaling_governor"; then
         log "WARN" "CPU governor path not valid: $cpu_path/scaling_governor"
         return 1
-    }
+    fi
     
     if [ ! -f "$MODDIR/cache/cpu_gov_backup" ]; then
         local current_gov=$(cat "$cpu_path/scaling_governor" 2>/dev/null)
-        [ -n "$current_gov" ] && {
+        if [ -n "$current_gov" ]; then
             echo "$current_gov" > "$MODDIR/cache/cpu_gov_backup" 2>/dev/null
             log "DEBUG" "Backed up CPU governor: $current_gov"
-        }
+        fi
     fi
     
     local target_gov="$PLAY_CPU_GOVERNOR"
     local available_govs=$(cat "$cpu_path/scaling_available_governors" 2>/dev/null)
     
     if echo "$available_govs" | grep -q "$target_gov"; then
-        write_with_check "$cpu_path/scaling_governor" "$target_gov" "CPU governor" || 
-            log "WARN" "Failed to set CPU governor to $target_gov"
+        write_with_check "$cpu_path/scaling_governor" "$target_gov" "CPU governor" || log "WARN" "Failed to set CPU governor to $target_gov"
     else
         log "WARN" "Governor $target_gov not available for $cpu_path (available: $available_govs)"
     fi
     
     if [ "$PLAY_CPU_MIN_FREQ" -gt 0 ]; then
-        validate_path "$cpu_path/scaling_min_freq" && {
+        if validate_path "$cpu_path/scaling_min_freq"; then
             local min_freq=$(cat "$cpu_path/scaling_min_freq" 2>/dev/null)
             local target_min=$((PLAY_CPU_MIN_FREQ * 1000))
-            [ -n "$min_freq" ] && [ "$target_min" -gt "$min_freq" ] && {
-                write_with_check "$cpu_path/scaling_min_freq" "$target_min" "CPU min freq" ||
-                    log "WARN" "Failed to set CPU min freq to $target_min"
-            }
-        }
+            if [ -n "$min_freq" ] && [ "$target_min" -gt "$min_freq" ]; then
+                write_with_check "$cpu_path/scaling_min_freq" "$target_min" "CPU min freq" || log "WARN" "Failed to set CPU min freq to $target_min"
+            fi
+        fi
     fi
     
     if [ "$PLAY_CPU_MAX_FREQ" -gt 0 ]; then
-        validate_path "$cpu_path/scaling_max_freq" && {
-            write_with_check "$cpu_path/scaling_max_freq" "$((PLAY_CPU_MAX_FREQ * 1000))" "CPU max freq" ||
-                log "WARN" "Failed to set CPU max freq to $((PLAY_CPU_MAX_FREQ * 1000))"
-        }
+        if validate_path "$cpu_path/scaling_max_freq"; then
+            write_with_check "$cpu_path/scaling_max_freq" "$((PLAY_CPU_MAX_FREQ * 1000))" "CPU max freq" || log "WARN" "Failed to set CPU max freq to $((PLAY_CPU_MAX_FREQ * 1000))"
+        fi
     fi
     
     log "DEBUG" "CPU operation completed for $cpu_path"
@@ -93,43 +116,49 @@ safe_cpu_operation() {
 
 boost_cpu_performance() {
     log "INFO" "Starting CPU performance boost"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping CPU boost"; return 0; }
-    [ "$PLAY_CPU_BOOST" != "true" ] && { log "DEBUG" "CPU boost disabled in settings"; return 0; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping CPU boost"
+        return 0
+    fi
+    
+    if [ "$PLAY_CPU_BOOST" != "true" ]; then
+        log "DEBUG" "CPU boost disabled in settings"
+        return 0
+    fi
     
     local cpu_count=0
     for cpu in /sys/devices/system/cpu/cpu*/cpufreq; do
-        [ -d "$cpu" ] && {
+        if [ -d "$cpu" ]; then
             safe_cpu_operation "$cpu"
             cpu_count=$((cpu_count + 1))
-        }
+        fi
     done
     log "INFO" "Configured CPU performance for $cpu_count cores"
     
     if [ -d "/sys/module/cpu_boost" ]; then
-        write_with_check "/sys/module/cpu_boost/parameters/input_boost_ms" "$PLAY_CPU_BOOST_DURATION" "CPU boost duration" ||
-            log "WARN" "Failed to set CPU boost duration"
+        write_with_check "/sys/module/cpu_boost/parameters/input_boost_ms" "$PLAY_CPU_BOOST_DURATION" "CPU boost duration" || log "WARN" "Failed to set CPU boost duration"
         
-        write_with_check "/sys/module/cpu_boost/parameters/input_boost_enabled" "1" "CPU boost enable" ||
-            log "WARN" "Failed to enable CPU boost"
+        write_with_check "/sys/module/cpu_boost/parameters/input_boost_enabled" "1" "CPU boost enable" || log "WARN" "Failed to enable CPU boost"
         
         if [ -f "/sys/module/cpu_boost/parameters/dynamic_stune_boost" ]; then
-            write_with_check "/sys/module/cpu_boost/parameters/dynamic_stune_boost" "$PLAY_CPU_BOOST_LEVEL" "CPU boost level" ||
-                log "WARN" "Failed to set CPU boost level"
+            write_with_check "/sys/module/cpu_boost/parameters/dynamic_stune_boost" "$PLAY_CPU_BOOST_LEVEL" "CPU boost level" || log "WARN" "Failed to set CPU boost level"
         fi
     else
         log "DEBUG" "CPU boost module not available"
     fi
     
-    write_with_check "/proc/sys/kernel/sched_min_task_util_for_colocation" "0" "sched min task util" ||
-        log "WARN" "Failed to set sched min task util"
+    write_with_check "/proc/sys/kernel/sched_min_task_util_for_colocation" "0" "sched min task util" || log "WARN" "Failed to set sched min task util"
     
-    write_with_check "/proc/sys/kernel/sched_migration_fixup" "1" "sched migration fixup" ||
-        log "WARN" "Failed to set sched migration fixup"
+    write_with_check "/proc/sys/kernel/sched_migration_fixup" "1" "sched migration fixup" || log "WARN" "Failed to set sched migration fixup"
     
     if [ -d "/dev/cpuset/foreground" ]; then
-        write_with_check "/dev/cpuset/foreground/cpus" "0-3" "foreground CPU affinity" ||
-            log "WARN" "Failed to set CPU affinity"
+        write_with_check "/dev/cpuset/foreground/cpus" "0-3" "foreground CPU affinity" || log "WARN" "Failed to set CPU affinity"
     fi
     
     log "INFO" "CPU performance boost completed"
@@ -138,58 +167,89 @@ boost_cpu_performance() {
 
 optimize_gpu_for_gaming() {
     log "INFO" "Starting GPU optimization"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping GPU optimization"; return 0; }
-    [ "$PLAY_GPU_BOOST" != "true" ] && { log "DEBUG" "GPU boost disabled in settings"; return 0; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping GPU optimization"
+        return 0
+    fi
+    
+    if [ "$PLAY_GPU_BOOST" != "true" ]; then
+        log "DEBUG" "GPU boost disabled in settings"
+        return 0
+    fi
+    
+    local gpu_paths=""
     
     if [ -d "/sys/class/kgsl/kgsl-3d0" ]; then
-        write_with_check "/sys/class/kgsl/kgsl-3d0/devfreq/governor" "$PLAY_GPU_GOVERNOR" "GPU governor" ||
-            log "WARN" "Failed to set GPU governor"
-        
-        if validate_path "/sys/class/kgsl/kgsl-3d0/max_gpuclk"; then
-            local max_freq=$(cat /sys/class/kgsl/kgsl-3d0/max_gpuclk 2>/dev/null)
-            [ -n "$max_freq" ] && {
-                local target_freq=$((max_freq * PLAY_GPU_MAX_FREQ_PERCENT / 100))
-                write_with_check "/sys/class/kgsl/kgsl-3d0/max_gpuclk" "$target_freq" "GPU max frequency" ||
-                    log "WARN" "Failed to set GPU max frequency"
-            }
-        fi
-        
-        if [ -f "/sys/class/kgsl/kgsl-3d0/throttling" ]; then
-            write_with_check "/sys/class/kgsl/kgsl-3d0/throttling" "0" "GPU throttling disable" ||
-                log "WARN" "Failed to disable GPU throttling"
-        fi
-    else
-        log "DEBUG" "Adreno GPU path not found"
+        gpu_paths="$gpu_paths /sys/class/kgsl/kgsl-3d0"
     fi
     
-    if [ -d "/sys/devices/platform/14ac0000.mali" ] || [ -d "/sys/devices/platform/mali.0" ]; then
-        local mali_path=""
-        [ -d "/sys/devices/platform/14ac0000.mali" ] && mali_path="/sys/devices/platform/14ac0000.mali"
-        [ -d "/sys/devices/platform/mali.0" ] && mali_path="/sys/devices/platform/mali.0"
+    if [ -d "/sys/devices/platform/14ac0000.mali" ]; then
+        gpu_paths="$gpu_paths /sys/devices/platform/14ac0000.mali"
+    fi
+    
+    if [ -d "/sys/devices/platform/mali.0" ]; then
+        gpu_paths="$gpu_paths /sys/devices/platform/mali.0"
+    fi
+    
+    if [ -d "/sys/class/misc/mali0" ]; then
+        gpu_paths="$gpu_paths /sys/class/misc/mali0"
+    fi
+    
+    if [ -d "/sys/kernel/gpu" ]; then
+        gpu_paths="$gpu_paths /sys/kernel/gpu"
+    fi
+    
+    if [ -z "$gpu_paths" ]; then
+        log "DEBUG" "No GPU control paths found"
+        return 0
+    fi
+    
+    for gpu_path in $gpu_paths; do
+        log "DEBUG" "Checking GPU path: $gpu_path"
         
-        if [ -n "$mali_path" ]; then
-            write_with_check "$mali_path/dvfs_governor" "$PLAY_GPU_GOVERNOR" "Mali GPU governor" ||
-                log "WARN" "Failed to set Mali GPU governor"
-            
-            if [ -f "$mali_path/dvfs_max_lock" ]; then
-                write_with_check "$mali_path/dvfs_max_lock" "$((PLAY_GPU_MAX_FREQ_PERCENT * 100))" "Mali GPU max lock" ||
-                    log "WARN" "Failed to set Mali GPU max lock"
+        if [ -f "$gpu_path/devfreq/governor" ] && [ -w "$gpu_path/devfreq/governor" ]; then
+            write_with_check "$gpu_path/devfreq/governor" "$PLAY_GPU_GOVERNOR" "GPU governor" || log "WARN" "Failed to set GPU governor at $gpu_path"
+        fi
+        
+        if [ -f "$gpu_path/max_gpuclk" ] && [ -w "$gpu_path/max_gpuclk" ]; then
+            local max_freq=$(cat "$gpu_path/max_gpuclk" 2>/dev/null)
+            if [ -n "$max_freq" ]; then
+                local target_freq=$((max_freq * PLAY_GPU_MAX_FREQ_PERCENT / 100))
+                write_with_check "$gpu_path/max_gpuclk" "$target_freq" "GPU max frequency" || log "WARN" "Failed to set GPU max frequency at $gpu_path"
             fi
         fi
-    fi
+        
+        if [ -f "$gpu_path/throttling" ] && [ -w "$gpu_path/throttling" ]; then
+            write_with_check "$gpu_path/throttling" "0" "GPU throttling disable" || log "WARN" "Failed to disable GPU throttling at $gpu_path"
+        fi
+        
+        if [ -f "$gpu_path/dvfs_governor" ] && [ -w "$gpu_path/dvfs_governor" ]; then
+            write_with_check "$gpu_path/dvfs_governor" "$PLAY_GPU_GOVERNOR" "Mali GPU governor" || log "WARN" "Failed to set Mali GPU governor at $gpu_path"
+        fi
+        
+        if [ -f "$gpu_path/dvfs_max_lock" ] && [ -w "$gpu_path/dvfs_max_lock" ]; then
+            write_with_check "$gpu_path/dvfs_max_lock" "$((PLAY_GPU_MAX_FREQ_PERCENT * 100))" "Mali GPU max lock" || log "WARN" "Failed to set Mali GPU max lock at $gpu_path"
+        fi
+    done
     
     if [ -d "/proc/gpufreq" ]; then
-        write_with_check "/proc/gpufreq/gpufreq_governor" "$PLAY_GPU_GOVERNOR" "GPU freq governor" ||
-            log "WARN" "Failed to set GPU freq governor"
+        if [ -f "/proc/gpufreq/gpufreq_governor" ]; then
+            write_with_check "/proc/gpufreq/gpufreq_governor" "$PLAY_GPU_GOVERNOR" "GPU freq governor" || log "WARN" "Failed to set GPU freq governor"
+        fi
         
-        write_with_check "/proc/gpufreq/gpufreq_max_freq" "$PLAY_GPU_MAX_FREQ_PERCENT" "GPU max freq" ||
-            log "WARN" "Failed to set GPU max freq"
+        if [ -f "/proc/gpufreq/gpufreq_max_freq" ]; then
+            write_with_check "/proc/gpufreq/gpufreq_max_freq" "$PLAY_GPU_MAX_FREQ_PERCENT" "GPU max freq" || log "WARN" "Failed to set GPU max freq"
+        fi
     fi
     
     if [ "$PLAY_GPU_TOUCH_BOOST" = "true" ] && [ -f "/sys/class/kgsl/kgsl-3d0/touch_boost" ]; then
-        write_with_check "/sys/class/kgsl/kgsl-3d0/touch_boost" "1" "GPU touch boost" ||
-            log "WARN" "Failed to enable GPU touch boost"
+        write_with_check "/sys/class/kgsl/kgsl-3d0/touch_boost" "1" "GPU touch boost" || log "WARN" "Failed to enable GPU touch boost"
     fi
     
     log "INFO" "GPU optimization completed"
@@ -198,13 +258,27 @@ optimize_gpu_for_gaming() {
 
 enhance_touch_responsiveness() {
     log "INFO" "Enhancing touch responsiveness"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping touch optimization"; return 0; }
-    [ "$PLAY_TOUCH_BOOST" != "true" ] && { log "DEBUG" "Touch boost disabled in settings"; return 0; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping touch optimization"
+        return 0
+    fi
+    
+    if [ "$PLAY_TOUCH_BOOST" != "true" ]; then
+        log "DEBUG" "Touch boost disabled in settings"
+        return 0
+    fi
     
     local input_count=0
     for input in /sys/class/input/input*; do
-        [ -d "$input" ] || continue
+        if [ ! -d "$input" ]; then
+            continue
+        fi
         
         if [ -f "$input/poll" ] && [ -w "$input/poll" ]; then
             echo "1" > "$input/poll" 2>/dev/null
@@ -218,11 +292,9 @@ enhance_touch_responsiveness() {
     done
     log "DEBUG" "Configured $input_count input devices"
     
-    write_with_check "/proc/sys/vm/dirty_writeback_centisecs" "0" "dirty writeback centisecs" ||
-        log "WARN" "Failed to set dirty writeback centisecs"
+    write_with_check "/proc/sys/vm/dirty_writeback_centisecs" "0" "dirty writeback centisecs" || log "WARN" "Failed to set dirty writeback centisecs"
     
-    write_with_check "/proc/sys/vm/dirty_expire_centisecs" "0" "dirty expire centisecs" ||
-        log "WARN" "Failed to set dirty expire centisecs"
+    write_with_check "/proc/sys/vm/dirty_expire_centisecs" "0" "dirty expire centisecs" || log "WARN" "Failed to set dirty expire centisecs"
     
     case "$PLAY_VSYNC_MODE" in
         "off")
@@ -239,17 +311,15 @@ enhance_touch_responsiveness() {
             ;;
     esac
     
-    [ "$PLAY_DISABLE_HW_OVERLAYS" = "true" ] && {
+    if [ "$PLAY_DISABLE_HW_OVERLAYS" = "true" ]; then
         if command -v service >/dev/null 2>&1; then
-            service call SurfaceFlinger 1008 i32 1 >/dev/null 2>&1 && 
-                log "DEBUG" "Hardware overlays disabled" ||
-                log "WARN" "Failed to disable hardware overlays"
+            service call SurfaceFlinger 1008 i32 1 >/dev/null 2>&1 && log "DEBUG" "Hardware overlays disabled" || log "WARN" "Failed to disable hardware overlays"
         fi
-    }
+    fi
     
-    [ "$PLAY_FORCE_GPU_RENDER" = "true" ] && {
+    if [ "$PLAY_FORCE_GPU_RENDER" = "true" ]; then
         setprop debug.sf.hw 1 2>/dev/null && log "DEBUG" "Forced GPU rendering enabled"
-    }
+    fi
     
     log "INFO" "Touch responsiveness enhancement completed"
     return 0
@@ -257,61 +327,59 @@ enhance_touch_responsiveness() {
 
 tune_network_for_gaming() {
     log "INFO" "Tuning network for gaming"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping network tuning"; return 0; }
-    [ "$PLAY_NETWORK_TUNE" != "true" ] && { log "DEBUG" "Network tuning disabled in settings"; return 0; }
     
-    write_with_check "/proc/sys/net/core/rmem_default" "$PLAY_NET_RMEM_DEFAULT" "net rmem default" ||
-        log "WARN" "Failed to set net rmem default"
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
     
-    write_with_check "/proc/sys/net/core/wmem_default" "$PLAY_NET_WMEM_DEFAULT" "net wmem default" ||
-        log "WARN" "Failed to set net wmem default"
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping network tuning"
+        return 0
+    fi
     
-    write_with_check "/proc/sys/net/core/rmem_max" "$PLAY_NET_RMEM_MAX" "net rmem max" ||
-        log "WARN" "Failed to set net rmem max"
+    if [ "$PLAY_NETWORK_TUNE" != "true" ]; then
+        log "DEBUG" "Network tuning disabled in settings"
+        return 0
+    fi
     
-    write_with_check "/proc/sys/net/core/wmem_max" "$PLAY_NET_WMEM_MAX" "net wmem max" ||
-        log "WARN" "Failed to set net wmem max"
+    write_with_check "/proc/sys/net/core/rmem_default" "$PLAY_NET_RMEM_DEFAULT" "net rmem default" || log "WARN" "Failed to set net rmem default"
     
-    write_with_check "/proc/sys/net/ipv4/tcp_fastopen" "3" "TCP fastopen" ||
-        log "WARN" "Failed to set TCP fastopen"
+    write_with_check "/proc/sys/net/core/wmem_default" "$PLAY_NET_WMEM_DEFAULT" "net wmem default" || log "WARN" "Failed to set net wmem default"
     
-    write_with_check "/proc/sys/net/ipv4/tcp_tw_reuse" "1" "TCP tw reuse" ||
-        log "WARN" "Failed to set TCP tw reuse"
+    write_with_check "/proc/sys/net/core/rmem_max" "$PLAY_NET_RMEM_MAX" "net rmem max" || log "WARN" "Failed to set net rmem max"
     
-    write_with_check "/proc/sys/net/ipv4/tcp_low_latency" "1" "TCP low latency" ||
-        log "WARN" "Failed to set TCP low latency"
+    write_with_check "/proc/sys/net/core/wmem_max" "$PLAY_NET_WMEM_MAX" "net wmem max" || log "WARN" "Failed to set net wmem max"
     
-    write_with_check "/proc/sys/net/ipv4/tcp_slow_start_after_idle" "0" "TCP slow start after idle" ||
-        log "WARN" "Failed to set TCP slow start after idle"
+    write_with_check "/proc/sys/net/ipv4/tcp_fastopen" "3" "TCP fastopen" || log "WARN" "Failed to set TCP fastopen"
+    
+    write_with_check "/proc/sys/net/ipv4/tcp_tw_reuse" "1" "TCP tw reuse" || log "WARN" "Failed to set TCP tw reuse"
+    
+    write_with_check "/proc/sys/net/ipv4/tcp_low_latency" "1" "TCP low latency" || log "WARN" "Failed to set TCP low latency"
+    
+    write_with_check "/proc/sys/net/ipv4/tcp_slow_start_after_idle" "0" "TCP slow start after idle" || log "WARN" "Failed to set TCP slow start after idle"
     
     if validate_path "/proc/sys/net/ipv4/tcp_congestion_control"; then
         if validate_path "/proc/sys/net/ipv4/tcp_available_congestion_control"; then
-            if grep -q "$PLAY_TCP_CONGESTION" /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null; then
-                write_with_check "/proc/sys/net/ipv4/tcp_congestion_control" "$PLAY_TCP_CONGESTION" "TCP congestion control" ||
-                    log "WARN" "Failed to set TCP congestion control to $PLAY_TCP_CONGESTION"
+            if grep -q "$PLAY_TCP_CONGESTION" "/proc/sys/net/ipv4/tcp_available_congestion_control" 2>/dev/null; then
+                write_with_check "/proc/sys/net/ipv4/tcp_congestion_control" "$PLAY_TCP_CONGESTION" "TCP congestion control" || log "WARN" "Failed to set TCP congestion control to $PLAY_TCP_CONGESTION"
             else
                 log "WARN" "TCP congestion control $PLAY_TCP_CONGESTION not available"
             fi
         fi
     fi
     
-    write_with_check "/proc/sys/net/core/netdev_max_backlog" "5000" "netdev max backlog" ||
-        log "WARN" "Failed to set netdev max backlog"
+    write_with_check "/proc/sys/net/core/netdev_max_backlog" "5000" "netdev max backlog" || log "WARN" "Failed to set netdev max backlog"
     
-    write_with_check "/proc/sys/net/ipv4/tcp_mtu_probing" "1" "TCP MTU probing" ||
-        log "WARN" "Failed to set TCP MTU probing"
+    write_with_check "/proc/sys/net/ipv4/tcp_mtu_probing" "1" "TCP MTU probing" || log "WARN" "Failed to set TCP MTU probing"
     
     if [ -d "/sys/class/net/wlan0" ]; then
         if [ -f "/sys/class/net/wlan0/power_save" ]; then
-            write_with_check "/sys/class/net/wlan0/power_save" "0" "WiFi power save" ||
-                log "WARN" "Failed to disable WiFi power save"
+            write_with_check "/sys/class/net/wlan0/power_save" "0" "WiFi power save" || log "WARN" "Failed to disable WiFi power save"
         fi
         
         if command -v iw >/dev/null 2>&1; then
-            iw wlan0 set power_save off >/dev/null 2>&1 && 
-                log "DEBUG" "WiFi power save disabled via iw" ||
-                log "WARN" "Failed to disable WiFi power save via iw"
+            iw wlan0 set power_save off >/dev/null 2>&1 && log "DEBUG" "WiFi power save disabled via iw" || log "WARN" "Failed to disable WiFi power save via iw"
         fi
     fi
     
@@ -321,46 +389,45 @@ tune_network_for_gaming() {
 
 optimize_memory_for_games() {
     log "INFO" "Optimizing memory for gaming"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping memory optimization"; return 0; }
     
-    write_with_check "/proc/sys/vm/swappiness" "$PLAY_SWAPPINESS" "swappiness" ||
-        log "WARN" "Failed to set swappiness"
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
     
-    write_with_check "/proc/sys/vm/vfs_cache_pressure" "$PLAY_CACHE_PRESSURE" "cache pressure" ||
-        log "WARN" "Failed to set cache pressure"
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping memory optimization"
+        return 0
+    fi
     
-    write_with_check "/proc/sys/vm/dirty_ratio" "$PLAY_DIRTY_RATIO" "dirty ratio" ||
-        log "WARN" "Failed to set dirty ratio"
+    write_with_check "/proc/sys/vm/swappiness" "$PLAY_SWAPPINESS" "swappiness" || log "WARN" "Failed to set swappiness"
     
-    write_with_check "/proc/sys/vm/dirty_background_ratio" "$PLAY_DIRTY_BG_RATIO" "dirty background ratio" ||
-        log "WARN" "Failed to set dirty background ratio"
+    write_with_check "/proc/sys/vm/vfs_cache_pressure" "$PLAY_CACHE_PRESSURE" "cache pressure" || log "WARN" "Failed to set cache pressure"
     
-    write_with_check "/proc/sys/vm/dirty_writeback_centisecs" "0" "dirty writeback centisecs" ||
-        log "WARN" "Failed to set dirty writeback centisecs"
+    write_with_check "/proc/sys/vm/dirty_ratio" "$PLAY_DIRTY_RATIO" "dirty ratio" || log "WARN" "Failed to set dirty ratio"
     
-    write_with_check "/proc/sys/vm/dirty_expire_centisecs" "0" "dirty expire centisecs" ||
-        log "WARN" "Failed to set dirty expire centisecs"
+    write_with_check "/proc/sys/vm/dirty_background_ratio" "$PLAY_DIRTY_BG_RATIO" "dirty background ratio" || log "WARN" "Failed to set dirty background ratio"
+    
+    write_with_check "/proc/sys/vm/dirty_writeback_centisecs" "0" "dirty writeback centisecs" || log "WARN" "Failed to set dirty writeback centisecs"
+    
+    write_with_check "/proc/sys/vm/dirty_expire_centisecs" "0" "dirty expire centisecs" || log "WARN" "Failed to set dirty expire centisecs"
     
     if [ "$PLAY_ZRAM_OPTIMIZE" = "true" ] && [ -b "/dev/block/zram0" ]; then
         log "DEBUG" "Optimizing ZRAM for gaming"
         if validate_path "/sys/block/zram0/comp_algorithm"; then
-            local available_algs=$(cat /sys/block/zram0/comp_algorithm 2>/dev/null)
-            [ -n "$available_algs" ] && {
+            local available_algs=$(cat "/sys/block/zram0/comp_algorithm" 2>/dev/null)
+            if [ -n "$available_algs" ]; then
                 if echo "$available_algs" | grep -q "zstd"; then
-                    write_with_check "/sys/block/zram0/comp_algorithm" "zstd" "ZRAM compression algorithm" ||
-                        log "WARN" "Failed to set ZRAM algorithm to zstd"
+                    write_with_check "/sys/block/zram0/comp_algorithm" "zstd" "ZRAM compression algorithm" || log "WARN" "Failed to set ZRAM algorithm to zstd"
                 elif echo "$available_algs" | grep -q "lz4"; then
-                    write_with_check "/sys/block/zram0/comp_algorithm" "lz4" "ZRAM compression algorithm" ||
-                        log "WARN" "Failed to set ZRAM algorithm to lz4"
+                    write_with_check "/sys/block/zram0/comp_algorithm" "lz4" "ZRAM compression algorithm" || log "WARN" "Failed to set ZRAM algorithm to lz4"
                 fi
-            }
+            fi
         fi
         
-        if validate_path "/sys/block/zram0/max_comp_streams" && [ -f "/proc/cpuinfo" ]; then
-            local cores=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo "4")
-            write_with_check "/sys/block/zram0/max_comp_streams" "$cores" "ZRAM compression streams" ||
-                log "WARN" "Failed to set ZRAM compression streams"
+        if validate_path "/sys/block/zram0/max_comp_streams" ] && [ -f "/proc/cpuinfo" ]; then
+            local cores=$(grep -c "^processor" "/proc/cpuinfo" 2>/dev/null || echo "4")
+            write_with_check "/sys/block/zram0/max_comp_streams" "$cores" "ZRAM compression streams" || log "WARN" "Failed to set ZRAM compression streams"
         fi
     else
         log "DEBUG" "ZRAM optimization disabled or ZRAM not available"
@@ -368,8 +435,7 @@ optimize_memory_for_games() {
     
     if [ "$PLAY_CLEAR_CACHES" = "true" ] && [ -f "/proc/sys/vm/drop_caches" ]; then
         log "DEBUG" "Clearing caches"
-        write_with_check "/proc/sys/vm/drop_caches" "3" "drop caches" ||
-            log "WARN" "Failed to clear caches"
+        write_with_check "/proc/sys/vm/drop_caches" "3" "drop caches" || log "WARN" "Failed to clear caches"
         sync 2>/dev/null
         log "DEBUG" "Caches cleared"
     fi
@@ -380,9 +446,21 @@ optimize_memory_for_games() {
 
 manage_thermal_gaming() {
     log "INFO" "Managing thermal settings for gaming"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping thermal management"; return 0; }
-    [ "$PLAY_THERMAL_CONTROL" != "true" ] && { log "DEBUG" "Thermal control disabled in settings"; return 0; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping thermal management"
+        return 0
+    fi
+    
+    if [ "$PLAY_THERMAL_CONTROL" != "true" ]; then
+        log "DEBUG" "Thermal control disabled in settings"
+        return 0
+    fi
     
     local temp_value="85000"
     case "$PLAY_THERMAL_PROFILE" in
@@ -402,7 +480,9 @@ manage_thermal_gaming() {
     
     local thermal_zones=0
     for thermal in /sys/class/thermal/thermal_zone*; do
-        [ ! -d "$thermal" ] && continue
+        if [ ! -d "$thermal" ]; then
+            continue
+        fi
         
         if [ -f "$thermal/trip_point_0_temp" ] && [ -w "$thermal/trip_point_0_temp" ]; then
             echo "$temp_value" > "$thermal/trip_point_0_temp" 2>/dev/null
@@ -417,13 +497,11 @@ manage_thermal_gaming() {
     log "DEBUG" "Configured $thermal_zones thermal zones"
     
     if [ -f "/sys/module/msm_thermal/parameters/enabled" ]; then
-        write_with_check "/sys/module/msm_thermal/parameters/enabled" "N" "msm thermal enable" ||
-            log "WARN" "Failed to set msm thermal enabled"
+        write_with_check "/sys/module/msm_thermal/parameters/enabled" "N" "msm thermal enable" || log "WARN" "Failed to set msm thermal enabled"
     fi
     
     if [ -d "/sys/module/msm_thermal/core_control" ] && [ -f "/sys/module/msm_thermal/core_control/enabled" ]; then
-        write_with_check "/sys/module/msm_thermal/core_control/enabled" "0" "msm thermal core control" ||
-            log "WARN" "Failed to set msm thermal core control"
+        write_with_check "/sys/module/msm_thermal/core_control/enabled" "0" "msm thermal core control" || log "WARN" "Failed to set msm thermal core control"
     fi
     
     log "INFO" "Thermal management completed"
@@ -432,25 +510,42 @@ manage_thermal_gaming() {
 
 control_background_processes() {
     log "INFO" "Controlling background processes"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping background control"; return 0; }
-    [ "$PLAY_BG_CONTROL" != "true" ] && { log "DEBUG" "Background control disabled in settings"; return 0; }
     
-    [ ! -f "$MODDIR/cache/process_backup.txt" ] && {
-        ps -A -o pid,cmd > "$MODDIR/cache/process_backup.txt" 2>/dev/null &&
-            log "DEBUG" "Backed up process list" ||
-            log "WARN" "Failed to backup process list"
-    }
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping background control"
+        return 0
+    fi
+    
+    if [ "$PLAY_BG_CONTROL" != "true" ]; then
+        log "DEBUG" "Background control disabled in settings"
+        return 0
+    fi
+    
+    if [ ! -f "$MODDIR/cache/process_backup.txt" ]; then
+        ps -A -o pid,cmd > "$MODDIR/cache/process_backup.txt" 2>/dev/null && log "DEBUG" "Backed up process list" || log "WARN" "Failed to backup process list"
+    fi
     
     local killed_count=0
     local pids=$(ps -A -o pid 2>/dev/null | grep -E '^[0-9]+' || echo "")
     
     for pid in $pids; do
-        [ "$pid" -eq 1 ] && continue
-        [ ! -d "/proc/$pid" ] && continue
+        if [ "$pid" -eq 1 ]; then
+            continue
+        fi
         
-        local cmdline=$(cat /proc/$pid/cmdline 2>/dev/null | tr '\0' ' ')
-        [ -z "$cmdline" ] && continue
+        if [ ! -d "/proc/$pid" ]; then
+            continue
+        fi
+        
+        local cmdline=$(cat "/proc/$pid/cmdline" 2>/dev/null | tr '\0' ' ')
+        if [ -z "$cmdline" ]; then
+            continue
+        fi
         
         local is_essential=0
         case "$cmdline" in
@@ -462,24 +557,24 @@ control_background_processes() {
         if [ "$is_essential" -eq 0 ] && [ -n "$PLAY_BG_WHITELIST" ]; then
             local IFS=','
             for whitelisted in $PLAY_BG_WHITELIST; do
-                echo "$cmdline" | grep -qi "$whitelisted" && {
+                if echo "$cmdline" | grep -qi "$whitelisted"; then
                     is_essential=1
                     break
-                }
+                fi
             done
             unset IFS
         fi
         
         if [ "$is_essential" -eq 0 ]; then
-            local uid=$(stat -c %u /proc/$pid 2>/dev/null)
+            local uid=$(stat -c %u "/proc/$pid" 2>/dev/null)
             if [ -n "$uid" ] && echo "$uid" | grep -qE '^[0-9]+$' && [ "$uid" -ge 10000 ]; then
                 if kill -15 "$pid" 2>/dev/null; then
                     sleep 0.1
                     if [ -d "/proc/$pid" ]; then
-                        kill -9 "$pid" 2>/dev/null && {
+                        if kill -9 "$pid" 2>/dev/null; then
                             killed_count=$((killed_count + 1))
                             log "DEBUG" "Killed background process: $cmdline (PID: $pid)"
-                        }
+                        fi
                     else
                         killed_count=$((killed_count + 1))
                     fi
@@ -487,16 +582,17 @@ control_background_processes() {
             fi
         fi
         
-        [ "$killed_count" -ge "$PLAY_BG_KILL_LIMIT" ] && [ "$PLAY_BG_KILL_LIMIT" -gt 0 ] && break
+        if [ "$killed_count" -ge "$PLAY_BG_KILL_LIMIT" ] && [ "$PLAY_BG_KILL_LIMIT" -gt 0 ]; then
+            break
+        fi
     done
     
     if validate_path "/proc/sys/kernel/threads-max"; then
         local current_threads=$(ps -eLf 2>/dev/null | wc -l)
-        [ -n "$current_threads" ] && {
+        if [ -n "$current_threads" ]; then
             local new_limit=$((current_threads * 120 / 100))
-            write_with_check "/proc/sys/kernel/threads-max" "$new_limit" "threads max" ||
-                log "WARN" "Failed to set threads max"
-        }
+            write_with_check "/proc/sys/kernel/threads-max" "$new_limit" "threads max" || log "WARN" "Failed to set threads max"
+        fi
     fi
     
     log "INFO" "Background process control completed. Killed $killed_count processes"
@@ -505,30 +601,46 @@ control_background_processes() {
 
 setup_game_detector() {
     log "INFO" "Setting up game detector"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping game detector"; return 0; }
-    [ "$PLAY_AUTO_DETECT" != "true" ] && { log "DEBUG" "Auto detection disabled in settings"; return 0; }
     
-    [ -f "$MODDIR/cache/game_detector_pid" ] && {
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping game detector"
+        return 0
+    fi
+    
+    if [ "$PLAY_AUTO_DETECT" != "true" ]; then
+        log "DEBUG" "Auto detection disabled in settings"
+        return 0
+    fi
+    
+    if [ -f "$MODDIR/cache/game_detector_pid" ]; then
         local old_pid=$(cat "$MODDIR/cache/game_detector_pid" 2>/dev/null)
-        [ -n "$old_pid" ] && [ -d "/proc/$old_pid" ] && {
+        if [ -n "$old_pid" ] && [ -d "/proc/$old_pid" ]; then
             kill -9 "$old_pid" 2>/dev/null
             log "DEBUG" "Stopped previous game detector (PID: $old_pid)"
-        }
-    }
+        fi
+    fi
     
     log "INFO" "Starting game detector in background"
     nohup sh -c "
     while true; do
         sleep 3
-        command -v dumpsys >/dev/null 2>&1 || continue
+        if ! command -v dumpsys >/dev/null 2>&1; then
+            continue
+        fi
         
         local current_app=\$(dumpsys window windows 2>/dev/null | \
             grep -E 'mCurrentFocus|mFocusedApp' | \
             grep -oE '[a-zA-Z0-9._]+/[a-zA-Z0-9._]+' | \
             head -1 | cut -d'/' -f1)
         
-        [ -z \"\$current_app\" ] && continue
+        if [ -z \"\$current_app\" ]; then
+            continue
+        fi
         
         local is_game=0
         case \"\$current_app\" in
@@ -562,14 +674,22 @@ setup_game_detector() {
     " >/dev/null 2>&1 &
     
     local detector_pid=$!
-    echo $detector_pid > "$MODDIR/cache/game_detector_pid" 2>/dev/null
+    echo "$detector_pid" > "$MODDIR/cache/game_detector_pid" 2>/dev/null
     log "INFO" "Game detector started (PID: $detector_pid)"
 }
 
 apply_game_profile() {
     local profile="$1"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping profile application"; return 0; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping profile application"
+        return 0
+    fi
     
     log "INFO" "Applying game profile: $profile"
     case "$profile" in
@@ -628,17 +748,29 @@ apply_game_profile() {
 
 start_performance_monitor() {
     log "INFO" "Starting performance monitor"
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "DEBUG" "Play mode disabled, skipping performance monitor"; return 0; }
-    [ "$PLAY_PERF_MONITOR" != "true" ] && { log "DEBUG" "Performance monitor disabled in settings"; return 0; }
     
-    [ -f "$MODDIR/cache/perf_monitor_pid" ] && {
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "DEBUG" "Play mode disabled, skipping performance monitor"
+        return 0
+    fi
+    
+    if [ "$PLAY_PERF_MONITOR" != "true" ]; then
+        log "DEBUG" "Performance monitor disabled in settings"
+        return 0
+    fi
+    
+    if [ -f "$MODDIR/cache/perf_monitor_pid" ]; then
         local old_pid=$(cat "$MODDIR/cache/perf_monitor_pid" 2>/dev/null)
-        [ -n "$old_pid" ] && [ -d "/proc/$old_pid" ] && {
+        if [ -n "$old_pid" ] && [ -d "/proc/$old_pid" ]; then
             kill -9 "$old_pid" 2>/dev/null
             log "DEBUG" "Stopped previous performance monitor (PID: $old_pid)"
-        }
-    }
+        fi
+    fi
     
     mkdir -p "$MODDIR/logs" 2>/dev/null
     log "INFO" "Performance monitor started"
@@ -646,8 +778,16 @@ start_performance_monitor() {
 
 apply_game_mode() {
     log "INFO" "=== APPLYING GAME MODE ==="
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "ERROR" "Play mode is disabled in configuration"; return 1; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "ERROR" "Play mode is disabled in configuration"
+        return 1
+    fi
     
     mkdir -p "$MODDIR/cache" 2>/dev/null
     
@@ -672,24 +812,36 @@ apply_game_mode() {
 
 restore_normal_mode() {
     log "INFO" "=== RESTORING NORMAL MODE ==="
-    [ -z "$PLAY_ENABLED" ] && { log "ERROR" "PLAY_ENABLED not set"; return 1; }
-    [ "$PLAY_ENABLED" != "true" ] && { log "ERROR" "Play mode is disabled in configuration"; return 1; }
+    
+    if [ -z "$PLAY_ENABLED" ]; then
+        log "ERROR" "PLAY_ENABLED not set"
+        return 1
+    fi
+    
+    if [ "$PLAY_ENABLED" != "true" ]; then
+        log "ERROR" "Play mode is disabled in configuration"
+        return 1
+    fi
     
     log "INFO" "Restoring normal system settings..."
     
     if [ -f "$MODDIR/cache/cpu_gov_backup" ]; then
         local saved_gov=$(cat "$MODDIR/cache/cpu_gov_backup" 2>/dev/null)
-        [ -n "$saved_gov" ] && {
+        if [ -n "$saved_gov" ]; then
             for cpu in /sys/devices/system/cpu/cpu*/cpufreq; do
-                [ -d "$cpu" ] && write_with_check "$cpu/scaling_governor" "$saved_gov" "CPU governor restore" || true
+                if [ -d "$cpu" ]; then
+                    write_with_check "$cpu/scaling_governor" "$saved_gov" "CPU governor restore" || true
+                fi
             done
             log "DEBUG" "Restored CPU governor to: $saved_gov"
-        }
+        fi
         rm -f "$MODDIR/cache/cpu_gov_backup" 2>/dev/null
     fi
     
     for thermal in /sys/class/thermal/thermal_zone*; do
-        [ ! -d "$thermal" ] && continue
+        if [ ! -d "$thermal" ]; then
+            continue
+        fi
         
         if [ -f "$thermal/trip_point_0_temp" ] && [ -w "$thermal/trip_point_0_temp" ]; then
             echo "85000" > "$thermal/trip_point_0_temp" 2>/dev/null
@@ -704,9 +856,7 @@ restore_normal_mode() {
     if [ -d "/sys/class/net/wlan0" ] && [ -f "/sys/class/net/wlan0/power_save" ]; then
         write_with_check "/sys/class/net/wlan0/power_save" "1" "WiFi power save restore" || true
         if command -v iw >/dev/null 2>&1; then
-            iw wlan0 set power_save on >/dev/null 2>&1 && 
-                log "DEBUG" "Restored WiFi power save via iw" ||
-                log "WARN" "Failed to restore WiFi power save via iw"
+            iw wlan0 set power_save on >/dev/null 2>&1 && log "DEBUG" "Restored WiFi power save via iw" || log "WARN" "Failed to restore WiFi power save via iw"
         fi
     fi
     
@@ -716,23 +866,23 @@ restore_normal_mode() {
     rm -f "$MODDIR/cache/game_mode_active" "$MODDIR/cache/game_active" 2>/dev/null
     log "DEBUG" "Cleared game mode flags"
     
-    [ -f "$MODDIR/cache/game_detector_pid" ] && {
+    if [ -f "$MODDIR/cache/game_detector_pid" ]; then
         local detector_pid=$(cat "$MODDIR/cache/game_detector_pid" 2>/dev/null)
-        [ -n "$detector_pid" ] && [ -d "/proc/$detector_pid" ] && {
+        if [ -n "$detector_pid" ] && [ -d "/proc/$detector_pid" ]; then
             kill -9 "$detector_pid" 2>/dev/null
             log "DEBUG" "Stopped game detector (PID: $detector_pid)"
-        }
+        fi
         rm -f "$MODDIR/cache/game_detector_pid" 2>/dev/null
-    }
+    fi
     
-    [ -f "$MODDIR/cache/perf_monitor_pid" ] && {
+    if [ -f "$MODDIR/cache/perf_monitor_pid" ]; then
         local monitor_pid=$(cat "$MODDIR/cache/perf_monitor_pid" 2>/dev/null)
-        [ -n "$monitor_pid" ] && [ -d "/proc/$monitor_pid" ] && {
+        if [ -n "$monitor_pid" ] && [ -d "/proc/$monitor_pid" ]; then
             kill -9 "$monitor_pid" 2>/dev/null
             log "DEBUG" "Stopped performance monitor (PID: $monitor_pid)"
-        }
+        fi
         rm -f "$MODDIR/cache/perf_monitor_pid" 2>/dev/null
-    }
+    fi
     
     log "INFO" "=== NORMAL MODE RESTORED ==="
     log "INFO" "All game mode settings have been reverted"
