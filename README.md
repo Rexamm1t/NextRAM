@@ -89,7 +89,7 @@ The module operates at kernel level with minimal permissions. All changes are re
 ## Support
 
 - Telegram channel: @nextram_official
-- Developers: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @GalaxyFier, @Egor164rus
+- Developers: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @GalaxyFier, @Egor164rus, @weutqsz, @DRNv51, @weluvsz
 
 ## License
 

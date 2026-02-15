@@ -3,7 +3,12 @@ MODDIR=${0%/*}/..
 
 start_api_server() {
     log "INFO" "Starting web interface on port 8080"
-    if command -v busybox >/dev/null 2>&1 && [ -d "$MODDIR/webroot" ]; then
+    if [ -x "$MODDIR/bin/nextram-api-server" ]; then
+        "$MODDIR/bin/nextram-api-server" --port 8080 --webroot "$MODDIR/webroot" &
+        API_PID=$!
+        echo "$API_PID" > "$MODDIR/api.pid" 2>/dev/null
+        log "INFO" "Web interface available at: http://localhost:8080 (via compiled server)"
+    elif command -v busybox >/dev/null 2>&1 && [ -d "$MODDIR/webroot" ]; then
         busybox httpd -p 8080 -h "$MODDIR/webroot" -f &
         API_PID=$!
         echo "$API_PID" > "$MODDIR/api.pid" 2>/dev/null
@@ -115,14 +120,10 @@ set_config() {
     local temp_config="$MODDIR/config.conf.tmp"
     local config_file="$MODDIR/config.conf"
     local lock_file="$MODDIR/config.lock"
-    
     [ ! -f "$config_file" ] && { log "ERROR" "Config file not found"; return 1; }
-    
     exec 9>"$lock_file" || { log "ERROR" "Cannot lock config file"; return 1; }
     flock -x 9 || { log "ERROR" "Cannot acquire lock"; return 1; }
-    
     > "$temp_config" 2>/dev/null || { log "ERROR" "Cannot create temp file"; flock -u 9; return 1; }
-    
     while IFS='=' read -r key value; do
         [ -z "$key" ] && continue
         case "$key" in
@@ -131,29 +132,24 @@ set_config() {
                 continue
                 ;;
         esac
-        
         local found=0
         for setting in "$@"; do
             local setting_key="${setting%%=*}"
             [ "$key" = "$setting_key" ] && { found=1; break; }
         done
-        
         [ "$found" -eq 0 ] && echo "$key=$value" >> "$temp_config" 2>/dev/null
     done < "$config_file"
-    
     for setting in "$@"; do
         local key="${setting%%=*}"
         local value="${setting#*=}"
         [ -n "$key" ] && [ -n "$value" ] && echo "$key=$value" >> "$temp_config" 2>/dev/null
     done
-    
     if mv "$temp_config" "$config_file" 2>/dev/null; then
         . "$config_file" 2>/dev/null
         log "INFO" "Configuration updated from web interface"
     else
         log "ERROR" "Failed to update config file"
     fi
-    
     flock -u 9
     rm -f "$lock_file" 2>/dev/null
 }
@@ -167,7 +163,11 @@ get_status() {
     echo ""
     echo "=== ZRAM Status ==="
     if [ -b "/dev/block/zram0" ] || [ -d "/sys/block/zram0" ]; then
-        cat /sys/block/zram0/mm_stat 2>/dev/null || echo "Cannot read ZRAM stats"
+        if [ -x "$MODDIR/bin/nextram-zram-ctl" ]; then
+            "$MODDIR/bin/nextram-zram-ctl" stats
+        else
+            cat /sys/block/zram0/mm_stat 2>/dev/null || echo "Cannot read ZRAM stats"
+        fi
     else
         echo "ZRAM not initialized"
     fi
@@ -179,24 +179,18 @@ get_status() {
 
 apply_configuration() {
     log "INFO" "Applying current configuration"
-    
     swapoff -a 2>/dev/null
     sleep 1
-    
     if [ -b "/dev/block/zram0" ]; then
         echo 1 > "/dev/block/zram0/reset" 2>/dev/null
     elif [ -d "/sys/block/zram0" ] && [ -f "/sys/block/zram0/reset" ]; then
         echo 1 > "/sys/block/zram0/reset" 2>/dev/null
     fi
-    
     sleep 1
-    
     [ "$ZRAM_ENABLED" = "true" ] && setup_zram
     [ "$SWAP_ENABLED" = "true" ] && setup_swap
-    
     adjust_swappiness
     apply_kernel_tuning
     apply_advanced_tuning
-    
     log "INFO" "Configuration applied successfully"
 }

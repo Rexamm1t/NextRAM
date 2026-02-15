@@ -1,24 +1,33 @@
 #!/system/bin/sh
 MODDIR=${0%/*}/..
 
+if [ -d "$MODDIR/bin" ]; then
+    export PATH="$MODDIR/bin:$PATH"
+    export LD_LIBRARY_PATH="$MODDIR/bin/lib:$LD_LIBRARY_PATH"
+    ZRAM_CTL="$MODDIR/bin/nextram-zram-ctl"
+    if [ -x "$ZRAM_CTL" ]; then
+        HAS_ZRAM_CTL=true
+    else
+        HAS_ZRAM_CTL=false
+    fi
+else
+    HAS_ZRAM_CTL=false
+fi
+
 safe_source() {
     local module="$1"
     local module_path="$MODDIR/main/$module"
-    
     if [ ! -f "$module_path" ]; then
         echo "[NextRAM] ERROR: Module $module not found" >&2
         return 1
     fi
-    
     if ! sh -n "$module_path" 2>/dev/null; then
         echo "[NextRAM] WARN: Syntax error in $module" >&2
     fi
-    
     . "$module_path" 2>&1 || {
         echo "[NextRAM] ERROR: Failed to load $module" >&2
         return 1
     }
-    
     return 0
 }
 
@@ -27,12 +36,12 @@ MODULES=(
     "config.sh"
     "system_info.sh"
     "prerequisites.sh"
-    "zram.sh"
     "swap.sh"
     "kernel_tuning.sh"
     "api_functions.sh"
     "advanced_tuning.sh"
     "monitoring.sh"
+    "zram.sh"
 )
 
 for module in "${MODULES[@]}"; do
@@ -122,13 +131,11 @@ case "${1:-}" in
             log "ERROR" "Failed to initialize play mode"
             exit 1
         fi
-        
         if [ "$PLAY_ENABLED" != "true" ]; then
             log "ERROR" "NextRAM Play is disabled. Set PLAY_ENABLED=true in config"
             echo "NextRAM Play is disabled. Set PLAY_ENABLED=true in config"
             exit 1
         fi
-        
         case "$2" in
             "start")
                 log "INFO" "Starting NextRAM Play gaming mode"
@@ -216,10 +223,8 @@ case "${1:-}" in
             log "ERROR" "Prerequisites check failed"
             exit 1
         fi
-        
         log "INFO" "Disabling swap devices..."
         swapoff -a 2>/dev/null
-        
         if [ -b "/dev/block/zram0" ] || [ -d "/sys/block/zram0" ]; then
             swapoff "/dev/block/zram0" 2>/dev/null
             if [ -f "/sys/block/zram0/reset" ]; then
@@ -227,7 +232,6 @@ case "${1:-}" in
             fi
             sleep 1
         fi
-        
         local remaining_swaps=$(grep -v "Filename" /proc/swaps 2>/dev/null | grep -vc "^$" || echo 0)
         if [ "$remaining_swaps" -eq 0 ]; then
             log "INFO" "All swap devices disabled"
@@ -235,30 +239,24 @@ case "${1:-}" in
             log "INFO" "Some swap devices remain active: $remaining_swaps"
             grep -v "Filename" /proc/swaps >> "$LOG_FILE" 2>/dev/null
         fi
-        
         adjust_swappiness
         apply_kernel_tuning
         apply_advanced_tuning
-        
         if [ "$SWAP_ENABLED" = "true" ]; then
             if ! setup_swap; then
                 log "ERROR" "Failed to setup swap"
             fi
         fi
-        
         if [ "$ZRAM_ENABLED" = "true" ]; then
             if ! setup_zram; then
                 log "ERROR" "Failed to setup ZRAM"
             fi
             monitor_zram_usage
         fi
-        
         start_monitoring
         log "INFO" "NextRAM setup complete"
-        
         log "INFO" "Current swap status:"
         cat /proc/swaps >> "$LOG_FILE" 2>/dev/null
-        
         init_play_mode
         ;;
 esac
