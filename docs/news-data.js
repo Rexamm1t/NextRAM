@@ -1,4 +1,506 @@
 const newsData = [
+{
+    id: 10,
+    date: "2026-02-13",
+    category: "release",
+    tags: ["release", "update", "fix", "play"],
+    author: "@GalaxyFier",
+    en: {
+        title: "NextRAM Play Fix 9.3.981",
+        preview: "Code optimization, Play Mode improvements, memory management enhancements, and various fixes.",
+        content: `
+            <h3>NextRAM Play Fix 9.3.981</h3>
+            <p><strong>[CODE OPTIMIZATION]</strong></p>
+            <ul>
+                <li>Added pre-write verification for all file operations</li>
+                <li>Replaced all backticks (\`) with $() for POSIX shell compatibility</li>
+                <li>Added fallback mechanisms for unavailable functions</li>
+                <li>Enhanced logging for better troubleshooting</li>
+                <li>Added path availability checks before usage</li>
+                <li>Expanded support for various GPU/CPU paths across different chipsets</li>
+                <li>Replaced all &>/dev/null with 2>/dev/null for compatibility</li>
+                <li>Added file and directory permission checks</li>
+                <li>Optimized loops and conditional operators</li>
+                <li>Fixed potential compatibility issues with Magisk Alpha</li>
+                <li>Improved error handling for swap mounting operations</li>
+                <li>Added safe ZRAM reset operations</li>
+                <li>Enhanced root permission checking for different Android versions</li>
+                <li>Fixed potential deadlocks in configuration handling</li>
+                <li>Added timeouts for critical operations</li>
+                <li>Improved compatibility with different firmwares and kernels</li>
+            </ul>
+            <p><strong>[PLAY MODE IMPROVEMENTS]</strong></p>
+            <ul>
+                <li>Added alternative GPU control paths (Adreno, Mali, Generic)</li>
+                <li>Enhanced CPU/GPU path availability checking system</li>
+                <li>Added safe CPU frequency modification operations</li>
+                <li>Improved error handling in game detector</li>
+                <li>Optimized thermal zone management</li>
+            </ul>
+            <p><strong>[MEMORY MANAGEMENT]</strong></p>
+            <ul>
+                <li>Enhanced ZRAM operation safety</li>
+                <li>Added additional checks before ZRAM reset</li>
+                <li>Optimized ZRAM size calculation</li>
+                <li>Improved compression stream handling</li>
+            </ul>
+            <p><strong>Links:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    ru: {
+        title: "NextRAM Play Fix 9.3.981",
+        preview: "Оптимизация кода, улучшения игрового режима, улучшения управления памятью и различные исправления.",
+        content: `
+            <h3>NextRAM Play Fix 9.3.981</h3>
+            <p><strong>[ОПТИМИЗАЦИЯ КОДА]</strong></p>
+            <ul>
+                <li>Добавлена проверка перед записью для всех файловых операций</li>
+                <li>Заменены все обратные кавычки (\`) на $() для совместимости с POSIX shell</li>
+                <li>Добавлены резервные механизмы для недоступных функций</li>
+                <li>Улучшено логирование для лучшего поиска неисправностей</li>
+                <li>Добавлены проверки доступности путей перед использованием</li>
+                <li>Расширена поддержка различных путей GPU/CPU для разных чипсетов</li>
+                <li>Заменены все &>/dev/null на 2>/dev/null для совместимости</li>
+                <li>Добавлены проверки разрешений файлов и каталогов</li>
+                <li>Оптимизированы циклы и условные операторы</li>
+                <li>Исправлены потенциальные проблемы совместимости с Magisk Alpha</li>
+                <li>Улучшена обработка ошибок для операций монтирования подкачки</li>
+                <li>Добавлены безопасные операции сброса ZRAM</li>
+                <li>Улучшена проверка root-прав для разных версий Android</li>
+                <li>Исправлены потенциальные взаимоблокировки при обработке конфигурации</li>
+                <li>Добавлены таймауты для критических операций</li>
+                <li>Улучшена совместимость с разными прошивками и ядрами</li>
+            </ul>
+            <p><strong>[УЛУЧШЕНИЯ ИГРОВОГО РЕЖИМА]</strong></p>
+            <ul>
+                <li>Добавлены альтернативные пути управления GPU (Adreno, Mali, Generic)</li>
+                <li>Улучшена система проверки доступности путей CPU/GPU</li>
+                <li>Добавлены безопасные операции изменения частоты CPU</li>
+                <li>Улучшена обработка ошибок в детекторе игр</li>
+                <li>Оптимизировано управление тепловыми зонами</li>
+            </ul>
+            <p><strong>[УПРАВЛЕНИЕ ПАМЯТЬЮ]</strong></p>
+            <ul>
+                <li>Повышена безопасность операций ZRAM</li>
+                <li>Добавлены дополнительные проверки перед сбросом ZRAM</li>
+                <li>Оптимизирован расчет размера ZRAM</li>
+                <li>Улучшена обработка потоков сжатия</li>
+            </ul>
+            <p><strong>Ссылки:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    uk: {
+        title: "NextRAM Play Fix 9.3.981",
+        preview: "Оптимізація коду, покращення ігрового режиму, покращення керування пам'яттю та різні виправлення.",
+        content: `
+            <h3>NextRAM Play Fix 9.3.981</h3>
+            <p><strong>[ОПТИМІЗАЦІЯ КОДУ]</strong></p>
+            <ul>
+                <li>Додано перевірку перед записом для всіх файлових операцій</li>
+                <li>Замінено всі зворотні лапки (\`) на $() для сумісності з POSIX shell</li>
+                <li>Додано резервні механізми для недоступних функцій</li>
+                <li>Покращено логування для кращого пошуку несправностей</li>
+                <li>Додано перевірки доступності шляхів перед використанням</li>
+                <li>Розширено підтримку різних шляхів GPU/CPU для різних чипсетів</li>
+                <li>Замінено всі &>/dev/null на 2>/dev/null для сумісності</li>
+                <li>Додано перевірки дозволів файлів та каталогів</li>
+                <li>Оптимізовано цикли та умовні оператори</li>
+                <li>Виправлено потенційні проблеми сумісності з Magisk Alpha</li>
+                <li>Покращено обробку помилок для операцій монтування підкачки</li>
+                <li>Додано безпечні операції скидання ZRAM</li>
+                <li>Покращено перевірку root-прав для різних версій Android</li>
+                <li>Виправлено потенційні взаємоблокування при обробці конфігурації</li>
+                <li>Додано тайм-аути для критичних операцій</li>
+                <li>Покращено сумісність з різними прошивками та ядрами</li>
+            </ul>
+            <p><strong>[ПОКРАЩЕННЯ ІГРОВОГО РЕЖИМУ]</strong></p>
+            <ul>
+                <li>Додано альтернативні шляхи керування GPU (Adreno, Mali, Generic)</li>
+                <li>Покращено систему перевірки доступності шляхів CPU/GPU</li>
+                <li>Додано безпечні операції зміни частоти CPU</li>
+                <li>Покращено обробку помилок у детекторі ігор</li>
+                <li>Оптимізовано керування тепловими зонами</li>
+            </ul>
+            <p><strong>[КЕРУВАННЯ ПАМ'ЯТТЮ]</strong></p>
+            <ul>
+                <li>Підвищено безпеку операцій ZRAM</li>
+                <li>Додано додаткові перевірки перед скиданням ZRAM</li>
+                <li>Оптимізовано розрахунок розміру ZRAM</li>
+                <li>Покращено обробку потоків стиснення</li>
+            </ul>
+            <p><strong>Посилання:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    zh: {
+        title: "NextRAM Play Fix 9.3.981",
+        preview: "代码优化、游戏模式改进、内存管理增强和各种修复。",
+        content: `
+            <h3>NextRAM Play Fix 9.3.981</h3>
+            <p><strong>[代码优化]</strong></p>
+            <ul>
+                <li>为所有文件操作添加写入前验证</li>
+                <li>将所有反引号 (\`) 替换为 $() 以实现 POSIX shell 兼容性</li>
+                <li>为不可用的函数添加后备机制</li>
+                <li>增强日志记录以便更好地排查问题</li>
+                <li>在使用前添加路径可用性检查</li>
+                <li>扩展对不同芯片组上各种 GPU/CPU 路径的支持</li>
+                <li>将所有 &>/dev/null 替换为 2>/dev/null 以提高兼容性</li>
+                <li>添加文件和目录权限检查</li>
+                <li>优化循环和条件运算符</li>
+                <li>修复与 Magisk Alpha 的潜在兼容性问题</li>
+                <li>改进交换挂载操作的错误处理</li>
+                <li>添加安全的 ZRAM 重置操作</li>
+                <li>增强对不同 Android 版本的 root 权限检查</li>
+                <li>修复配置处理中的潜在死锁</li>
+                <li>为关键操作添加超时</li>
+                <li>改进与不同固件和内核的兼容性</li>
+            </ul>
+            <p><strong>[游戏模式改进]</strong></p>
+            <ul>
+                <li>添加替代 GPU 控制路径（Adreno、Mali、通用）</li>
+                <li>增强 CPU/GPU 路径可用性检查系统</li>
+                <li>添加安全的 CPU 频率修改操作</li>
+                <li>改进游戏检测器中的错误处理</li>
+                <li>优化热区管理</li>
+            </ul>
+            <p><strong>[内存管理]</strong></p>
+            <ul>
+                <li>增强 ZRAM 操作安全性</li>
+                <li>在 ZRAM 重置前添加额外检查</li>
+                <li>优化 ZRAM 大小计算</li>
+                <li>改进压缩流处理</li>
+            </ul>
+            <p><strong>链接:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    }
+},
+{
+    id: 9,
+    date: "2026-02-01",
+    category: "release",
+    tags: ["release", "update", "play", "gaming"],
+    author: "@GalaxyFier",
+    en: {
+        title: "NextRAM Play v9.3.978-(93978)",
+        preview: "Play Mode with gaming optimizations, CPU/GPU tuning, network and memory enhancements, installation fixes.",
+        content: `
+            <h3>NextRAM Play v9.3.978-(93978)</h3>
+            <p><strong>[PLAY MODE]</strong></p>
+            <ul>
+                <li>Added NextRAM Play gaming mode for enhanced in-game performance</li>
+                <li>Added CPU optimization: governor control, min/max frequency management, boost mode</li>
+                <li>Added GPU optimization: governor tuning, frequency control, throttling disable</li>
+                <li>Enhanced touch responsiveness: increased polling rate, VSync configuration</li>
+                <li>Added network tuning for gaming: TCP optimization, buffer management, WiFi power save disable</li>
+                <li>Added memory optimization: swappiness tuning, cache pressure control, ZRAM management</li>
+                <li>Added thermal management: profile selection (aggressive, balanced, conservative)</li>
+                <li>Added background process control for resource optimization</li>
+                <li>Added game detector for automatic gaming mode activation</li>
+                <li>Added gaming profiles: FPS Competitive, Open World, Casual, Battery Saver, Custom</li>
+                <li>Added performance monitor</li>
+            </ul>
+            <p><strong>[INSTALL]</strong></p>
+            <ul>
+                <li>Fixed Play Mode installation on some devices</li>
+                <li>Improved compatibility with various kernel manufacturers</li>
+                <li>Fixed timeouts during configuration application</li>
+            </ul>
+            <p><strong>[CTL]</strong></p>
+            <ul>
+                <li>update NextRAM CTL Service</li>
+            </ul>
+            <p><strong>Links:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    ru: {
+        title: "NextRAM Play v9.3.978-(93978)",
+        preview: "Игровой режим с оптимизациями для игр, настройка CPU/GPU, улучшения сети и памяти, исправления установки.",
+        content: `
+            <h3>NextRAM Play v9.3.978-(93978)</h3>
+            <p><strong>[ИГРОВОЙ РЕЖИМ]</strong></p>
+            <ul>
+                <li>Добавлен игровой режим NextRAM Play для повышения производительности в играх</li>
+                <li>Добавлена оптимизация CPU: управление губернатором, управление мин/макс частотой, режим буста</li>
+                <li>Добавлена оптимизация GPU: настройка губернатора, управление частотой, отключение троттлинга</li>
+                <li>Улучшена отзывчивость сенсора: увеличение частоты опроса, настройка VSync</li>
+                <li>Добавлена настройка сети для игр: оптимизация TCP, управление буферами, отключение энергосбережения WiFi</li>
+                <li>Добавлена оптимизация памяти: настройка swappiness, управление давлением кэша, управление ZRAM</li>
+                <li>Добавлено управление температурой: выбор профиля (агрессивный, сбалансированный, консервативный)</li>
+                <li>Добавлен контроль фоновых процессов для оптимизации ресурсов</li>
+                <li>Добавлен детектор игр для автоматической активации игрового режима</li>
+                <li>Добавлены игровые профили: FPS Competitive, Open World, Casual, Battery Saver, Custom</li>
+                <li>Добавлен монитор производительности</li>
+            </ul>
+            <p><strong>[УСТАНОВКА]</strong></p>
+            <ul>
+                <li>Исправлена установка игрового режима на некоторых устройствах</li>
+                <li>Улучшена совместимость с различными производителями ядер</li>
+                <li>Исправлены таймауты при применении конфигурации</li>
+            </ul>
+            <p><strong>[CTL]</strong></p>
+            <ul>
+                <li>обновление NextRAM CTL Service</li>
+            </ul>
+            <p><strong>Ссылки:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    uk: {
+        title: "NextRAM Play v9.3.978-(93978)",
+        preview: "Ігровий режим з оптимізаціями для ігор, налаштування CPU/GPU, покращення мережі та пам'яті, виправлення встановлення.",
+        content: `
+            <h3>NextRAM Play v9.3.978-(93978)</h3>
+            <p><strong>[ІГРОВИЙ РЕЖИМ]</strong></p>
+            <ul>
+                <li>Додано ігровий режим NextRAM Play для підвищення продуктивності в іграх</li>
+                <li>Додано оптимізацію CPU: керування губернатором, керування мін/макс частотою, режим бусту</li>
+                <li>Додано оптимізацію GPU: налаштування губернатора, керування частотою, вимкнення троттлінгу</li>
+                <li>Покращено чуйність сенсора: збільшення частоти опитування, налаштування VSync</li>
+                <li>Додано налаштування мережі для ігор: оптимізація TCP, керування буферами, вимкнення енергозбереження WiFi</li>
+                <li>Додано оптимізацію пам'яті: налаштування swappiness, керування тиском кешу, керування ZRAM</li>
+                <li>Додано керування температурою: вибір профілю (агресивний, збалансований, консервативний)</li>
+                <li>Додано контроль фонових процесів для оптимізації ресурсів</li>
+                <li>Додано детектор ігор для автоматичної активації ігрового режиму</li>
+                <li>Додано ігрові профілі: FPS Competitive, Open World, Casual, Battery Saver, Custom</li>
+                <li>Додано монітор продуктивності</li>
+            </ul>
+            <p><strong>[ВСТАНОВЛЕННЯ]</strong></p>
+            <ul>
+                <li>Виправлено встановлення ігрового режиму на деяких пристроях</li>
+                <li>Покращено сумісність з різними виробниками ядер</li>
+                <li>Виправлено тайм-аути при застосуванні конфігурації</li>
+            </ul>
+            <p><strong>[CTL]</strong></p>
+            <ul>
+                <li>оновлення NextRAM CTL Service</li>
+            </ul>
+            <p><strong>Посилання:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    zh: {
+        title: "NextRAM Play v9.3.978-(93978)",
+        preview: "游戏模式，包含游戏优化、CPU/GPU 调校、网络和内存增强、安装修复。",
+        content: `
+            <h3>NextRAM Play v9.3.978-(93978)</h3>
+            <p><strong>[游戏模式]</strong></p>
+            <ul>
+                <li>添加 NextRAM Play 游戏模式以增强游戏内性能</li>
+                <li>添加 CPU 优化：调控器控制、最小/最大频率管理、升压模式</li>
+                <li>添加 GPU 优化：调控器调谐、频率控制、禁用节流</li>
+                <li>增强触摸响应：提高轮询率、VSync 配置</li>
+                <li>添加游戏网络调谐：TCP 优化、缓冲区管理、禁用 WiFi 省电</li>
+                <li>添加内存优化：swappiness 调谐、缓存压力控制、ZRAM 管理</li>
+                <li>添加热管理：配置文件选择（激进、平衡、保守）</li>
+                <li>添加后台进程控制以优化资源</li>
+                <li>添加游戏检测器以自动激活游戏模式</li>
+                <li>添加游戏配置文件：FPS Competitive、Open World、Casual、Battery Saver、Custom</li>
+                <li>添加性能监视器</li>
+            </ul>
+            <p><strong>[安装]</strong></p>
+            <ul>
+                <li>修复某些设备上的游戏模式安装</li>
+                <li>改进与各种内核制造商的兼容性</li>
+                <li>修复配置应用期间的超时</li>
+            </ul>
+            <p><strong>[CTL]</strong></p>
+            <ul>
+                <li>更新 NextRAM CTL Service</li>
+            </ul>
+            <p><strong>链接:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    }
+},
+{
+    id: 8,
+    date: "2026-01-06",
+    category: "release",
+    tags: ["release", "update", "fix", "whole"],
+    author: "@GalaxyFier",
+    en: {
+        title: "NextRAM Whole Fix 9.2.822",
+        preview: "Bug fixes for the app.",
+        content: `
+            <h3>NextRAM Whole Fix 9.2.822</h3>
+            <p><strong>[APP]</strong></p>
+            <ul>
+                <li>bug fixes</li>
+            </ul>
+            <p><strong>Links:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    ru: {
+        title: "NextRAM Whole Fix 9.2.822",
+        preview: "Исправления ошибок в приложении.",
+        content: `
+            <h3>NextRAM Whole Fix 9.2.822</h3>
+            <p><strong>[ПРИЛОЖЕНИЕ]</strong></p>
+            <ul>
+                <li>исправления ошибок</li>
+            </ul>
+            <p><strong>Ссылки:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    uk: {
+        title: "NextRAM Whole Fix 9.2.822",
+        preview: "Виправлення помилок у додатку.",
+        content: `
+            <h3>NextRAM Whole Fix 9.2.822</h3>
+            <p><strong>[ДОДАТОК]</strong></p>
+            <ul>
+                <li>виправлення помилок</li>
+            </ul>
+            <p><strong>Посилання:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    zh: {
+        title: "NextRAM Whole Fix 9.2.822",
+        preview: "应用程序的错误修复。",
+        content: `
+            <h3>NextRAM Whole Fix 9.2.822</h3>
+            <p><strong>[应用程序]</strong></p>
+            <ul>
+                <li>错误修复</li>
+            </ul>
+            <p><strong>链接:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+{
+    id: 7,
+    date: "2025-12-30",
+    category: "release",
+    tags: ["release", "update", "whole", "app"],
+    author: "@GalaxyFier",
+    en: {
+        title: "NextRAM Whole v9.2.371-(92371)",
+        preview: "New theme, liquid glass, configuration import/export, NextRAM Store, and various fixes.",
+        content: `
+            <h3>NextRAM Whole v9.2.371-(92371)</h3>
+            <p><strong>[APP]</strong></p>
+            <ul>
+                <li>added the material you theme</li>
+                <li>added liquid glass</li>
+                <li>added a map with information about the module</li>
+                <li>added a function to turn on/off the module</li>
+                <li>added import/export of configurations</li>
+                <li>changed the themes</li>
+                <li>fixed the recording of configurations from the history</li>
+                <li>added NextRAM Store</li>
+                <li>fixed small bugs</li>
+            </ul>
+            <p><strong>[INSTALL]</strong></p>
+            <ul>
+                <li>fixed an issue with installing the app</li>
+                <li>fixed time-out</li>
+            </ul>
+            <p><strong>Links:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    ru: {
+        title: "NextRAM Whole v9.2.371-(92371)",
+        preview: "Новая тема, жидкое стекло, импорт/экспорт конфигураций, NextRAM Store и различные исправления.",
+        content: `
+            <h3>NextRAM Whole v9.2.371-(92371)</h3>
+            <p><strong>[ПРИЛОЖЕНИЕ]</strong></p>
+            <ul>
+                <li>добавлена тема material you</li>
+                <li>добавлено жидкое стекло</li>
+                <li>добавлена карта с информацией о модуле</li>
+                <li>добавлена функция включения/выключения модуля</li>
+                <li>добавлен импорт/экспорт конфигураций</li>
+                <li>изменены темы</li>
+                <li>исправлена запись конфигураций из истории</li>
+                <li>добавлен NextRAM Store</li>
+                <li>исправлены мелкие ошибки</li>
+            </ul>
+            <p><strong>[УСТАНОВКА]</strong></p>
+            <ul>
+                <li>исправлена проблема с установкой приложения</li>
+                <li>исправлен тайм-аут</li>
+            </ul>
+            <p><strong>Ссылки:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    uk: {
+        title: "NextRAM Whole v9.2.371-(92371)",
+        preview: "Нова тема, рідке скло, імпорт/експорт конфігурацій, NextRAM Store та різні виправлення.",
+        content: `
+            <h3>NextRAM Whole v9.2.371-(92371)</h3>
+            <p><strong>[ДОДАТОК]</strong></p>
+            <ul>
+                <li>додано тему material you</li>
+                <li>додано рідке скло</li>
+                <li>додано карту з інформацією про модуль</li>
+                <li>додано функцію увімкнення/вимкнення модуля</li>
+                <li>додано імпорт/експорт конфігурацій</li>
+                <li>змінено теми</li>
+                <li>виправлено запис конфігурацій з історії</li>
+                <li>додано NextRAM Store</li>
+                <li>виправлено дрібні помилки</li>
+            </ul>
+            <p><strong>[ВСТАНОВЛЕННЯ]</strong></p>
+            <ul>
+                <li>виправлено проблему зі встановленням додатку</li>
+                <li>виправлено тайм-аут</li>
+            </ul>
+            <p><strong>Посилання:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    },
+    zh: {
+        title: "NextRAM Whole v9.2.371-(92371)",
+        preview: "新主题、液态玻璃、配置导入/导出、NextRAM Store 和各种修复。",
+        content: `
+            <h3>NextRAM Whole v9.2.371-(92371)</h3>
+            <p><strong>[应用程序]</strong></p>
+            <ul>
+                <li>添加 material you 主题</li>
+                <li>添加液态玻璃</li>
+                <li>添加包含模块信息的地图</li>
+                <li>添加打开/关闭模块的功能</li>
+                <li>添加配置的导入/导出</li>
+                <li>更改了主题</li>
+                <li>修复了从历史记录中记录配置的问题</li>
+                <li>添加 NextRAM Store</li>
+                <li>修复小错误</li>
+            </ul>
+            <p><strong>[安装]</strong></p>
+            <ul>
+                <li>修复了安装应用程序的问题</li>
+                <li>修复超时</li>
+            </ul>
+            <p><strong>链接:</strong></p>
+            <p>Telegram: https://t.me/nextram_official</p>
+            <p>Web Site: https://nextram.cocal.ru</p>
+        `
+    }
+},
     {
         id: 6,
         date: "2025-12-10",
