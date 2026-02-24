@@ -17,12 +17,12 @@ ui_print_n() {
 }
 
 run_aicf_analysis() {
-    if [ ! -x "$MODPATH/bin/nextramaicf" ]; then
+    if [ ! -x "$MODPATH/main/tools/nextramaicf" ]; then
         ui_print "ERROR: AICF driver not found"
         return 1
     fi
     
-    $MODPATH/bin/nextramaicf --generate
+    $MODPATH/main/tools/nextramaicf --generate
     
     if [ $? -eq 0 ] && [ -f "/data/adb/modules/NextRAM/config.conf" ]; then
         cp "/data/adb/modules/NextRAM/config.conf" "$MODPATH/config.conf"
@@ -56,9 +56,10 @@ ui_print "•  official web site: https://nextram.cocal.ru/•"
 ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
 
 on_install() {
-  ui_print "NextRAM Version  • $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
-  ui_print "NextRAM Status   • $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
-  ui_print "NextRAM ModName  • $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
+  ui_print "> Version  > $(awk -F= '/^version=/{print $2}' "$CONFIG_FILE") ($(awk -F= '/^versionCode=/{print $2}' "$CONFIG_FILE"))"
+  ui_print "> Status   > $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
+  ui_print "> ModName  > $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
+  ui_print "> Type     > $(awk -F= '/^type=/{print $2}' "$CONFIG_FILE")"
   ui_print "+•[ 1 / 5 ]•••••••••••••••••••••[INFORMATION]••+"
   ui_print " • arch    • $(uname -m)"
   ui_print " • android • $(getprop ro.build.version.release)"
@@ -191,15 +192,13 @@ on_install() {
   ui_print "•              extracting files...             •"
   ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   unzip -o "$ZIPFILE" 'main/*' -d $MODPATH >&2
-  ui_print "•   [1/5] • main* has been copied              •"
+  ui_print "•   [1/4] • main* has been copied              •"
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
-  ui_print "•   [2/5] • system* has been copied            •"
-  unzip -o "$ZIPFILE" 'bin/*' -d $MODPATH >&2
-  ui_print "•   [3/5] • libraries and utilities are copied •"
+  ui_print "•   [2/4] • system* has been copied            •"
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
-  ui_print "•   [4/5] •  the scripts were copied           •"
+  ui_print "•   [3/4] •  the scripts were copied           •"
   unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
-  ui_print "•   [5/5] • apk* has been copied               •"
+  ui_print "•   [4/4] • apk* has been copied               •"
   ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   ui_print "•                   * - dir                    •"
   ui_print "•           file copying is complete           •"

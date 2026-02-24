@@ -89,7 +89,6 @@ NextRAM 是一个功能强大的 Magisk 模块，用于在 Android 设备上进�
 ## 支持
 
 - Telegram 频道: @nextram_official
-- 开发者: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @GalaxyFier, @Egor164rus, @weutqsz, @DRNv51, @weluvsz
 
 ## 许可证
 

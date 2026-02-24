@@ -89,7 +89,6 @@ Das Modul arbeitet auf Kernel-Ebene mit minimalen Berechtigungen. Alle Änderung
 ## Unterstützung
 
 · Telegram-Kanal: @nextram_official
-· Entwickler: @rexamm1t, @matrix_5858, @Alloyd031, @wefol1x, @w3b_0s1nt, @GalaxyFier, @Egor164rus, @weutqsz, @DRNv51, @weluvsz
 
 ## Lizenz
 
