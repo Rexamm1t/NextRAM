@@ -2,7 +2,6 @@
 ### NextRAM CPP is a tool for creating ####
 ### configurations for your device     ####
 #########################################*/
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -17,6 +16,7 @@
 #include <dirent.h>
 #include <cstring>
 #include <cmath>
+#include <cctype>
 
 struct SystemSpecs {
     long total_ram_kb = 0;
@@ -27,6 +27,8 @@ struct SystemSpecs {
     int cpu_big_cores = 0;
     int cpu_little_cores = 0;
     std::vector<long> cpu_frequencies;
+    long cpu_max_freq = 0;
+    long cpu_min_freq = 0;
     std::string storage_type;
     std::string device_model;
     std::string kernel_version;
@@ -42,6 +44,11 @@ struct SystemSpecs {
     bool is_gaming_device = false;
     double memory_pressure = 0.0;
     double cpu_performance_score = 0.0;
+    bool has_gpu = false;
+    std::string gpu_governor;
+    long gpu_max_freq = 0;
+    bool has_wifi = false;
+    std::vector<std::string> tcp_congestion_available;
 };
 
 class AdvancedSystemAnalyzer {
@@ -93,50 +100,53 @@ private:
             std::string unit;
             iss >> key >> value >> unit;
             if (!key.empty() && key.back() == ':') key.pop_back();
-            
+
             if (key == "MemTotal") specs.total_ram_kb = value;
             else if (key == "MemAvailable") specs.available_ram_kb = value;
             else if (key == "SwapTotal") specs.swap_total_kb = value;
             else if (key == "SwapFree") specs.swap_free_kb = value;
         }
-        
+
         long total_ram_gb = specs.total_ram_kb / (1024 * 1024);
-        
         specs.is_low_memory_device = (total_ram_gb <= 2);
         specs.is_medium_memory_device = (total_ram_gb > 2 && total_ram_gb <= 6);
         specs.is_high_memory_device = (total_ram_gb > 6 && total_ram_gb <= 12);
         specs.is_very_high_memory_device = (total_ram_gb > 12);
-        
-        specs.memory_pressure = specs.total_ram_kb > 0 ? 
+
+        specs.memory_pressure = specs.total_ram_kb > 0 ?
             (double)(specs.total_ram_kb - specs.available_ram_kb) / specs.total_ram_kb : 0.0;
     }
 
     void detectCPUInfo() {
         specs.cpu_cores = sysconf(_SC_NPROCESSORS_ONLN);
         if (specs.cpu_cores <= 0) specs.cpu_cores = 4;
-        
+
+        specs.cpu_max_freq = 0;
+        specs.cpu_min_freq = LONG_MAX;
+
         for (int i = 0; i < specs.cpu_cores; i++) {
             std::string freq_path = "/sys/devices/system/cpu/cpu" + std::to_string(i) + "/cpufreq/cpuinfo_max_freq";
             if (fileExists(freq_path)) {
                 std::string freq_str = readFile(freq_path);
                 if (!freq_str.empty()) {
-                    specs.cpu_frequencies.push_back(std::stol(freq_str));
+                    long freq = std::stol(freq_str);
+                    specs.cpu_frequencies.push_back(freq);
+                    if (freq > specs.cpu_max_freq) specs.cpu_max_freq = freq;
+                    if (freq < specs.cpu_min_freq) specs.cpu_min_freq = freq;
                 }
             }
         }
-        
+
         if (!specs.cpu_frequencies.empty()) {
             std::sort(specs.cpu_frequencies.begin(), specs.cpu_frequencies.end());
-            
-            long min_freq = specs.cpu_frequencies.front();
-            long max_freq = specs.cpu_frequencies.back();
-            long threshold = (min_freq + max_freq) / 3;
-            
+            long threshold = specs.cpu_frequencies.front() * 1.5;
             for (long freq : specs.cpu_frequencies) {
-                if (freq > threshold * 1.5) specs.cpu_big_cores++;
+                if (freq >= threshold) specs.cpu_big_cores++;
                 else specs.cpu_little_cores++;
             }
-            
+            if (specs.cpu_big_cores == 0) specs.cpu_big_cores = specs.cpu_cores / 2;
+            if (specs.cpu_little_cores == 0) specs.cpu_little_cores = specs.cpu_cores - specs.cpu_big_cores;
+
             long total_freq = 0;
             for (long freq : specs.cpu_frequencies) total_freq += freq;
             specs.cpu_performance_score = (double)total_freq / (specs.cpu_cores * 1000000.0);
@@ -144,6 +154,8 @@ private:
             specs.cpu_big_cores = std::max(1, specs.cpu_cores / 2);
             specs.cpu_little_cores = specs.cpu_cores - specs.cpu_big_cores;
             specs.cpu_performance_score = 1.0;
+            specs.cpu_max_freq = 2000000;
+            specs.cpu_min_freq = 300000;
         }
     }
 
@@ -160,24 +172,53 @@ private:
         }
     }
 
+    void detectGPU() {
+        if (access("/sys/class/kgsl/kgsl-3d0", F_OK) == 0) {
+            specs.has_gpu = true;
+            if (access("/sys/class/kgsl/kgsl-3d0/devfreq/governor", F_OK) == 0) {
+                specs.gpu_governor = readFile("/sys/class/kgsl/kgsl-3d0/devfreq/governor");
+            }
+            if (access("/sys/class/kgsl/kgsl-3d0/max_gpuclk", F_OK) == 0) {
+                std::string val = readFile("/sys/class/kgsl/kgsl-3d0/max_gpuclk");
+                if (!val.empty()) specs.gpu_max_freq = std::stol(val);
+            }
+        } else if (access("/sys/devices/platform/14ac0000.mali", F_OK) == 0) {
+            specs.has_gpu = true;
+        } else if (access("/sys/kernel/gpu", F_OK) == 0) {
+            specs.has_gpu = true;
+        }
+    }
+
+    void detectNetwork() {
+        specs.has_wifi = (access("/sys/class/net/wlan0", F_OK) == 0);
+        if (access("/proc/sys/net/ipv4/tcp_available_congestion_control", F_OK) == 0) {
+            std::string algs = readFile("/proc/sys/net/ipv4/tcp_available_congestion_control");
+            std::istringstream iss(algs);
+            std::string alg;
+            while (iss >> alg) {
+                specs.tcp_congestion_available.push_back(alg);
+            }
+        }
+    }
+
     void detectDeviceInfo() {
         specs.device_model = execCommand("getprop ro.product.model 2>/dev/null");
         if (specs.device_model.empty()) {
             specs.device_model = execCommand("getprop ro.product.device 2>/dev/null");
         }
         specs.device_model = trim(specs.device_model);
-        
+
         struct utsname uname_data;
         if (uname(&uname_data) == 0) {
             specs.kernel_version = uname_data.release;
         }
-        
+
         std::string product_brand = execCommand("getprop ro.product.brand 2>/dev/null");
         product_brand = trim(product_brand);
         std::string lower_brand = product_brand;
         std::transform(lower_brand.begin(), lower_brand.end(), lower_brand.begin(), ::tolower);
-        
-        std::vector<std::string> gaming_brands = {"asus", "rog", "redmagic", "blackshark", "poco", "redmi", "gaming"};
+
+        std::vector<std::string> gaming_brands = {"asus", "rog", "redmagic", "blackshark", "poco", "redmi", "gaming", "lenovo", "legion"};
         for (const auto& brand : gaming_brands) {
             if (lower_brand.find(brand) != std::string::npos) {
                 specs.is_gaming_device = true;
@@ -194,12 +235,12 @@ private:
                 break;
             }
         }
-        
+
         std::string swaps_content = readFile("/proc/swaps");
         if (swaps_content.find("zram") != std::string::npos) {
             specs.has_zram = true;
         }
-        
+
         specs.has_swap = (specs.swap_total_kb > 0);
     }
 
@@ -208,6 +249,8 @@ public:
         loadMemInfo();
         detectCPUInfo();
         detectStorageInfo();
+        detectGPU();
+        detectNetwork();
         detectDeviceInfo();
         detectMemoryFeatures();
     }
@@ -217,126 +260,126 @@ public:
 
 class SmartConfigGenerator {
 private:
-    AdvancedSystemAnalyzer analyzer;
+    const SystemSpecs& specs;
+
+    std::string pickTCPCongestion() {
+        std::vector<std::string> preferred = {"bbr", "bbr2", "cubic", "reno"};
+        for (const auto& p : preferred) {
+            if (std::find(specs.tcp_congestion_available.begin(), specs.tcp_congestion_available.end(), p) != specs.tcp_congestion_available.end()) {
+                return p;
+            }
+        }
+        return "cubic";
+    }
 
 public:
-    SmartConfigGenerator(const AdvancedSystemAnalyzer& sysAnalyzer) : analyzer(sysAnalyzer) {}
+    SmartConfigGenerator(const AdvancedSystemAnalyzer& analyzer) : specs(analyzer.getSpecs()) {}
 
-    std::map<std::string, std::string> generateSmartConfig() {
-        std::map<std::string, std::string> config;
-        const SystemSpecs& specs = analyzer.getSpecs();
+    std::map<std::string, std::string> generateFullConfig() {
+        std::map<std::string, std::string> cfg;
 
-        config["SWAP_ENABLED"] = "false";
-        config["SWAP_SIZE_GB"] = "1.0";
-        config["OVERHEAD_GB"] = "0.3";
-        config["ZRAM_ENABLED"] = "true";
-        
+        cfg["SWAP_ENABLED"] = "false";
+        cfg["SWAP_SIZE_GB"] = "1.0";
+        cfg["OVERHEAD_GB"] = "0.3";
+        cfg["ZRAM_ENABLED"] = "true";
+
         if (specs.is_very_high_memory_device) {
-            config["ZRAM_RATIO"] = "0.3";
+            cfg["ZRAM_RATIO"] = "0.3";
         } else if (specs.total_ram_kb > 9 * 1024 * 1024) {
-            config["ZRAM_RATIO"] = "0.5";
+            cfg["ZRAM_RATIO"] = "0.5";
         } else if (specs.is_high_memory_device) {
-            config["ZRAM_RATIO"] = "1.0";
+            cfg["ZRAM_RATIO"] = "1.0";
         } else if (specs.is_medium_memory_device) {
-            config["ZRAM_RATIO"] = "1.5";
+            cfg["ZRAM_RATIO"] = "1.5";
         } else {
-            config["ZRAM_RATIO"] = "2.0";
+            cfg["ZRAM_RATIO"] = "2.0";
         }
-        
+
         if (specs.cpu_big_cores >= 4) {
-            config["ZRAM_ALGORITHM"] = "lz4";
+            cfg["ZRAM_ALGORITHM"] = "zstd";
         } else if (specs.cpu_big_cores >= 2) {
-            config["ZRAM_ALGORITHM"] = "lzo-rle";
+            cfg["ZRAM_ALGORITHM"] = "lz4";
         } else {
-            config["ZRAM_ALGORITHM"] = "lzo";
+            cfg["ZRAM_ALGORITHM"] = "lzo-rle";
         }
-        
-        int streams = specs.cpu_cores;
-        if (specs.cpu_big_cores > 0) {
-            streams = specs.cpu_big_cores * 2;
-        }
-        config["MAX_COMP_STREAMS"] = std::to_string(std::min(streams, 8));
-        
-        int swappiness;
-        if (specs.is_low_memory_device) {
-            swappiness = 100;
-        } else if (specs.is_high_memory_device) {
-            swappiness = (specs.memory_pressure < 0.3) ? 60 : 80;
-        } else {
-            swappiness = 80;
-        }
-        config["SWAPPINESS"] = std::to_string(std::min(swappiness, 150));
-        
-        int cache_pressure;
-        if (specs.is_low_memory_device) {
-            cache_pressure = 60;
-        } else if (specs.total_ram_kb >= 6 * 1024 * 1024) {
-            cache_pressure = 80;
-        } else {
-            cache_pressure = 70;
-        }
-        config["CACHE_PRESSURE"] = std::to_string(std::min(cache_pressure, 100));
-        
+
+        int streams = specs.cpu_big_cores > 0 ? specs.cpu_big_cores : specs.cpu_cores;
+        streams = std::min(streams, 8);
+        cfg["MAX_COMP_STREAMS"] = std::to_string(streams);
+
+        int swappiness = 100;
+        if (specs.is_low_memory_device) swappiness = 120;
+        else if (specs.is_medium_memory_device) swappiness = 100;
+        else if (specs.is_high_memory_device) swappiness = 80;
+        else swappiness = 60;
+        cfg["SWAPPINESS"] = std::to_string(swappiness);
+
+        int cache_pressure = 100;
+        if (specs.is_low_memory_device) cache_pressure = 70;
+        else if (specs.is_medium_memory_device) cache_pressure = 80;
+        else cache_pressure = 90;
+        cfg["CACHE_PRESSURE"] = std::to_string(cache_pressure);
+
         if (specs.is_emmc_storage) {
-            config["DIRTY_RATIO"] = "15";
-            config["DIRTY_BACKGROUND_RATIO"] = "5";
+            cfg["DIRTY_RATIO"] = "15";
+            cfg["DIRTY_BACKGROUND_RATIO"] = "5";
         } else if (specs.is_ufs_storage) {
-            config["DIRTY_RATIO"] = "20";
-            config["DIRTY_BACKGROUND_RATIO"] = "10";
+            cfg["DIRTY_RATIO"] = "20";
+            cfg["DIRTY_BACKGROUND_RATIO"] = "10";
         } else {
-            config["DIRTY_RATIO"] = "25";
-            config["DIRTY_BACKGROUND_RATIO"] = "12";
+            cfg["DIRTY_RATIO"] = "25";
+            cfg["DIRTY_BACKGROUND_RATIO"] = "12";
         }
-        
-        config["EXTRA_TUNING"] = (specs.is_high_memory_device && specs.cpu_big_cores >= 2) ? "true" : "false";
-        config["DYNAMIC_SWAPPINESS"] = "true";
-        config["PERFORMANCE_MODE"] = specs.is_gaming_device ? "true" : "false";
-        config["ZRAM_AUTO_TUNE"] = "false";
-        config["LOG_LEVEL"] = "INFO";
-        
+
+        cfg["EXTRA_TUNING"] = (specs.is_high_memory_device && specs.cpu_big_cores >= 2) ? "true" : "false";
+        cfg["DYNAMIC_SWAPPINESS"] = "true";
+        cfg["PERFORMANCE_MODE"] = specs.is_gaming_device ? "true" : "false";
+        cfg["ZRAM_AUTO_TUNE"] = "false";
+        cfg["LOG_LEVEL"] = "INFO";
+
         if (specs.is_emmc_storage) {
-            config["VM_DIRTY_WRITEBACK_CENTISECS"] = "3000";
-            config["VM_DIRTY_EXPIRE_CENTISECS"] = "5000";
+            cfg["VM_DIRTY_WRITEBACK_CENTISECS"] = "3000";
+            cfg["VM_DIRTY_EXPIRE_CENTISECS"] = "5000";
         } else if (specs.is_ufs_storage) {
-            config["VM_DIRTY_WRITEBACK_CENTISECS"] = "2000";
-            config["VM_DIRTY_EXPIRE_CENTISECS"] = "4000";
+            cfg["VM_DIRTY_WRITEBACK_CENTISECS"] = "2000";
+            cfg["VM_DIRTY_EXPIRE_CENTISECS"] = "4000";
         } else {
-            config["VM_DIRTY_WRITEBACK_CENTISECS"] = "1500";
-            config["VM_DIRTY_EXPIRE_CENTISECS"] = "3000";
+            cfg["VM_DIRTY_WRITEBACK_CENTISECS"] = "1500";
+            cfg["VM_DIRTY_EXPIRE_CENTISECS"] = "3000";
         }
-        
-        config["VM_PAGE_CLUSTER"] = specs.is_low_memory_device ? "0" : "3";
-        config["VM_LAPTOP_MODE"] = "0";
-        config["VM_OOM_KILL_ALLOCATING_TASK"] = "0";
-        config["VM_PANIC_ON_OOM"] = "0";
-        config["VM_OVERCOMMIT_MEMORY"] = "1";
-        
+
+        cfg["VM_PAGE_CLUSTER"] = specs.is_low_memory_device ? "0" : "3";
+        cfg["VM_LAPTOP_MODE"] = "0";
+        cfg["VM_OOM_KILL_ALLOCATING_TASK"] = "0";
+        cfg["VM_PANIC_ON_OOM"] = "0";
+        cfg["VM_OVERCOMMIT_MEMORY"] = "1";
+
         if (specs.is_low_memory_device) {
-            config["VM_OVERCOMMIT_RATIO"] = "70";
+            cfg["VM_OVERCOMMIT_RATIO"] = "70";
         } else if (specs.is_high_memory_device) {
-            config["VM_OVERCOMMIT_RATIO"] = "90";
+            cfg["VM_OVERCOMMIT_RATIO"] = "90";
         } else {
-            config["VM_OVERCOMMIT_RATIO"] = "80";
+            cfg["VM_OVERCOMMIT_RATIO"] = "80";
         }
-        
+
         if (specs.is_low_memory_device) {
-            config["VM_WATERMARK_SCALE_FACTOR"] = "150";
+            cfg["VM_WATERMARK_SCALE_FACTOR"] = "150";
         } else if (specs.is_high_memory_device) {
-            config["VM_WATERMARK_SCALE_FACTOR"] = "50";
+            cfg["VM_WATERMARK_SCALE_FACTOR"] = "50";
         } else {
-            config["VM_WATERMARK_SCALE_FACTOR"] = "100";
+            cfg["VM_WATERMARK_SCALE_FACTOR"] = "100";
         }
-        
-        config["KERNEL_THREADS_MAX"] = "0";
-        
+
+        cfg["KERNEL_THREADS_MAX"] = "0";
+
         if (specs.cpu_big_cores >= 4) {
-            config["ZRAM_COMPRESSION_LEVEL"] = "3";
+            cfg["ZRAM_COMPRESSION_LEVEL"] = "3";
         } else if (specs.cpu_big_cores >= 2) {
-            config["ZRAM_COMPRESSION_LEVEL"] = "2";
+            cfg["ZRAM_COMPRESSION_LEVEL"] = "2";
         } else {
-            config["ZRAM_COMPRESSION_LEVEL"] = "1";
+            cfg["ZRAM_COMPRESSION_LEVEL"] = "1";
         }
-        
+
         long total_ram_gb = specs.total_ram_kb / (1024 * 1024);
         long zram_limit;
         if (specs.is_very_high_memory_device) {
@@ -348,15 +391,83 @@ public:
         } else {
             zram_limit = std::min(total_ram_gb / 2, 2L);
         }
-        config["ZRAM_MEMORY_LIMIT"] = std::to_string(zram_limit) + "G";
-        
-        config["SWAP_PRIORITY"] = "10";
-        config["ZRAM_PRIORITY"] = "100";
-        config["IO_SCHEDULER_TUNE"] = "false";
-        config["CPU_BOOST"] = "false";
-        config["NETWORK_TUNE"] = "false";
+        cfg["ZRAM_MEMORY_LIMIT"] = std::to_string(zram_limit) + "G";
 
-        return config;
+        cfg["SWAP_PRIORITY"] = "10";
+        cfg["ZRAM_PRIORITY"] = "100";
+        cfg["IO_SCHEDULER_TUNE"] = specs.is_emmc_storage ? "true" : "false";
+        cfg["CPU_BOOST"] = specs.cpu_big_cores >= 2 ? "true" : "false";
+        cfg["NETWORK_TUNE"] = "false";
+
+        cfg["PLAY_ENABLED"] = specs.is_gaming_device ? "true" : "false";
+        cfg["PLAY_CPU_BOOST"] = specs.cpu_big_cores >= 2 ? "true" : "false";
+        cfg["PLAY_CPU_GOVERNOR"] = specs.cpu_big_cores >= 2 ? "performance" : "schedutil";
+        cfg["PLAY_CPU_MIN_FREQ"] = std::to_string(specs.cpu_min_freq / 1000);
+        cfg["PLAY_CPU_MAX_FREQ"] = std::to_string(specs.cpu_max_freq / 1000);
+        cfg["PLAY_CPU_MAX_FREQ_PERCENT"] = "100";
+        cfg["PLAY_CPU_BOOST_DURATION"] = "2000";
+        cfg["PLAY_CPU_BOOST_LEVEL"] = "50";
+
+        cfg["PLAY_GPU_BOOST"] = specs.has_gpu ? "true" : "false";
+        if (specs.has_gpu) {
+            if (!specs.gpu_governor.empty() && specs.gpu_governor.find("performance") != std::string::npos) {
+                cfg["PLAY_GPU_GOVERNOR"] = "performance";
+            } else {
+                cfg["PLAY_GPU_GOVERNOR"] = "performance";
+            }
+        } else {
+            cfg["PLAY_GPU_GOVERNOR"] = "performance";
+        }
+        cfg["PLAY_GPU_MAX_FREQ_PERCENT"] = "100";
+        cfg["PLAY_GPU_TOUCH_BOOST"] = "true";
+
+        cfg["PLAY_TOUCH_BOOST"] = "true";
+        cfg["PLAY_TOUCH_POLLING_RATE"] = specs.is_gaming_device ? "250" : "180";
+        cfg["PLAY_VSYNC_MODE"] = "adaptive";
+        cfg["PLAY_DISABLE_HW_OVERLAYS"] = "false";
+        cfg["PLAY_FORCE_GPU_RENDER"] = "true";
+
+        cfg["PLAY_NETWORK_TUNE"] = "true";
+        cfg["PLAY_NET_RMEM_DEFAULT"] = "262144";
+        cfg["PLAY_NET_WMEM_DEFAULT"] = "262144";
+        cfg["PLAY_NET_RMEM_MAX"] = "67108864";
+        cfg["PLAY_NET_WMEM_MAX"] = "67108864";
+        cfg["PLAY_TCP_CONGESTION"] = pickTCPCongestion();
+
+        cfg["PLAY_SWAPPINESS"] = specs.is_low_memory_device ? "30" : "20";
+        cfg["PLAY_CACHE_PRESSURE"] = specs.is_low_memory_device ? "60" : "50";
+        cfg["PLAY_DIRTY_RATIO"] = specs.is_emmc_storage ? "5" : "10";
+        cfg["PLAY_DIRTY_BG_RATIO"] = specs.is_emmc_storage ? "2" : "5";
+        cfg["PLAY_ZRAM_OPTIMIZE"] = specs.has_zram ? "true" : "false";
+        cfg["PLAY_CLEAR_CACHES"] = "true";
+
+        cfg["PLAY_THERMAL_CONTROL"] = "true";
+        cfg["PLAY_THERMAL_PROFILE"] = specs.is_gaming_device ? "aggressive" : "balanced";
+
+        cfg["PLAY_BG_CONTROL"] = "true";
+        cfg["PLAY_BG_WHITELIST"] = "com.discord,com.spotify.music,com.chrome,com.whatsapp,com.instagram.android";
+        cfg["PLAY_BG_KILL_LIMIT"] = "10";
+
+        cfg["PLAY_AUTO_DETECT"] = "true";
+        cfg["PLAY_GAME_PROFILE"] = "auto";
+
+        cfg["PLAY_PERF_MONITOR"] = "true";
+        cfg["PLAY_PERF_OVERLAY"] = "false";
+
+        cfg["PLAY_AUDIO_LATENCY"] = "low";
+        cfg["PLAY_AUDIO_BUFFER"] = "128";
+
+        cfg["PLAY_CHARGING_BOOST"] = "true";
+        cfg["PLAY_BATTERY_SAVER"] = "false";
+        cfg["PLAY_POWER_LIMIT"] = "0";
+
+        cfg["PLAY_REALTIME_PRIORITY"] = "true";
+        cfg["PLAY_CPU_AFFINITY"] = "0-" + std::to_string(specs.cpu_cores - 1);
+        cfg["PLAY_MEMORY_LOCK"] = "false";
+
+        cfg["PLAY_IOSCHED_TUNE"] = specs.is_emmc_storage ? "true" : "false";
+
+        return cfg;
     }
 };
 
@@ -371,11 +482,10 @@ bool ensureModuleDirectory() {
 bool writeConfig(const std::map<std::string, std::string>& config, const std::string& path) {
     std::ofstream file(path);
     if (!file) return false;
-    
+
     for (const auto& [key, value] : config) {
         file << key << "=" << value << std::endl;
     }
-    
     return true;
 }
 
@@ -383,19 +493,19 @@ void validateConfiguration(const std::map<std::string, std::string>& config) {
     auto it = config.find("ZRAM_RATIO");
     if (it != config.end()) {
         double ratio = std::stod(it->second);
-        if (ratio > 2.5) {
+        if (ratio > 3.6) {
             std::cerr << "[Validator] Warning: ZRAM ratio too high: " << ratio << std::endl;
         }
     }
-    
+
     it = config.find("SWAPPINESS");
     if (it != config.end()) {
         int swappiness = std::stoi(it->second);
-        if (swappiness > 150) {
+        if (swappiness > 190) {
             std::cerr << "[Validator] CRITICAL: Swappiness exceeds 150: " << swappiness << std::endl;
         }
     }
-    
+
     it = config.find("CACHE_PRESSURE");
     if (it != config.end()) {
         int cache_pressure = std::stoi(it->second);
@@ -406,28 +516,32 @@ void validateConfiguration(const std::map<std::string, std::string>& config) {
 }
 
 int main() {
-    std::cout << "[NextRAM] Starting smart configuration analysis..." << std::endl;
-    
+    std::cout << "[NextRAM AICF] Starting smart configuration analysis..." << std::endl;
+
     if (geteuid() != 0) {
         std::cout << "[NextRAM] Error: Root access required" << std::endl;
         return 1;
     }
-    
+
     try {
         AdvancedSystemAnalyzer analyzer;
         SmartConfigGenerator generator(analyzer);
-        auto config = generator.generateSmartConfig();
-        
+        auto config = generator.generateFullConfig();
+
         validateConfiguration(config);
-        
+
         std::string config_path = "/data/adb/modules/NextRAM/config.conf";
-        
+
         if (ensureModuleDirectory() && writeConfig(config, config_path)) {
-            std::cout << "[NextRAM [AICF]] > ZRAM Ratio: " << config.at("ZRAM_RATIO") << std::endl;
-            std::cout << "[NextRAM [AICF]] > Algorithm: " << config.at("ZRAM_ALGORITHM") << std::endl;
-            std::cout << "[NextRAM [AICF]] > Swappiness: " << config.at("SWAPPINESS") << std::endl;
-            std::cout << "[NextRAM [AICF]] > Cache Pressure: " << config.at("CACHE_PRESSURE") << std::endl;
-            std::cout << "[NextRAM [AICF]] > Streams: " << config.at("MAX_COMP_STREAMS") << std::endl;
+            std::cout << "[NextRAM AICF] Configuration generated successfully!" << std::endl;
+            std::cout << "=== Key parameters ===" << std::endl;
+            std::cout << "ZRAM Ratio: " << config.at("ZRAM_RATIO") << std::endl;
+            std::cout << "ZRAM Algorithm: " << config.at("ZRAM_ALGORITHM") << std::endl;
+            std::cout << "Swappiness: " << config.at("SWAPPINESS") << std::endl;
+            std::cout << "Cache Pressure: " << config.at("CACHE_PRESSURE") << std::endl;
+            std::cout << "Play Enabled: " << config.at("PLAY_ENABLED") << std::endl;
+            std::cout << "CPU Governor (Play): " << config.at("PLAY_CPU_GOVERNOR") << std::endl;
+            std::cout << "TCP Congestion: " << config.at("PLAY_TCP_CONGESTION") << std::endl;
             return 0;
         } else {
             std::string fallback_path = "./NextRAM_config.conf";
