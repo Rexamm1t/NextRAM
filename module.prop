@@ -1,10 +1,10 @@
 id=NextRAM
 name=NextRAM Play
-version=9.4.0
+version=9.4.0-pre
 versionCode=940
 modname=Clear
 status=official
-type=unstable
+type=snapshot, unstable
 author=@rexamm1t • @matrix_5858 • @alloyd031 • @wefolix • @w3b_0s1nt • @galaxyfier • @egor164rus • @weutqsz • @DRNv51 • @weluvsz
 description=💫This powerful module will allow you to use Swap technology with minimal eMMC wear. It also features optimized zRAM support.✨ Subscribe to telegram) - @nextram_official or visit our website: https://nextram.cocal.ru 
 minMagisk=27000
