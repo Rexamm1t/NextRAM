@@ -17,6 +17,7 @@
 #include <cstring>
 #include <cmath>
 #include <cctype>
+#include <climits>
 
 struct SystemSpecs {
     long total_ram_kb = 0;
@@ -28,7 +29,7 @@ struct SystemSpecs {
     int cpu_little_cores = 0;
     std::vector<long> cpu_frequencies;
     long cpu_max_freq = 0;
-    long cpu_min_freq = 0;
+    long cpu_min_freq = LONG_MAX;
     std::string storage_type;
     std::string device_model;
     std::string kernel_version;
@@ -113,8 +114,8 @@ private:
         specs.is_high_memory_device = (total_ram_gb > 6 && total_ram_gb <= 12);
         specs.is_very_high_memory_device = (total_ram_gb > 12);
 
-        specs.memory_pressure = specs.total_ram_kb > 0 ?
-            (double)(specs.total_ram_kb - specs.available_ram_kb) / specs.total_ram_kb : 0.0;
+        double pressure = (specs.total_ram_kb > 0) ? (double)(specs.total_ram_kb - specs.available_ram_kb) / specs.total_ram_kb : 0.0;
+        specs.memory_pressure = (pressure > 0) ? pressure : 0.0;
     }
 
     void detectCPUInfo() {
@@ -129,23 +130,35 @@ private:
             if (fileExists(freq_path)) {
                 std::string freq_str = readFile(freq_path);
                 if (!freq_str.empty()) {
-                    long freq = std::stol(freq_str);
-                    specs.cpu_frequencies.push_back(freq);
-                    if (freq > specs.cpu_max_freq) specs.cpu_max_freq = freq;
-                    if (freq < specs.cpu_min_freq) specs.cpu_min_freq = freq;
+                    try {
+                        long freq = std::stol(freq_str);
+                        specs.cpu_frequencies.push_back(freq);
+                        if (freq > specs.cpu_max_freq) specs.cpu_max_freq = freq;
+                        if (freq < specs.cpu_min_freq) specs.cpu_min_freq = freq;
+                    } catch (...) {
+                        // ignore conversion error
+                    }
                 }
             }
         }
 
         if (!specs.cpu_frequencies.empty()) {
             std::sort(specs.cpu_frequencies.begin(), specs.cpu_frequencies.end());
-            long threshold = specs.cpu_frequencies.front() * 1.5;
-            for (long freq : specs.cpu_frequencies) {
-                if (freq >= threshold) specs.cpu_big_cores++;
-                else specs.cpu_little_cores++;
+            long min_freq = specs.cpu_frequencies.front();
+            long max_freq = specs.cpu_frequencies.back();
+
+            if (min_freq == max_freq) {
+                specs.cpu_big_cores = specs.cpu_cores;
+                specs.cpu_little_cores = 0;
+            } else {
+                long threshold = min_freq * 1.5;
+                for (long freq : specs.cpu_frequencies) {
+                    if (freq >= threshold) specs.cpu_big_cores++;
+                    else specs.cpu_little_cores++;
+                }
+                if (specs.cpu_big_cores == 0) specs.cpu_big_cores = specs.cpu_cores / 2;
+                if (specs.cpu_little_cores == 0) specs.cpu_little_cores = specs.cpu_cores - specs.cpu_big_cores;
             }
-            if (specs.cpu_big_cores == 0) specs.cpu_big_cores = specs.cpu_cores / 2;
-            if (specs.cpu_little_cores == 0) specs.cpu_little_cores = specs.cpu_cores - specs.cpu_big_cores;
 
             long total_freq = 0;
             for (long freq : specs.cpu_frequencies) total_freq += freq;
@@ -180,7 +193,11 @@ private:
             }
             if (access("/sys/class/kgsl/kgsl-3d0/max_gpuclk", F_OK) == 0) {
                 std::string val = readFile("/sys/class/kgsl/kgsl-3d0/max_gpuclk");
-                if (!val.empty()) specs.gpu_max_freq = std::stol(val);
+                if (!val.empty()) {
+                    try {
+                        specs.gpu_max_freq = std::stol(val);
+                    } catch (...) {}
+                }
             }
         } else if (access("/sys/devices/platform/14ac0000.mali", F_OK) == 0) {
             specs.has_gpu = true;
@@ -285,10 +302,12 @@ public:
 
         if (specs.is_very_high_memory_device) {
             cfg["ZRAM_RATIO"] = "0.3";
-        } else if (specs.total_ram_kb > 9 * 1024 * 1024) {
-            cfg["ZRAM_RATIO"] = "0.5";
         } else if (specs.is_high_memory_device) {
-            cfg["ZRAM_RATIO"] = "1.0";
+            if (specs.total_ram_kb > 9 * 1024 * 1024) {
+                cfg["ZRAM_RATIO"] = "0.8";
+            } else {
+                cfg["ZRAM_RATIO"] = "1.0";
+            }
         } else if (specs.is_medium_memory_device) {
             cfg["ZRAM_RATIO"] = "1.5";
         } else {
@@ -462,9 +481,24 @@ public:
         cfg["PLAY_POWER_LIMIT"] = "0";
 
         cfg["PLAY_REALTIME_PRIORITY"] = "true";
-        cfg["PLAY_CPU_AFFINITY"] = "0-" + std::to_string(specs.cpu_cores - 1);
-        cfg["PLAY_MEMORY_LOCK"] = "false";
 
+        std::string cpu_affinity;
+        int cores_available = 0;
+        for (int i = 0; i < specs.cpu_cores; ++i) {
+            if (access(("/sys/devices/system/cpu/cpu" + std::to_string(i)).c_str(), F_OK) == 0) {
+                if (!cpu_affinity.empty()) cpu_affinity += ",";
+                cpu_affinity += std::to_string(i);
+                cores_available++;
+            }
+        }
+        if (cores_available == 0) {
+            cpu_affinity = "0-3";
+        } else if (cores_available > 1 && cpu_affinity.find(',') == std::string::npos) {
+            cpu_affinity = "0-" + std::to_string(cores_available - 1);
+        }
+        cfg["PLAY_CPU_AFFINITY"] = cpu_affinity;
+
+        cfg["PLAY_MEMORY_LOCK"] = "false";
         cfg["PLAY_IOSCHED_TUNE"] = specs.is_emmc_storage ? "true" : "false";
 
         return cfg;
@@ -493,16 +527,16 @@ void validateConfiguration(const std::map<std::string, std::string>& config) {
     auto it = config.find("ZRAM_RATIO");
     if (it != config.end()) {
         double ratio = std::stod(it->second);
-        if (ratio > 3.6) {
-            std::cerr << "[Validator] Warning: ZRAM ratio too high: " << ratio << std::endl;
+        if (ratio > 2.5) {
+            std::cout << "[Validator] Warning: ZRAM ratio too high: " << ratio << std::endl;
         }
     }
 
     it = config.find("SWAPPINESS");
     if (it != config.end()) {
         int swappiness = std::stoi(it->second);
-        if (swappiness > 190) {
-            std::cerr << "[Validator] CRITICAL: Swappiness exceeds 150: " << swappiness << std::endl;
+        if (swappiness > 150) {
+            std::cout << "[Validator] CRITICAL: Swappiness exceeds 150: " << swappiness << std::endl;
         }
     }
 
@@ -510,7 +544,7 @@ void validateConfiguration(const std::map<std::string, std::string>& config) {
     if (it != config.end()) {
         int cache_pressure = std::stoi(it->second);
         if (cache_pressure > 100) {
-            std::cerr << "[Validator] CRITICAL: Cache pressure exceeds 100: " << cache_pressure << std::endl;
+            std::cout << "[Validator] CRITICAL: Cache pressure exceeds 100: " << cache_pressure << std::endl;
         }
     }
 }
