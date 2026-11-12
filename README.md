@@ -20,6 +20,7 @@
 > [!WARNING]
 > ru:
 > На данный момент проект переживает рефакторинг. NextRAM переносится на Rust, мы исправляем баги, повышаем совместимость и стараемся :3
+> [!WARNING]
 > en:
 > The project is currently undergoing a refactor. NextRAM is being ported to Rust; we’re fixing bugs, improving compatibility, and doing our best! :3
 
