@@ -16,6 +16,9 @@
 </a>
 </div>
 
+> [!WARNING]
+> На данный момент проект переживает рефакторинг. NextRAM переносится на Rust, мы исправляем баги, повышаем совместимость и стараемся :3
+
 <div align="center">
   <font size="2">
     <a href="https://github.com/Rexamm1t/NextRAM/blob/public-main/docs/README_RU.md">Русский</a>
