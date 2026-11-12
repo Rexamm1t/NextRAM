@@ -16,8 +16,10 @@
 </a>
 </div>
 
+
 > [!WARNING]
 > На данный момент проект переживает рефакторинг. NextRAM переносится на Rust, мы исправляем баги, повышаем совместимость и стараемся :3
+> The project is currently undergoing a refactor. NextRAM is being ported to Rust; we’re fixing bugs, improving compatibility, and doing our best! :3
 
 <div align="center">
   <font size="2">
