@@ -1,4 +1,28 @@
 const newsData = [
+/*
+{
+    id: ,
+    date: "",
+    tags: [],
+    author: "",
+    title: "",
+    preview: "",
+    content:
+},
+*/
+{
+    id: 11,
+    date: "2026-11-14",
+    tags: ["Rust", "re", "important"],
+    author: "@rexamm1t",
+    title: "NextRAM code is transferred to Rust",
+    preview: "We continue to work on the module and would like to inform you about it.",
+    content: `
+         <h3>NextRAM in Rust?!</h3>
+         <p>We've overcome the crisis and are back to working with the module, although it's rather difficult to call this project a module any longer...</p>
+         <p>Also, we're not promising any new functionality yet (while we're rewriting the database). We need to create an excellent foundation for future work.</p>
+    `
+},
 {
     id: 10,
     date: "2026-02-13",
