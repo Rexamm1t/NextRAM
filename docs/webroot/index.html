@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextRAM - Advanced Memory Management Module</title>
+    <title>NextRAM — Advanced Memory Management Module for Android</title>
+    <meta name="description" content="NextRAM is a powerful Magisk module for advanced memory management on Android. Enhanced ZRAM configuration, swap file management, and kernel tuning for better performance and stability.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="news-data.js"></script>
     <style>
         :root {
             --primary: #e91e63;
@@ -253,37 +255,19 @@
             z-index: 2;
         }
 
-        .logo-container {
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            transform: translateY(0);
-            transition: var(--transition);
-            animation: logoFloat 6s ease-in-out infinite;
-        }
-
-        .logo-container:hover {
-            transform: translateY(-10px);
-        }
-
-        .logo {
-            max-width: 100%;
-            max-height: 100%;
-            border-radius: 30px;
-            filter: drop-shadow(0 0 20px rgba(233, 30, 99, 0.3));
-        }
-
         h1 {
             font-size: 3rem;
             margin-bottom: 15px;
             font-weight: 700;
-            color: var(--text-primary);
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent), var(--primary));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
             opacity: 0;
-            animation: fadeInUp 1s ease 0.5s forwards;
+            filter: drop-shadow(0 0 18px rgba(233, 30, 99, 0.25));
+            animation: fadeInUp 1s ease 0.4s forwards, themeShimmer 5s ease-in-out infinite;
         }
 
         .tagline {
@@ -324,6 +308,62 @@
             color: var(--text-primary);
         }
 
+        .header-banner {
+            max-width: 720px;
+            margin: 0 auto 30px;
+            position: relative;
+            background: var(--amoled-card);
+            border-radius: 20px;
+            padding: 22px 28px;
+            text-align: left;
+            opacity: 0;
+            animation: fadeInUp 1s ease 1.0s forwards;
+            overflow: hidden;
+            transition: var(--transition);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent), var(--primary));
+            background-size: 300% 300%;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: borderFlow 6s linear infinite;
+            pointer-events: none;
+        }
+
+        .header-banner::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(233, 30, 99, 0.07), transparent);
+            animation: bannerShimmer 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .header-banner:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(233, 30, 99, 0.2);
+        }
+
+        .banner-text {
+            color: var(--text-secondary);
+            font-size: 0.98rem;
+            line-height: 1.6;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
         .header-buttons {
             display: flex;
             justify-content: center;
@@ -345,7 +385,7 @@
             border: none;
             cursor: pointer;
             opacity: 0;
-            animation: fadeInUp 1s ease 1.1s forwards;
+            animation: fadeInUp 1s ease 1.2s forwards;
             position: relative;
             overflow: hidden;
         }
@@ -384,7 +424,7 @@
             border: none;
             cursor: pointer;
             opacity: 0;
-            animation: fadeInUp 1s ease 1.1s forwards;
+            animation: fadeInUp 1s ease 1.2s forwards;
             position: relative;
             overflow: hidden;
         }
@@ -413,7 +453,7 @@
         .latest-release {
             margin-top: 20px;
             opacity: 0;
-            animation: fadeInUp 1s ease 1.3s forwards;
+            animation: fadeInUp 1s ease 1.4s forwards;
         }
 
         .release-badge {
@@ -1091,16 +1131,22 @@
             }
         }
 
-        @keyframes logoFloat {
-            0% {
-                transform: translateY(0);
-            }
-            50% {
-                transform: translateY(-15px);
-            }
-            100% {
-                transform: translateY(0);
-            }
+        @keyframes themeShimmer {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes borderFlow {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes bannerShimmer {
+            0%   { left: -100%; }
+            50%  { left: 100%; }
+            100% { left: 100%; }
         }
 
         @keyframes pulse {
@@ -1124,84 +1170,89 @@
             h1 {
                 font-size: 2.2rem;
             }
-            
-            .logo-container {
-                width: 160px;
-                height: 160px;
-            }
-            
+
             .badges {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
+            .header-banner {
+                padding: 18px 20px;
+                margin-bottom: 25px;
+            }
+
+            .banner-text {
+                font-size: 0.88rem;
+                line-height: 1.55;
+            }
+
             .header-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .download-btn, .config-btn {
                 width: 100%;
                 max-width: 300px;
                 text-align: center;
             }
-            
+
             .features-grid, .stats-grid, .compatibility-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .step {
                 flex-direction: column;
                 text-align: center;
             }
-            
+
             .step-number {
                 margin-right: 0;
                 margin-bottom: 15px;
             }
-            
+
             .section-title h2 {
                 font-size: 1.8rem;
             }
-            
+
             .news-preview-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .floating-nav {
                 width: 95%;
                 padding: 10px 20px;
             }
-            
+
             .nav-links {
                 gap: 10px;
             }
-            
+
             .nav-link {
                 font-size: 0.8rem;
                 padding: 5px 10px;
             }
-            
+
             .lang-trigger {
                 padding: 6px 12px;
                 font-size: 0.85rem;
             }
-            
+
             .footer-content {
                 grid-template-columns: 1fr;
                 text-align: center;
             }
-            
+
             .telegram-island {
                 top: 15px;
                 right: 15px;
                 padding: 10px 15px;
             }
-            
+
             .telegram-island.with-nav {
                 top: 75px;
             }
-            
+
             .island-text {
                 font-size: 0.8rem;
             }
@@ -1211,7 +1262,7 @@
             .telegram-island {
                 padding: 8px 12px;
             }
-            
+
             .island-text {
                 display: none;
             }
@@ -1253,13 +1304,9 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <div class="logo-container">
-                    <img src="logo/logo.jpg" alt="NextRAM Logo" class="logo">
-                </div>
-                
                 <h1>NextRAM</h1>
                 <p class="tagline">Advanced Memory Management Module</p>
-                
+
                 <div class="badges">
                     <div class="badge">
                         <i class="fab fa-android"></i>
@@ -1274,7 +1321,11 @@
                         <span>Telegram</span>
                     </div>
                 </div>
-                
+
+                <div class="header-banner">
+                    <p class="banner-text">NextRAM is alive again — we've passed the crisis stage and are back to work. The project is currently undergoing a refactoring. We are rewriting the codebase in Rust.</p>
+                </div>
+
                 <div class="header-buttons">
                     <a href="https://github.com/Rexamm1t/NextRAM/releases" class="download-btn">
                         <i class="fas fa-download"></i> <span class="download-text">Download Now</span>
@@ -1574,54 +1625,49 @@
         document.addEventListener('DOMContentLoaded', function() {
             const telegramIsland = document.getElementById('telegramIsland');
             const closeIsland = document.getElementById('closeIsland');
-            
+
             const islandClosed = localStorage.getItem('telegramIslandClosed');
-            
+
             if (islandClosed) {
                 telegramIsland.classList.add('hidden');
             }
-            
+
             closeIsland.addEventListener('click', function(e) {
                 e.stopPropagation();
                 telegramIsland.classList.add('hidden');
                 localStorage.setItem('telegramIslandClosed', 'true');
             });
-            
+
             telegramIsland.addEventListener('click', function() {
                 window.open('https://t.me/nextram_official', '_blank');
             });
-            
+
             const floatingNav = document.getElementById('floatingNav');
-            const logoContainer = document.querySelector('.logo-container');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (!entry.isIntersecting) {
-                        floatingNav.classList.add('visible');
-                        telegramIsland.classList.add('with-nav');
-                    } else {
-                        floatingNav.classList.remove('visible');
-                        telegramIsland.classList.remove('with-nav');
-                    }
-                });
-            }, { threshold: 0.1 });
-            
-            observer.observe(logoContainer);
-            
+
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 100) {
+                    floatingNav.classList.add('visible');
+                    telegramIsland.classList.add('with-nav');
+                } else {
+                    floatingNav.classList.remove('visible');
+                    telegramIsland.classList.remove('with-nav');
+                }
+            });
+
             const langTrigger = document.getElementById('langTrigger');
             const langDropdown = document.getElementById('langDropdown');
             const currentLang = document.querySelector('.current-lang');
             const langOptions = document.querySelectorAll('.lang-option');
-            
+
             langTrigger.addEventListener('click', function(e) {
                 e.stopPropagation();
                 langDropdown.classList.toggle('active');
             });
-            
+
             document.addEventListener('click', function() {
                 langDropdown.classList.remove('active');
             });
-            
+
             async function fetchLatestRelease() {
                 try {
                     const response = await fetch('https://api.github.com/repos/Rexamm1t/NextRAM/releases/latest');
@@ -1638,7 +1684,7 @@
 
             function updateReleaseInfo(releaseData) {
                 const releaseInfo = document.getElementById('releaseInfo');
-                
+
                 if (!releaseData) {
                     releaseInfo.innerHTML = '<span>Failed to load release info</span>';
                     return;
@@ -1646,7 +1692,7 @@
 
                 const version = releaseData.tag_name;
                 const releaseDate = new Date(releaseData.published_at).toLocaleDateString();
-                
+
                 releaseInfo.innerHTML = `
                     <a href="${releaseData.html_url}" target="_blank" class="release-badge">
                         <i class="fas fa-tag"></i>
@@ -1661,6 +1707,7 @@
 
             const translations = {
                 en: {
+                    'banner-text': 'NextRAM is alive again — we\'ve passed the crisis stage and are back to work. The project is currently undergoing a refactoring. We are rewriting the codebase in Rust.',
                     'latest-news-title': 'Latest News',
                     'view-all-text': 'View All News',
                     'stats-title': 'Project Statistics',
@@ -1708,6 +1755,7 @@
                     'config-text': 'Configuration'
                 },
                 ru: {
+                    'banner-text': 'NextRAM снова жив, мы прошли кризисный этап и снова приступили к работе. На данный момент проект переживает рефакторинг. Мы переписываем кодовую базу на Rust.',
                     'latest-news-title': 'Последние новости',
                     'view-all-text': 'Все новости',
                     'stats-title': 'Статистика проекта',
@@ -1755,6 +1803,7 @@
                     'config-text': 'Настройка'
                 },
                 uk: {
+                    'banner-text': 'NextRAM знову живий, ми пройшли кризовий етап і знову взялися до роботи. Наразі проєкт переживає рефакторинг. Ми переписуємо кодову базу на Rust.',
                     'latest-news-title': 'Останні новини',
                     'view-all-text': 'Всі новини',
                     'stats-title': 'Статистика проекту',
@@ -1802,6 +1851,7 @@
                     'config-text': 'Налаштування'
                 },
                 zh: {
+                    'banner-text': 'NextRAM 重获新生，我们已经度过了危机阶段，并重新开始工作。目前项目正在进行重构。我们正在用 Rust 重写代码库。',
                     'latest-news-title': '最新新闻',
                     'view-all-text': '查看所有新闻',
                     'stats-title': '项目统计',
@@ -1850,81 +1900,36 @@
                 }
             };
 
-            const latestNewsData = [
-                {
-                    id: 1,
-                    date: "2025-03-20",
-                    category: "release",
-                    tags: ["release", "update"],
-                    author: "@rexamm1t",
-                    en: {
-                        title: "NextRAM v9.0.127 (90127) Released",
-                        content: "Added time-out when selecting the configuration method. Fixed various bugs and improved stability."
-                    },
-                    ru: {
-                        title: "Выпущен NextRAM v9.0.127 (90127)",
-                        content: "Добавлен тайм-аут при выборе метода конфигурации. Исправлены различные ошибки и улучшена стабильность."
-                    },
-                    uk: {
-                        title: "Випущено NextRAM v9.0.127 (90127)",
-                        content: "Додано тайм-аут при виборі методу конфігурації. Виправлені різні помилки та покращено стабільність."
-                    },
-                    zh: {
-                        title: "NextRAM v9.0.127 (90127) 已发布",
-                        content: "添加了选择配置方法时的超时设置。修复了各种错误并提高了稳定性。"
-                    }
-                },
-                {
-                    id: 2,
-                    date: "2025-03-15",
-                    category: "release",
-                    tags: ["release", "major", "beta"],
-                    author: "@rexamm1t",
-                    en: {
-                        title: "NextRAM v9.0.000 (90000) Major Update",
-                        content: "Major release with first C++ tool, complete APK redesign with Material 3, and kernel improvements."
-                    },
-                    ru: {
-                        title: "Крупное обновление NextRAM v9.0.000 (90000)",
-                        content: "Крупный релиз с первым C++ инструментом, полным редизайном APK в Material 3 и улучшениями ядра."
-                    },
-                    uk: {
-                        title: "Крупне оновлення NextRAM v9.0.000 (90000)",
-                        content: "Крупний реліз з першим інструментом C++, повним редизайном APK у Material 3 та покращеннями ядра."
-                    },
-                    zh: {
-                        title: "NextRAM v9.0.000 (90000) 主要更新",
-                        content: "主要版本包含首个 C++ 工具，APK 完全重新设计为 Material 3，以及内核改进。"
-                    }
-                }
-            ];
-
             let currentLanguage = 'en';
 
             function renderLatestNews() {
                 const newsPreviewGrid = document.getElementById('newsPreviewGrid');
                 newsPreviewGrid.innerHTML = '';
-                
-                latestNewsData.forEach((news, index) => {
+
+                const latestNews = [...newsData]
+                    .sort((a, b) => b.id - a.id)
+                    .slice(0, 2);
+
+                const tagLabels = {
+                    'release': 'Release',
+                    'update': 'Update',
+                    'announcement': 'Announcement',
+                    'development': 'Development'
+                };
+
+                latestNews.forEach((news, index) => {
                     const newsCard = document.createElement('div');
                     newsCard.className = 'news-preview-card';
                     newsCard.setAttribute('data-category', news.category);
-                    
-                    const formattedDate = new Date(news.date).toLocaleDateString(currentLanguage === 'zh' ? 'zh-CN' : currentLanguage, {
+
+                    const formattedDate = new Date(news.date).toLocaleDateString('en', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
                     });
-                    
-                    const tagTranslations = {
-                        'release': translations[currentLanguage]['release'] || 'Release',
-                        'update': translations[currentLanguage]['update'] || 'Update',
-                        'beta': 'Beta',
-                        'major': 'Major'
-                    };
-                    
-                    const displayTags = news.tags.filter(tag => tagTranslations[tag]);
-                    
+
+                    const displayTags = news.tags.filter(tag => tagLabels[tag]);
+
                     newsCard.innerHTML = `
                         <div class="news-preview-header">
                             <div>
@@ -1932,16 +1937,16 @@
                                     <i class="far fa-calendar"></i>
                                     <span>${formattedDate}</span>
                                 </div>
-                                <h3 class="news-preview-title">${news[currentLanguage].title}</h3>
+                                <h3 class="news-preview-title">${news.title}</h3>
                                 <div class="news-preview-tags">
                                     ${displayTags.map(tag => `
-                                        <span class="news-preview-tag">${tagTranslations[tag] || tag}</span>
+                                        <span class="news-preview-tag">${tagLabels[tag]}</span>
                                     `).join('')}
                                 </div>
                             </div>
                         </div>
                         <div class="news-preview-content">
-                            <p>${news[currentLanguage].content}</p>
+                            <p>${news.preview}</p>
                         </div>
                         <div class="news-preview-footer">
                             <div class="news-preview-author">
@@ -1950,9 +1955,9 @@
                             </div>
                         </div>
                     `;
-                    
+
                     newsPreviewGrid.appendChild(newsCard);
-                    
+
                     setTimeout(() => {
                         newsCard.classList.add('visible');
                     }, index * 200);
@@ -1961,7 +1966,7 @@
 
             function switchLanguage(lang) {
                 currentLanguage = lang;
-                
+
                 langOptions.forEach(option => {
                     if (option.dataset.lang === lang) {
                         option.classList.add('active');
@@ -2000,7 +2005,7 @@
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('visible');
-                        
+
                         if (entry.target.classList.contains('features-grid')) {
                             const cards = entry.target.querySelectorAll('.feature-card');
                             cards.forEach((card, index) => {
@@ -2009,7 +2014,7 @@
                                 }, index * 200);
                             });
                         }
-                        
+
                         if (entry.target.classList.contains('steps')) {
                             const steps = entry.target.querySelectorAll('.step');
                             steps.forEach((step, index) => {
@@ -2018,7 +2023,7 @@
                                 }, index * 200);
                             });
                         }
-                        
+
                         if (entry.target.classList.contains('compatibility-grid')) {
                             const items = entry.target.querySelectorAll('.compat-item');
                             items.forEach((item, index) => {
@@ -2027,7 +2032,7 @@
                                 }, index * 150);
                             });
                         }
-                        
+
                         if (entry.target.classList.contains('news-preview-grid')) {
                             const cards = entry.target.querySelectorAll('.news-preview-card');
                             cards.forEach((card, index) => {
@@ -2036,7 +2041,7 @@
                                 }, index * 200);
                             });
                         }
-                        
+
                         if (entry.target.classList.contains('stats-grid')) {
                             const items = entry.target.querySelectorAll('.stat-item');
                             items.forEach((item, index) => {
@@ -2045,7 +2050,7 @@
                                 }, index * 150);
                             });
                         }
-                        
+
                         if (entry.target.classList.contains('faq-grid')) {
                             const items = entry.target.querySelectorAll('.faq-item');
                             items.forEach((item, index) => {
@@ -2061,7 +2066,7 @@
             document.querySelectorAll('section').forEach(section => {
                 sectionObserver.observe(section);
             });
-            
+
             document.querySelectorAll('.feature-card, .step, .compat-item, .news-preview-card, .stat-item, .faq-item').forEach(el => {
                 sectionObserver.observe(el);
             });
