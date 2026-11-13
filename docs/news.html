@@ -347,7 +347,7 @@
             font-size: 0.8rem;
         }
 
-        .news-title {
+        .news-card .news-title {
             font-size: 1.3rem;
             color: var(--text-primary);
             line-height: 1.4;
@@ -787,11 +787,14 @@
                     newsCard.className = 'news-card';
                     newsCard.setAttribute('data-id', news.id);
 
-                    const formattedDate = new Date(news.date).toLocaleDateString('en', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
+                    const dateObj = new Date(news.date);
+                    const formattedDate = isNaN(dateObj.getTime())
+                        ? news.date
+                        : dateObj.toLocaleDateString('en', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
 
                     newsCard.innerHTML = `
                         <div class="news-header">
@@ -838,11 +841,14 @@
                 const modalBody = document.getElementById('modalBody');
                 const modalFooter = document.getElementById('modalFooter');
 
-                const formattedDate = new Date(news.date).toLocaleDateString('en', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+                const dateObj = new Date(news.date);
+                const formattedDate = isNaN(dateObj.getTime())
+                    ? news.date
+                    : dateObj.toLocaleDateString('en', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
 
                 modalTitle.textContent = news.title;
                 modalBody.innerHTML = news.content;
