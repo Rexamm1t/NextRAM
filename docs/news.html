@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextRAM - News & Updates</title>
+    <title>NextRAM — News &amp; Updates</title>
+    <meta name="description" content="Latest NextRAM news, release notes, and development updates. Stay informed about the Rust rewrite and all module releases.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
@@ -300,36 +301,6 @@
             border-radius: 3px;
         }
 
-        .news-filters {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-        }
-
-        .filter-btn {
-            background: var(--amoled-card);
-            border: 1px solid var(--amoled-border);
-            color: var(--text-secondary);
-            padding: 10px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.9rem;
-        }
-
-        .filter-btn.active {
-            background: rgba(233, 30, 99, 0.15);
-            color: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .filter-btn:hover {
-            background: rgba(233, 30, 99, 0.1);
-            color: var(--text-primary);
-        }
-
         .news-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -379,23 +350,7 @@
         .news-title {
             font-size: 1.3rem;
             color: var(--text-primary);
-            margin-bottom: 10px;
             line-height: 1.4;
-        }
-
-        .news-tags {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .news-tag {
-            background: rgba(233, 30, 99, 0.1);
-            color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(233, 30, 99, 0.2);
         }
 
         .news-preview {
@@ -566,13 +521,6 @@
             font-size: 0.9rem;
         }
 
-        .no-news {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-            grid-column: 1 / -1;
-        }
-
         footer {
             background: rgba(0, 0, 0, 0.9);
             padding: 50px 0 30px;
@@ -631,11 +579,6 @@
             100% {
                 transform: scale(1);
             }
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
@@ -704,15 +647,6 @@
             .island-text {
                 display: none;
             }
-
-            .news-filters {
-                gap: 10px;
-            }
-
-            .filter-btn {
-                padding: 8px 15px;
-                font-size: 0.8rem;
-            }
         }
     </style>
 </head>
@@ -738,7 +672,7 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <h1 class="news-page-title">News & Updates</h1>
+                <h1 class="news-page-title">News &amp; Updates</h1>
                 <p class="tagline news-page-tagline">Stay updated with the latest NextRAM developments</p>
 
                 <div class="badges">
@@ -769,14 +703,6 @@
                 <h2 class="news-title">Latest News</h2>
             </div>
 
-            <div class="news-filters">
-                <button class="filter-btn active" data-filter="all">All News</button>
-                <button class="filter-btn" data-filter="release">Releases</button>
-                <button class="filter-btn" data-filter="update">Updates</button>
-                <button class="filter-btn" data-filter="announcement">Announcements</button>
-                <button class="filter-btn" data-filter="development">Development</button>
-            </div>
-
             <div class="news-grid" id="newsGrid">
             </div>
         </div>
@@ -801,7 +727,7 @@
 
     <footer>
         <div class="container">
-            <p class="footer-text">NextRAM - News & Updates</p>
+            <p class="footer-text">NextRAM - News &amp; Updates</p>
             <div class="footer-links">
                 <a href="index.html">Home</a>
                 <a href="news.html">News</a>
@@ -850,37 +776,15 @@
                 }
             });
 
-            let currentFilter = 'all';
-
-            const tagLabels = {
-                'release': 'Release',
-                'update': 'Update',
-                'announcement': 'Announcement',
-                'development': 'Development'
-            };
-
             function renderNews() {
                 const newsGrid = document.getElementById('newsGrid');
                 newsGrid.innerHTML = '';
 
-                const filteredNews = currentFilter === 'all'
-                    ? newsData
-                    : newsData.filter(news => news.category === currentFilter);
+                const sortedNews = [...newsData].sort((a, b) => b.id - a.id);
 
-                if (filteredNews.length === 0) {
-                    const noNewsElement = document.createElement('div');
-                    noNewsElement.className = 'no-news';
-                    noNewsElement.textContent = 'No news found in this category';
-                    newsGrid.appendChild(noNewsElement);
-                    return;
-                }
-
-                filteredNews.sort((a, b) => b.id - a.id);
-
-                filteredNews.forEach((news, index) => {
+                sortedNews.forEach((news, index) => {
                     const newsCard = document.createElement('div');
                     newsCard.className = 'news-card';
-                    newsCard.setAttribute('data-category', news.category);
                     newsCard.setAttribute('data-id', news.id);
 
                     const formattedDate = new Date(news.date).toLocaleDateString('en', {
@@ -888,8 +792,6 @@
                         month: 'long',
                         day: 'numeric'
                     });
-
-                    const displayTags = news.tags.filter(tag => tagLabels[tag]);
 
                     newsCard.innerHTML = `
                         <div class="news-header">
@@ -899,11 +801,6 @@
                                     <span>${formattedDate}</span>
                                 </div>
                                 <h3 class="news-title">${news.title}</h3>
-                                <div class="news-tags">
-                                    ${displayTags.map(tag => `
-                                        <span class="news-tag">${tagLabels[tag]}</span>
-                                    `).join('')}
-                                </div>
                             </div>
                         </div>
                         <div class="news-preview">
@@ -963,16 +860,6 @@
                 modal.classList.remove('active');
                 document.body.style.overflow = 'auto';
             }
-
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-
-                    currentFilter = this.dataset.filter;
-                    renderNews();
-                });
-            });
 
             document.getElementById('closeModal').addEventListener('click', closeNewsModal);
 

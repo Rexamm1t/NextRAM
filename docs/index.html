@@ -576,7 +576,7 @@
         }
 
         .news-preview-header {
-            padding: 25px 25px 15px;
+            padding: 25px 25px 20px;
             border-bottom: 1px solid var(--amoled-border);
         }
 
@@ -592,23 +592,7 @@
         .news-preview-title {
             font-size: 1.3rem;
             color: var(--text-primary);
-            margin-bottom: 10px;
             line-height: 1.4;
-        }
-
-        .news-preview-tags {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .news-preview-tag {
-            background: rgba(233, 30, 99, 0.1);
-            color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(233, 30, 99, 0.2);
         }
 
         .news-preview-content {
@@ -1910,25 +1894,15 @@
                     .sort((a, b) => b.id - a.id)
                     .slice(0, 2);
 
-                const tagLabels = {
-                    'release': 'Release',
-                    'update': 'Update',
-                    'announcement': 'Announcement',
-                    'development': 'Development'
-                };
-
                 latestNews.forEach((news, index) => {
                     const newsCard = document.createElement('div');
                     newsCard.className = 'news-preview-card';
-                    newsCard.setAttribute('data-category', news.category);
 
                     const formattedDate = new Date(news.date).toLocaleDateString('en', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
                     });
-
-                    const displayTags = news.tags.filter(tag => tagLabels[tag]);
 
                     newsCard.innerHTML = `
                         <div class="news-preview-header">
@@ -1938,11 +1912,6 @@
                                     <span>${formattedDate}</span>
                                 </div>
                                 <h3 class="news-preview-title">${news.title}</h3>
-                                <div class="news-preview-tags">
-                                    ${displayTags.map(tag => `
-                                        <span class="news-preview-tag">${tagLabels[tag]}</span>
-                                    `).join('')}
-                                </div>
                             </div>
                         </div>
                         <div class="news-preview-content">

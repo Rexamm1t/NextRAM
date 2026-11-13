@@ -1,4 +1,3 @@
-const newsData = [
 /*
 {
     id: ,
@@ -10,10 +9,11 @@ const newsData = [
     content:
 },
 */
+const newsData = [
 {
     id: 11,
     date: "2026-11-14",
-    tags: ["Rust", "re", "important"],
+    category: "development",
     author: "@rexamm1t",
     title: "NextRAM code is transferred to Rust",
     preview: "We continue to work on the module and would like to inform you about it.",
@@ -27,7 +27,6 @@ const newsData = [
     id: 10,
     date: "2026-02-13",
     category: "release",
-    tags: ["release", "update", "fix", "play"],
     author: "@GalaxyFier",
     title: "NextRAM Play Fix 9.3.981",
     preview: "Code optimization, Play Mode improvements, memory management enhancements, and various fixes.",
@@ -76,7 +75,6 @@ const newsData = [
     id: 9,
     date: "2026-02-01",
     category: "release",
-    tags: ["release", "update", "play", "gaming"],
     author: "@GalaxyFier",
     title: "NextRAM Play v9.3.978-(93978)",
     preview: "Play Mode with gaming optimizations, CPU/GPU tuning, network and memory enhancements, installation fixes.",
@@ -115,7 +113,6 @@ const newsData = [
     id: 8,
     date: "2026-01-06",
     category: "release",
-    tags: ["release", "update", "fix", "whole"],
     author: "@GalaxyFier",
     title: "NextRAM Whole Fix 9.2.822",
     preview: "Bug fixes for the app.",
@@ -134,7 +131,6 @@ const newsData = [
     id: 7,
     date: "2025-12-30",
     category: "release",
-    tags: ["release", "update", "whole", "app"],
     author: "@GalaxyFier",
     title: "NextRAM Whole v9.2.371-(92371)",
     preview: "New theme, liquid glass, configuration import/export, NextRAM Store, and various fixes.",
@@ -166,7 +162,6 @@ const newsData = [
     id: 6,
     date: "2025-12-10",
     category: "release",
-    tags: ["release", "update", "optimization"],
     author: "@rexamm1t",
     title: "NextRAM Fusion v9.1.280 (91280)",
     preview: "Code optimization, stability enhancements, ZRAM improvements, kernel tuning system upgrades, performance optimization, compatibility updates, API enhancements, and monitoring system upgrades.",
@@ -241,7 +236,6 @@ const newsData = [
     id: 5,
     date: "2025-12-1",
     category: "release",
-    tags: ["release", "update"],
     author: "@rexamm1t",
     title: "NextRAM v9.0.127 (90127)",
     preview: "Added time-out when selecting the configuration method. Fixed various bugs and improved stability.",
@@ -260,7 +254,6 @@ const newsData = [
     id: 4,
     date: "2025-12-1",
     category: "release",
-    tags: ["release", "major", "beta"],
     author: "@rexamm1t",
     title: "NextRAM v9.0.000 (90000) [NRAICF] (beta)",
     preview: "Major release with first C++ tool for NextRAM, complete APK redesign with Material 3, and kernel improvements.",
@@ -303,7 +296,6 @@ const newsData = [
     id: 3,
     date: "2025-11-17",
     category: "update",
-    tags: ["update", "zram"],
     author: "@rexamm1t",
     title: "NextRAM v8.5.638 (85638)",
     preview: "Reworked logic of the 'Action' button, updated NextRAM App to 8.4.201-fix, and zRAM fixes.",
@@ -330,7 +322,6 @@ const newsData = [
     id: 2,
     date: "2025-11-15",
     category: "update",
-    tags: ["update", "fix", "kernel"],
     author: "@rexamm1t",
     title: "NextRAM v8.4.201-fix (84201)",
     preview: "Fix for tuning scripts and slowed charge, zRAM custom size fix, and various bugfixes.",
@@ -354,7 +345,6 @@ const newsData = [
     id: 1,
     date: "2025-11-13",
     category: "development",
-    tags: ["development", "pre-release", "kernel"],
     author: "@rexamm1t",
     title: "NextRAM v8.3.201-pre (83201p)",
     preview: "Pre-release with support for older configurations, swapoff fixes, and smart dynamic swappiness tuning.",
