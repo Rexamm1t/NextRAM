@@ -425,7 +425,7 @@ optimize_memory_for_games() {
             fi
         fi
         
-        if validate_path "/sys/block/zram0/max_comp_streams" ] && [ -f "/proc/cpuinfo" ]; then
+        if validate_path "/sys/block/zram0/max_comp_streams" && [ -f "/proc/cpuinfo" ]; then
             local cores=$(grep -c "^processor" "/proc/cpuinfo" 2>/dev/null || echo "4")
             write_with_check "/sys/block/zram0/max_comp_streams" "$cores" "ZRAM compression streams" || log "WARN" "Failed to set ZRAM compression streams"
         fi

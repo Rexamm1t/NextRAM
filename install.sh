@@ -4,7 +4,6 @@ SKIPMOUNT=false
 PROPFILE=false
 POSTFSDATA=false
 LATESTARTSERVICE=false
-APKDIR="/data/local/tmp/apk"
 CONFIG_FILE="$MODPATH/module.prop"
 unzip -o "$ZIPFILE" 'module.prop' -d $MODPATH >&2
 
@@ -60,13 +59,13 @@ on_install() {
   ui_print "> Status   > $(awk -F= '/^status=/{print $2}' "$CONFIG_FILE")"
   ui_print "> ModName  > $(awk -F= '/^modname=/{print $2}' "$CONFIG_FILE")"
   ui_print "> Type     > $(awk -F= '/^type=/{print $2}' "$CONFIG_FILE")"
-  ui_print "+•[ 1 / 5 ]•••••••••••••••••••••[INFORMATION]••+"
+  ui_print "+•[ 1 / 4 ]•••••••••••••••••••••[INFORMATION]••+"
   ui_print " • arch    • $(uname -m)"
   ui_print " • android • $(getprop ro.build.version.release)"
   ui_print " • linux   • $(uname -r)"
   ui_print " • API     • $(getprop ro.build.version.sdk)"
   ui_print " • model   • $(getprop ro.product.model)"
-  ui_print "+•[ 2 / 5 ]•••••••••••••••••••••••[NR CONFIG]••+"
+  ui_print "+•[ 2 / 4 ]•••••••••••••••••••••••[NR CONFIG]••+"
 
   conf="/data/adb/modules/$(awk -F= '/^id=/{print $2}' "$CONFIG_FILE")/config.conf"
  
@@ -188,22 +187,19 @@ on_install() {
     done
    fi
   fi
-  ui_print "+•[ 3 / 5 ]•••••••••••••••••••••••••[Extract]••+"
+  ui_print "+•[ 3 / 4 ]•••••••••••••••••••••••••[Extract]••+"
   ui_print "•              extracting files...             •"
   ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   unzip -o "$ZIPFILE" 'main/*' -d $MODPATH >&2
-  ui_print "•   [1/4] • main* has been copied              •"
+  ui_print "•   [1/3] • main* has been copied              •"
   unzip -o "$ZIPFILE" 'system/*' -d $MODPATH >&2
-  ui_print "•   [2/4] • system* has been copied            •"
+  ui_print "•   [2/3] • system* has been copied            •"
   unzip -o "$ZIPFILE" '*.sh' -x "install.sh" -d $MODPATH >&2
-  ui_print "•   [3/4] •  the scripts were copied           •"
-  unzip -o "$ZIPFILE" 'apk/*' -d $MODPATH >&2
-  ui_print "•   [4/4] • apk* has been copied               •"
+  ui_print "•   [3/3] • the scripts were copied            •"
   ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
   ui_print "•                   * - dir                    •"
   ui_print "•           file copying is complete           •"
-  ui_print "+•[ 4 / 5 ]•••••••••••••••••••••••••••••[APK]••+"
-  
+
   find $MODPATH -type f -name "*.sh" -exec chmod 755 {} \;
   find $MODPATH/main/tools -type f -exec chmod 755 {} \;
   chmod 755 $MODPATH/system/bin/nextram 2>/dev/null
@@ -217,36 +213,7 @@ on_install() {
     ui_print "WARNING: nextramaicf not found - AICF features will be unavailable"
   fi
 
-  if [ ! -f "$MODPATH/apk/nextram.apk" ]; then
-    ui_print "ERROR: nextram.apk not found, skip..."
-  else
-   mkdir -p $APKDIR
-   cp -r $MODPATH/apk/nextram.apk $APKDIR
-   unzip -o "$ZIPFILE" 'apk/bin/aapt/*' -d $APKDIR >&2
-   chmod 775 $APKDIR/apk/bin/aapt/aapt-$(uname -m)
-
-   if [ -z "$(pm list packages | grep "com.nextram.manager")" ]; then  
-     ui_print "•          installing nextram.apk...           •"
-     ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
-     pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
-   else
-     ui_print "•     nextram.apk already exists, updating...  •"
-     ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
-     
-     pm install -r $APKDIR/nextram.apk >&2 || su -c pm install -r $APKDIR/nextram.apk >&2
-     
-     if [ $? -ne 0 ]; then
-         ui_print "•   update failed, uninstalling old version... •"
-         ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
-         pm uninstall com.nextram.manager >&2 || su -c pm uninstall com.nextram.manager >&2
-         ui_print "•           installing new version...          •"
-         ui_print "+••••••••••••••••••••••••••••••••••••••••••••••+"
-         pm install $APKDIR/nextram.apk >&2 || su -c pm install $APKDIR/nextram.apk >&2
-     fi
-   fi
-   rm -rf $APKDIR
-  fi
-  ui_print "+•[ 5 / 5 ]••••••••••••••••••••••••••••[AICF]••+"
+  ui_print "+•[ 4 / 4 ]••••••••••••••••••••••••••••[AICF]••+"
   ui_print "• generate a configuration file for your device?"
   ui_print "• Vol (+) - Yes (beta, not beautiful)          •"
   ui_print "• Vol (-) - No (standard cfg, existing)        •"

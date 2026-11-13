@@ -1,3 +1,16 @@
+## NextRAM 9.4.1
+
+ru:
+- Это последняя версия NextRAM в виде bash-монолит модуля. Мы приступили к рефакторингу (на Rust),
+проект снова жив и поддерживается, кризис пройден.
+en:
+- This is the latest version of NextRAM as a monolithic bash module. We've begun refactoring (to Rust),
+the project is alive and well again, and the crisis is over.
+___
+Telegram: https://t.me/nextram_official
+Web Site: https://nextram.cocal.ru
+___
+
 ## NextRAM Play Fix 9.3.981
 
 [CODE OPTIMIZATION]
